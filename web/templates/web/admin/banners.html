@@ -1,0 +1,534 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SSD Nursery | Banners</title>
+
+    <!-- Premium Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+        /* ================= DESIGN SYSTEM (MATCHING DASHBOARD) ================= */
+        :root {
+            --bg-body: #F5F5F7;
+            --bg-surface: #FFFFFF;
+            --text-primary: #1D1D1F;
+            --text-secondary: #86868B;
+            --accent-color: #1F5132;
+            --accent-light: #E8F0EA;
+            --border-color: rgba(0, 0, 0, 0.05);
+            
+            --danger-color: #DC2626;
+            --danger-light: #FEF2F2;
+            
+            --font-sans: 'Inter', -apple-system, sans-serif;
+            --font-serif: 'Playfair Display', serif;
+            
+            --sidebar-width: 260px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --shadow-sm: 0 4px 24px rgba(0, 0, 0, 0.04);
+            --shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.1);
+            --transition-fast: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* ================= RESET & BASE ================= */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        a { text-decoration: none; color: inherit; }
+        button { background: none; border: none; cursor: pointer; }
+
+        /* ================= LAYOUT ================= */
+        .admin-layout { display: flex; min-height: 100vh; }
+
+        /* ================= SIDEBAR ================= */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-surface);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            transition: transform var(--transition-fast);
+            will-change: transform;
+        }
+
+        .sidebar-header {
+            padding: 32px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--font-serif);
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .brand-logo { width: 36px; height: 36px; object-fit: contain; border-radius: 8px; }
+        .close-sidebar { display: none; font-size: 1.2rem; color: var(--text-secondary); }
+
+        .nav-menu {
+            display: flex; flex-direction: column; gap: 4px;
+            padding: 0 16px; overflow-y: auto; flex: 1;
+        }
+
+        .nav-link {
+            display: flex; align-items: center; gap: 16px;
+            padding: 12px 16px; border-radius: 12px;
+            color: var(--text-secondary); font-size: 0.95rem; font-weight: 500;
+            transition: all var(--transition-fast);
+        }
+
+        .nav-link i { font-size: 1.1rem; width: 20px; text-align: center; }
+        .nav-link:hover { background-color: var(--bg-body); color: var(--text-primary); }
+        
+        .nav-link.active {
+            background-color: var(--accent-light);
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .sidebar-footer { padding: 24px 16px; border-top: 1px solid var(--border-color); }
+
+        /* ================= MAIN CONTENT ================= */
+        .main-content {
+            flex: 1; margin-left: var(--sidebar-width);
+            padding: 40px; display: flex; flex-direction: column; gap: 32px;
+            width: calc(100% - var(--sidebar-width));
+        }
+
+        /* Header */
+        .top-header { display: flex; justify-content: space-between; align-items: center; }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .page-title { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.5px; }
+        .mobile-toggle { display: none; font-size: 1.5rem; color: var(--text-primary); padding: 8px; }
+
+        .btn-primary {
+            background: #111111; color: var(--bg-surface);
+            padding: 12px 24px; border-radius: 100px;
+            font-size: 0.95rem; font-weight: 500;
+            display: flex; align-items: center; gap: 8px;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .btn-primary:active { transform: scale(0.96); }
+        .btn-primary:hover { background: #222222; }
+
+        /* ================= DATA TABLE CARD ================= */
+        .data-card {
+            background: var(--bg-surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            opacity: 0; transform: translateY(20px);
+            animation: fadeUp 0.6s var(--transition-fast) forwards;
+            will-change: transform, opacity;
+        }
+
+        .table-responsive { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; text-align: left; }
+        
+        th {
+            padding: 20px 24px; color: var(--text-secondary);
+            font-size: 0.85rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);
+            background: #FAFAFA;
+        }
+
+        td {
+            padding: 16px 24px; font-size: 0.95rem; color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color); vertical-align: middle;
+            transition: background var(--transition-fast);
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: #FAFAFA; }
+
+        /* Banner Specific Styles */
+        .banner-preview {
+            width: 140px; height: 60px; border-radius: 8px;
+            object-fit: cover; border: 1px solid rgba(0,0,0,0.05); background: #FAFAFA;
+        }
+        
+        .banner-placeholder {
+            width: 140px; height: 60px; border-radius: 8px; background: #F3F4F6;
+            display: flex; align-items: center; justify-content: center; color: #9CA3AF;
+        }
+
+        .text-bold { font-weight: 600; color: var(--text-primary); }
+
+        /* Banner Status/Type Badges */
+        .status-badge {
+            padding: 6px 14px; border-radius: 100px; font-size: 0.75rem;
+            font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        
+        .badge-slider { background: #EFF6FF; color: #3B82F6; }
+        .badge-offer { background: var(--danger-light); color: var(--danger-color); }
+        .badge-festival { background: #F5F3FF; color: #8B5CF6; }
+
+        .btn-icon-danger {
+            width: 36px; height: 36px; border-radius: 10px;
+            display: inline-flex; align-items: center; justify-content: center;
+            color: var(--text-secondary); transition: all 0.2s;
+        }
+        .btn-icon-danger:hover { background: var(--danger-light); color: var(--danger-color); }
+
+        /* ================= MODAL ================= */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);
+            z-index: 999; display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease; padding: 20px;
+        }
+
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .modal-card {
+            background: var(--bg-surface); width: 100%; max-width: 500px;
+            border-radius: var(--radius-lg); box-shadow: var(--shadow-modal);
+            transform: translateY(20px) scale(0.95); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex; flex-direction: column; overflow: hidden; max-height: 90vh;
+        }
+
+        .modal-overlay.active .modal-card { transform: translateY(0) scale(1); }
+
+        .modal-header {
+            padding: 24px; border-bottom: 1px solid var(--border-color);
+            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+        }
+        .modal-header h2 { font-size: 1.25rem; font-weight: 600; }
+        .close-modal { color: var(--text-secondary); font-size: 1.25rem; transition: color 0.2s; }
+        .close-modal:hover { color: var(--text-primary); }
+
+        .modal-scroll-area { overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+        
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-group label {
+            font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        
+        .form-control {
+            padding: 12px 16px; border: 1.5px solid var(--border-color);
+            border-radius: var(--radius-md); font-family: inherit; font-size: 0.95rem;
+            transition: all 0.2s; background: #FAFAFA; width: 100%; color: var(--text-primary);
+        }
+        .form-control:focus { outline: none; border-color: var(--accent-color); background: var(--bg-surface); }
+        select.form-control { appearance: none; cursor: pointer; }
+
+        .file-drop-area {
+            border: 2px dashed var(--border-color); border-radius: var(--radius-md);
+            padding: 32px 24px; text-align: center; background: #FAFAFA;
+            cursor: pointer; transition: all 0.2s; position: relative;
+        }
+        .file-drop-area:hover { border-color: var(--accent-color); background: var(--accent-light); }
+        .file-drop-area i { font-size: 1.8rem; color: var(--text-secondary); margin-bottom: 8px; transition: color 0.2s; }
+        .file-drop-area:hover i { color: var(--accent-color); }
+        .file-drop-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+        .modal-footer {
+            padding: 20px 24px; border-top: 1px solid var(--border-color);
+            background: #FAFAFA; display: flex; justify-content: flex-end; gap: 12px; flex-shrink: 0;
+        }
+
+        .btn-cancel { padding: 10px 20px; font-weight: 500; color: var(--text-secondary); transition: color 0.2s; }
+        .btn-cancel:hover { color: var(--text-primary); }
+
+        @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+        /* ================= RESPONSIVE ================= */
+        .sidebar-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.2);
+            backdrop-filter: blur(4px); z-index: 90; opacity: 0; transition: opacity var(--transition-fast);
+        }
+
+        @media (max-width: 1024px) {
+            .main-content { padding: 32px 24px; }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.active { transform: translateX(0); }
+            .sidebar-overlay.active { display: block; opacity: 1; }
+            .main-content { margin-left: 0; width: 100%; padding: 24px 16px; }
+            .close-sidebar { display: block; }
+            .mobile-toggle { display: block; }
+            .page-title { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="admin-layout">
+        
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="#" class="brand">
+                    <img src="{% static 'images/logo.png' %}" alt="SSD Nursery Logo" class="brand-logo">
+                    <span>SSD Nursery</span>
+                </a>
+                <button class="close-sidebar" id="closeSidebar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="/dashboard/" class="nav-link">
+                    <i class="fa-solid fa-chart-line"></i> Dashboard
+                </a>
+                <a href="/dashboard/users/" class="nav-link">
+                    <i class="fa-solid fa-users"></i> Users
+                </a>
+                <a href="/dashboard/categories/" class="nav-link">
+                    <i class="fa-solid fa-list"></i> Categories
+                </a>
+                <a href="/dashboard/products/" class="nav-link">
+                    <i class="fa-solid fa-seedling"></i> Products
+                </a>
+                <a href="/dashboard/orders/" class="nav-link">
+                    <i class="fa-solid fa-box"></i> Orders
+                </a>
+                <a href="/dashboard/coupons/" class="nav-link">
+                    <i class="fa-solid fa-tags"></i> Coupons
+                </a>
+                <a href="/dashboard/reviews/" class="nav-link">
+                    <i class="fa-solid fa-star"></i> Reviews
+                </a>
+                <!-- Active Link is on Banners -->
+                <a href="/dashboard/banners/" class="nav-link active">
+                    <i class="fa-solid fa-images"></i> Banners
+                </a>
+                 
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="/admin/" class="nav-link">
+                    <i class="fa-solid fa-shield-halved"></i> Django Admin
+                </a>
+                <a href="/logout/" class="nav-link" style="color: #DC2626;">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="main-content">
+            
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="mobile-toggle" id="openSidebar">
+                        <i class="fa-solid fa-bars-staggered"></i>
+                    </button>
+                    <h1 class="page-title">Banners Management</h1>
+                </div>
+                
+                <button class="btn-primary" id="openModalBtn">
+                    <i class="fa-solid fa-plus"></i> New Banner
+                </button>
+            </header>
+
+            <!-- Data Table Card -->
+            <section class="data-card">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Preview</th>
+                                <th>Title</th>
+                                <th>Display Type</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for banner in banners %}
+                            <tr>
+                                <td style="color: var(--text-secondary);">#{{ banner.id }}</td>
+                                
+                                <td>
+                                    {% if banner.image %}
+                                        <img src="{{ banner.image.url }}" alt="{{ banner.title }}" class="banner-preview">
+                                    {% else %}
+                                        <div class="banner-placeholder"><i class="fa-solid fa-image"></i></div>
+                                    {% endif %}
+                                </td>
+                                
+                                <td class="text-bold">{{ banner.title|default:"Untitled Banner" }}</td>
+                                
+                                <td>
+                                    {% if banner.banner_type == 'SLIDER' %}
+                                        <span class="status-badge badge-slider">Slider</span>
+                                    {% elif banner.banner_type == 'OFFER' %}
+                                        <span class="status-badge badge-offer">Offer</span>
+                                    {% elif banner.banner_type == 'FESTIVAL' %}
+                                        <span class="status-badge badge-festival">Festival</span>
+                                    {% else %}
+                                        <span class="status-badge" style="background: #F3F4F6; color: #6B7280;">{{ banner.banner_type }}</span>
+                                    {% endif %}
+                                </td>
+                                
+                                <td style="text-align: right;">
+                                    <a href="{% url 'delete_banner' banner.id %}" class="btn-icon-danger" title="Delete Banner">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 60px; color: var(--text-secondary);">
+                                    <i class="fa-regular fa-images" style="font-size: 2rem; margin-bottom: 12px; opacity: 0.3;"></i>
+                                    <br>No banners have been uploaded yet.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+        </main>
+    </div>
+
+    <!-- Hidden Modal for Adding Banners -->
+    <div class="modal-overlay" id="createModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>Upload New Banner</h2>
+                <button class="close-modal" id="closeModalBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form method="POST" action="{% url 'add_banner' %}" enctype="multipart/form-data" style="display: flex; flex-direction: column; min-height: 0;">
+                {% csrf_token %}
+                
+                <div class="modal-scroll-area">
+                    
+                    <div class="form-group">
+                        <label>Banner Title</label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g. Spring Sale Highlights">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Banner Type</label>
+                        <select name="banner_type" class="form-control">
+                            <option value="SLIDER">Homepage Slider</option>
+                            <option value="OFFER">Offer/Promotional</option>
+                            <option value="FESTIVAL">Festival Special</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Banner Graphic</label>
+                        <div class="file-drop-area">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <div style="font-weight: 500; color: var(--text-primary); margin-bottom: 4px;" id="fileNameDisplay">Click to upload or drag image</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">High-resolution landscape images recommended</div>
+                            <input type="file" name="image" id="fileInput" accept="image/*" required>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" id="cancelBtn">Cancel</button>
+                    <button type="submit" class="btn-primary" style="padding: 10px 24px; border-radius: 8px;">Upload Banner</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Interactive Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Sidebar Logic
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const openSidebarBtn = document.getElementById('openSidebar');
+            const closeSidebarBtn = document.getElementById('closeSidebar');
+
+            const toggleSidebar = (force) => {
+                const isActive = sidebar.classList.contains('active');
+                if (force === true || (!isActive && force !== false)) {
+                    sidebar.classList.add('active');
+                    sidebarOverlay.classList.add('active');
+                    document.body.style.overflow = 'hidden'; 
+                } else {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            };
+
+            if(openSidebarBtn) openSidebarBtn.addEventListener('click', () => toggleSidebar(true));
+            if(closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => toggleSidebar(false));
+            if(sidebarOverlay) sidebarOverlay.addEventListener('click', () => toggleSidebar(false));
+
+            // Modal Logic
+            const modal = document.getElementById('createModal');
+            const openModalBtn = document.getElementById('openModalBtn');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+
+            const openModal = () => {
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            };
+            const closeModal = () => {
+                modal.classList.remove('active');
+                document.body.style.overflow = '';
+            };
+
+            if(openModalBtn) openModalBtn.addEventListener('click', openModal);
+            if(closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+            if(cancelBtn) cancelBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+
+            // File Upload Display
+            const fileInput = document.getElementById('fileInput');
+            const fileNameDisplay = document.getElementById('fileNameDisplay');
+            
+            if(fileInput && fileNameDisplay) {
+                fileInput.addEventListener('change', function(e) {
+                    if(e.target.files.length > 0) {
+                        fileNameDisplay.textContent = e.target.files[0].name;
+                        fileNameDisplay.style.color = 'var(--accent-color)';
+                    } else {
+                        fileNameDisplay.textContent = 'Click to upload or drag image';
+                        fileNameDisplay.style.color = 'var(--text-primary)';
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

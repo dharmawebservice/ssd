@@ -18,6 +18,15 @@
 </head>
 <body>
 
+    {% if notifications %}
+    <div class="offer-strip" style="background:#1f5132; color:white; padding:10px; text-align:center; font-weight:600;">
+        {% for note in notifications %}
+            <span>{{ note.title }}</span>
+            {% if not forloop.last %} | {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <nav class="navbar" id="navbar">
         <div class="logo">
             <img src="{% static 'images/logo.png' %}" alt="SSD Nursery Logo" class="brand-logo">
@@ -46,52 +55,31 @@
                 <div class="dropdown-menu" id="profileMenu">
 
                     {% if request.user.is_authenticated %}
-
                         {% if request.user.is_superuser %}
-
-                            <a href="/admin/">
-                                <i class="fas fa-chart-line"></i>
-                                Dashboard
+                            <a href="{% url 'admin_dashboard' %}">
+                                <i class="fas fa-chart-line"></i> Dashboard
                             </a>
-
                             <a href="{% url 'logout_user' %}">
-                                <i class="fas fa-sign-out-alt"></i>
-                                Logout
+                                <i class="fas fa-sign-out-alt"></i> Logout
                             </a>
-
                         {% else %}
-
                             <div class="user-info">
-                                Welcome,
-                                <strong>
-                                    {{ request.user.first_name|default:request.user.username }}
-                                </strong>
+                                Welcome, <strong>{{ request.user.first_name|default:request.user.username }}</strong>
                             </div>
-
                             <a href="{% url 'profile' %}">
-                                <i class="fas fa-user-circle"></i>
-                                My Profile
+                                <i class="fas fa-user-circle"></i> My Profile
                             </a>
-
                             <a href="{% url 'logout_user' %}">
-                                <i class="fas fa-sign-out-alt"></i>
-                                Logout
+                                <i class="fas fa-sign-out-alt"></i> Logout
                             </a>
-
                         {% endif %}
-
                     {% else %}
-
                         <a href="{% url 'auth' %}?tab=login">
-                            <i class="fas fa-sign-in-alt"></i>
-                            Login
+                            <i class="fas fa-sign-in-alt"></i> Login
                         </a>
-
                         <a href="{% url 'auth' %}?tab=signup">
-                            <i class="fas fa-user-plus"></i>
-                            Sign Up
+                            <i class="fas fa-user-plus"></i> Sign Up
                         </a>
-
                     {% endif %}
 
                 </div>
@@ -113,11 +101,6 @@
             <div class="hero-cta">
                 <button class="btn-primary">Shop Collection <i class="fas fa-arrow-right"></i></button>
                 <div class="trust-badges">
-                    <div class="avatars">
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100" alt="Customer">
-                        <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100" alt="Customer">
-                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100" alt="Customer">
-                    </div>
                     <span>Loved by 10k+ plant parents</span>
                 </div>
             </div>
@@ -125,7 +108,13 @@
 
         <div class="hero-visual">
             <div class="organic-blob"></div>
-            <img src="https://images.unsplash.com/photo-1599598425947-330026206a05?w=800&auto=format&fit=crop" alt="Monstera Plant" class="floating-plant">
+            {% if banners %}
+                {% if banners.0.image %}
+                <img src="{{ banners.0.image.url }}" alt="{{ banners.0.title }}" class="floating-plant">
+                {% endif %}
+            {% else %}
+                <img src="{% static 'images/default-banner.jpg' %}" alt="Monstera Plant" class="floating-plant">
+            {% endif %}
         </div>
     </header>
 
@@ -136,26 +125,19 @@
         </div>
 
         <div class="category-wrapper">
+            {% for category in categories %}
             <div class="cat-card">
-                <div class="cat-icon"><i class="fa-solid fa-house-chimney-window"></i></div>
-                <h3>Low Light</h3>
-                <p>Thrives in the shade</p>
+                {% if category.image %}
+                    <img src="{{ category.image.url }}" alt="{{ category.name }}" style="width:80px; height:80px; object-fit:cover; border-radius:50%; margin-bottom:15px;">
+                {% else %}
+                    <div class="cat-icon"><i class="fa-solid fa-leaf"></i></div>
+                {% endif %}
+                <h3>{{ category.name }}</h3>
+                <p>{{ category.description|truncatechars:50 }}</p>
             </div>
-            <div class="cat-card">
-                <div class="cat-icon"><i class="fa-solid fa-paw"></i></div>
-                <h3>Pet Friendly</h3>
-                <p>Safe for furry friends</p>
-            </div>
-            <div class="cat-card">
-                <div class="cat-icon"><i class="fa-solid fa-droplet"></i></div>
-                <h3>Easy Care</h3>
-                <p>For absolute beginners</p>
-            </div>
-            <div class="cat-card">
-                <div class="cat-icon"><i class="fa-solid fa-seedling"></i></div>
-                <h3>Rare Finds</h3>
-                <p>Collector's editions</p>
-            </div>
+            {% empty %}
+                <p>No Categories Available</p>
+            {% endfor %}
         </div>
     </section>
 
@@ -166,40 +148,67 @@
         </div>
 
         <div class="product-grid">
+            {% for product in products %}
             <div class="product-card">
                 <div class="img-container">
-                    <span class="badge">Bestseller</span>
-                    <img src="https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=600" alt="Ficus Lyrata">
-                    <button class="quick-add"><i class="fas fa-plus"></i></button>
-                </div>
-                <div class="product-info">
-                    <h3>Ficus Lyrata</h3>
-                    <p class="price">₹799 <span class="old-price">₹999</span></p>
-                </div>
-            </div>
+                    {% if product.offer_price %}
+                    <span class="badge">SALE</span>
+                    {% endif %}
+                    
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                    {% endif %}
 
-            <div class="product-card">
-                <div class="img-container">
-                    <img src="https://images.unsplash.com/photo-1600411324765-b1a77fb4b2b6?w=600" alt="Snake Plant">
-                    <button class="quick-add"><i class="fas fa-plus"></i></button>
+                    <button class="quick-add" data-product="{{ product.id }}">
+                        <i class="fas fa-plus"></i>
+                    </button>
                 </div>
                 <div class="product-info">
-                    <h3>Sansevieria</h3>
-                    <p class="price">₹349</p>
+                    <h3>{{ product.name }}</h3>
+                    <p class="price">
+                        {% if product.offer_price %}
+                            ₹{{ product.offer_price }}
+                            <span class="old-price">₹{{ product.price }}</span>
+                        {% else %}
+                            ₹{{ product.price }}
+                        {% endif %}
+                    </p>
+                    <small style="color: #718096; font-size: 0.85rem;">Stock: {{ product.stock }}</small>
                 </div>
             </div>
+            {% empty %}
+                <p>No Products Available</p>
+            {% endfor %}
+        </div>
+    </section>
 
+    <section class="featured-shop">
+        <div class="section-header center-mobile">
+            <h2>Customer Reviews</h2>
+        </div>
+
+        <div class="product-grid">
+            {% for review in reviews %}
             <div class="product-card">
-                <div class="img-container">
-                    <span class="badge rare">Rare</span>
-                    <img src="https://images.unsplash.com/photo-1611145367651-6302b46e87bc?w=600" alt="Monstera Deliciosa">
-                    <button class="quick-add"><i class="fas fa-plus"></i></button>
-                </div>
-                <div class="product-info">
-                    <h3>Monstera Deliciosa</h3>
-                    <p class="price">₹899</p>
+                <div class="product-info" style="justify-content: flex-start; gap: 10px;">
+                    <h3>{{ review.user.first_name }}</h3>
+                    <p style="color: #FFD700; margin: 0; font-size: 0.9rem;">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= review.rating %}
+                                <i class="fas fa-star"></i>
+                            {% else %}
+                                <i class="far fa-star"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </p>
+                    <p style="color: #718096; font-size: 0.95rem; line-height: 1.5;">
+                        {{ review.review }}
+                    </p>
                 </div>
             </div>
+            {% empty %}
+                <p>No reviews available yet.</p>
+            {% endfor %}
         </div>
     </section>
 
@@ -207,7 +216,6 @@
     <script>
         const defaultTab = "{{ request.GET.tab|default:'login' }}";
     </script>
-
     <script src="{% static 'js/auth.js' %}"></script>
 </body>
 </html>

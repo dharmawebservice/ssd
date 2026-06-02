@@ -1,0 +1,414 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SSD Nursery | Orders</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+        /* ================= DESIGN SYSTEM (MATCHING DASHBOARD) ================= */
+        :root {
+            --bg-body: #F5F5F7;
+            --bg-surface: #FFFFFF;
+            --text-primary: #1D1D1F;
+            --text-secondary: #86868B;
+            --accent-color: #1F5132;
+            --accent-light: #E8F0EA;
+            --border-color: rgba(0, 0, 0, 0.05);
+            
+            --danger-color: #DC2626;
+            --danger-light: #FEF2F2;
+            
+            --font-sans: 'Inter', -apple-system, sans-serif;
+            --font-serif: 'Playfair Display', serif;
+            
+            --sidebar-width: 260px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --shadow-sm: 0 4px 24px rgba(0, 0, 0, 0.04);
+            --transition-fast: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* ================= RESET & BASE ================= */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        a { text-decoration: none; color: inherit; }
+        button { background: none; border: none; cursor: pointer; }
+
+        /* ================= LAYOUT ================= */
+        .admin-layout { display: flex; min-height: 100vh; }
+
+        /* ================= SIDEBAR ================= */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-surface);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            transition: transform var(--transition-fast);
+            will-change: transform;
+        }
+
+        .sidebar-header {
+            padding: 32px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--font-serif);
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .brand-logo { width: 36px; height: 36px; object-fit: contain; border-radius: 8px; }
+        .close-sidebar { display: none; font-size: 1.2rem; color: var(--text-secondary); }
+
+        .nav-menu {
+            display: flex; flex-direction: column; gap: 4px;
+            padding: 0 16px; overflow-y: auto; flex: 1;
+        }
+
+        .nav-link {
+            display: flex; align-items: center; gap: 16px;
+            padding: 12px 16px; border-radius: 12px;
+            color: var(--text-secondary); font-size: 0.95rem; font-weight: 500;
+            transition: all var(--transition-fast);
+        }
+
+        .nav-link i { font-size: 1.1rem; width: 20px; text-align: center; }
+        .nav-link:hover { background-color: var(--bg-body); color: var(--text-primary); }
+        
+        .nav-link.active {
+            background-color: var(--accent-light);
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .sidebar-footer { padding: 24px 16px; border-top: 1px solid var(--border-color); }
+
+        /* ================= MAIN CONTENT ================= */
+        .main-content {
+            flex: 1; margin-left: var(--sidebar-width);
+            padding: 40px; display: flex; flex-direction: column; gap: 32px;
+            width: calc(100% - var(--sidebar-width));
+        }
+
+        /* Header */
+        .top-header { display: flex; justify-content: space-between; align-items: center; }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .page-title { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.5px; }
+        .mobile-toggle { display: none; font-size: 1.5rem; color: var(--text-primary); padding: 8px; }
+
+        /* ================= DATA TABLE CARD ================= */
+        .data-card {
+            background: var(--bg-surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            opacity: 0; transform: translateY(20px);
+            animation: fadeUp 0.6s var(--transition-fast) forwards;
+            will-change: transform, opacity;
+        }
+
+        .table-responsive { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; text-align: left; }
+        
+        th {
+            padding: 20px 24px; color: var(--text-secondary);
+            font-size: 0.85rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);
+            background: #FAFAFA;
+        }
+
+        td {
+            padding: 16px 24px; font-size: 0.95rem; color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color); vertical-align: middle;
+            transition: background var(--transition-fast);
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: #FAFAFA; }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 6px 14px; border-radius: 100px; font-size: 0.75rem;
+            font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        
+        .badge-pending { background: #FFFBEB; color: #D97706; }
+        .badge-confirmed, .badge-packed, .badge-shipped { background: #EFF6FF; color: #3B82F6; }
+        .badge-delivered { background: #E6F4EA; color: #1E8E3E; }
+        .badge-cancelled { background: var(--danger-light); color: var(--danger-color); }
+        .status-badge i { font-size: 0.4rem; }
+
+        /* Inline Form Elements */
+        .inline-action-form {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .form-select-sm {
+            padding: 8px 32px 8px 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            background: var(--bg-body) url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2386868B%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E') no-repeat right 12px top 50%;
+            background-size: 10px auto;
+            appearance: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .form-select-sm:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            background-color: var(--bg-surface);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+
+        .btn-dark-sm {
+            background: #111111;
+            color: var(--bg-surface);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .btn-dark-sm:active { transform: scale(0.95); }
+        .btn-dark-sm:hover { background: #222222; }
+
+        @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+        /* ================= RESPONSIVE ================= */
+        .sidebar-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.2);
+            backdrop-filter: blur(4px); z-index: 90; opacity: 0; transition: opacity var(--transition-fast);
+        }
+
+        @media (max-width: 1024px) {
+            .main-content { padding: 32px 24px; }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.active { transform: translateX(0); }
+            .sidebar-overlay.active { display: block; opacity: 1; }
+            .main-content { margin-left: 0; width: 100%; padding: 24px 16px; }
+            .close-sidebar { display: block; }
+            .mobile-toggle { display: block; }
+            .page-title { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="admin-layout">
+        
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="#" class="brand">
+                    <img src="{% static 'images/logo.png' %}" alt="SSD Nursery Logo" class="brand-logo">
+                    <span>SSD Nursery</span>
+                </a>
+                <button class="close-sidebar" id="closeSidebar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="/dashboard/" class="nav-link">
+                    <i class="fa-solid fa-chart-line"></i> Dashboard
+                </a>
+                <a href="/dashboard/users/" class="nav-link">
+                    <i class="fa-solid fa-users"></i> Users
+                </a>
+                <a href="/dashboard/categories/" class="nav-link">
+                    <i class="fa-solid fa-list"></i> Categories
+                </a>
+                <a href="/dashboard/products/" class="nav-link">
+                    <i class="fa-solid fa-seedling"></i> Products
+                </a>
+                <a href="/dashboard/orders/" class="nav-link active">
+                    <i class="fa-solid fa-box"></i> Orders
+                </a>
+                <a href="/dashboard/coupons/" class="nav-link">
+                    <i class="fa-solid fa-tags"></i> Coupons
+                </a>
+                <a href="/dashboard/reviews/" class="nav-link">
+                    <i class="fa-solid fa-star"></i> Reviews
+                </a>
+                <a href="/dashboard/banners/" class="nav-link">
+                    <i class="fa-solid fa-images"></i> Banners
+                </a>
+                 
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="/admin/" class="nav-link">
+                    <i class="fa-solid fa-shield-halved"></i> Django Admin
+                </a>
+                <a href="/logout/" class="nav-link" style="color: #DC2626;">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="mobile-toggle" id="openSidebar">
+                        <i class="fa-solid fa-bars-staggered"></i>
+                    </button>
+                    <h1 class="page-title">Order Management</h1>
+                </div>
+            </header>
+
+            <section class="data-card">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Payment</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td style="font-weight: 500; color: var(--text-secondary);">#{{ order.id }}</td>
+                                
+                                <td style="font-weight: 600;">
+                                    {{ order.user.first_name|default:"Guest" }}
+                                </td>
+                                
+                                <td>
+                                    <div style="font-family: var(--font-serif); font-size: 1.05rem; font-style: italic; color: var(--accent-color); font-weight: 600;">
+                                        ₹{{ order.total_amount }}
+                                    </div>
+                                </td>
+                                
+                                <td style="color: var(--text-secondary);">
+                                    <i class="fa-regular fa-credit-card" style="margin-right: 6px; font-size: 0.8rem;"></i>
+                                    {{ order.payment_method }}
+                                </td>
+                                
+                                <td style="color: var(--text-secondary);">
+                                    {{ order.created_at|date:"M d, Y" }}
+                                </td>
+                                
+                                <td>
+                                    {% if order.status == 'Pending' %}
+                                        <span class="status-badge badge-pending"><i class="fa-solid fa-circle"></i> Pending</span>
+                                    {% elif order.status == 'Confirmed' or order.status == 'Packed' or order.status == 'Shipped' %}
+                                        <span class="status-badge badge-confirmed"><i class="fa-solid fa-circle"></i> {{ order.status }}</span>
+                                    {% elif order.status == 'Delivered' %}
+                                        <span class="status-badge badge-delivered"><i class="fa-solid fa-circle"></i> Delivered</span>
+                                    {% elif order.status == 'Cancelled' %}
+                                        <span class="status-badge badge-cancelled"><i class="fa-solid fa-circle"></i> Cancelled</span>
+                                    {% else %}
+                                        <span class="status-badge" style="background: #F3F4F6; color: #6B7280;"><i class="fa-solid fa-circle"></i> {{ order.status }}</span>
+                                    {% endif %}
+                                </td>
+                                
+                                <td>
+                                    <form method="POST" action="{% url 'update_order_status' order.id %}" class="inline-action-form">
+                                        {% csrf_token %}
+                                        <select name="status" class="form-select-sm">
+                                            <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                            <option value="Confirmed" {% if order.status == 'Confirmed' %}selected{% endif %}>Confirmed</option>
+                                            <option value="Packed" {% if order.status == 'Packed' %}selected{% endif %}>Packed</option>
+                                            <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                                            <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                            <option value="Cancelled" {% if order.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                                        </select>
+                                        <button type="submit" class="btn-dark-sm">Update</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 60px; color: var(--text-secondary);">
+                                    <i class="fa-solid fa-box-open" style="font-size: 2rem; margin-bottom: 12px; opacity: 0.3;"></i>
+                                    <br>No orders have been placed yet.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Sidebar Logic
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const openSidebarBtn = document.getElementById('openSidebar');
+            const closeSidebarBtn = document.getElementById('closeSidebar');
+
+            const toggleSidebar = (force) => {
+                const isActive = sidebar.classList.contains('active');
+                if (force === true || (!isActive && force !== false)) {
+                    sidebar.classList.add('active');
+                    sidebarOverlay.classList.add('active');
+                    document.body.style.overflow = 'hidden'; 
+                } else {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            };
+
+            if(openSidebarBtn) openSidebarBtn.addEventListener('click', () => toggleSidebar(true));
+            if(closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => toggleSidebar(false));
+            if(sidebarOverlay) sidebarOverlay.addEventListener('click', () => toggleSidebar(false));
+        });
+    </script>
+</body>
+</html>

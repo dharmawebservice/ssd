@@ -233,8 +233,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     const response = await fetch(`/reverse-geocode/?lat=${lat}&lon=${lon}`);
                     const result = await response.json();
 
-                    if (result.success) {
-                        document.getElementById("pincode").value = result.pincode || "";
+                        if (result.success) {
+                                                if(result.pincode){
+
+                            document.getElementById("pincode").value =
+                                result.pincode;
+
+                        }else{
+
+                            showToast(
+                                "Location found. Please enter pincode manually."
+                            );
+                        }
                         document.getElementById("state").value = result.state || "";
                         document.getElementById("city").value = result.city || "";
                         document.getElementById("area").value = result.area || "";
