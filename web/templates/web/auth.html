@@ -1,0 +1,251 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Account | SSD Nursery</title>
+
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    <link rel="icon" href="{% static 'images/favicon.png' %}">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+</head>
+<body>
+
+    <div id="custom-toast" class="toast-notification">
+        <i class="fas fa-exclamation-circle" id="toast-icon"></i>
+        <span id="toast-message">Message goes here</span>
+    </div>
+
+    <div class="auth-layout scroll-locked" id="auth-layout">
+        
+        <div class="auth-banner">
+            <div class="banner-overlay"></div>
+            <div class="banner-content">
+                <div class="logo-wrapper">
+                    <img src="{% static 'images/logo.png' %}" alt="SSD Nursery Logo">
+                </div>
+                <h1>Welcome to SSD Nursery</h1>
+                <p>Cultivate your space with our curated collection of healthy, beautiful plants delivered directly to your door.</p>
+            </div>
+        </div>
+
+        <div class="auth-content">
+            <div class="form-wrapper">
+                
+                <div class="auth-tabs" id="auth-tabs">
+                    <button class="tab-btn active" data-target="login">Sign In</button>
+                    <button class="tab-btn" data-target="signup">Create Account</button>
+                </div>
+
+                <div class="forms-container">
+
+                    <form id="login" class="form-step active" novalidate>
+                        {% csrf_token %}
+                        <div class="form-header">
+                            <h2>Welcome Back</h2>
+                            <p>Enter your details to access your account.</p>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Email Address</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-envelope"></i>
+                                <input type="email" name="email" placeholder="you@example.com" required>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Password</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" name="password" placeholder="••••••••" required>
+                                <i class="fas fa-eye password-toggle"></i>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <label class="checkbox-container">
+                                <input type="checkbox">
+                                <span class="checkmark"></span>
+                                Remember me
+                            </label>
+                            <a href="#" class="forgot-link">Forgot password?</a>
+                        </div>
+
+                        <button type="submit" class="btn-primary" id="login-btn">
+                            <span class="btn-text">Sign In</span>
+                            <i class="fas fa-spinner fa-spin hidden"></i>
+                        </button>
+                    </form>
+
+                    <form id="signup" class="form-step exit-right" novalidate>
+                        {% csrf_token %}
+                        <div class="form-header">
+                            <h2>Join the Community</h2>
+                            <p>Create an account to track orders and save favorites.</p>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Full Name</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-user"></i>
+                                <input type="text" id="reg-fullname" name="fullname" placeholder="John Doe" minlength="3" maxlength="50" pattern="[A-Za-z ]+" required>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Email Address</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-envelope"></i>
+                                <input type="email" id="signup-email" name="email" placeholder="you@example.com" maxlength="100" required>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Phone Number</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-phone"></i>
+                                <input type="tel" id="phone" name="phone" placeholder="9876543210" maxlength="10" pattern="[6-9][0-9]{9}" required>
+                            </div>
+                        </div>
+
+                        <div class="input-group" style="margin-bottom: 5px;">
+                            <label>Create Password</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="reg-pass" name="password" placeholder="••••••••" minlength="8" maxlength="30" required>
+                                <i class="fas fa-eye password-toggle"></i>
+                            </div>
+                        </div>
+                        <small class="helper-text">Password must contain: 1 uppercase, 1 lowercase, 1 number, 1 special character</small>
+
+                        <div class="input-group">
+                            <label>Confirm Password</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-check-circle"></i>
+                                <input type="password" id="reg-confirm-pass" name="confirm_password" placeholder="••••••••" required>
+                                <i class="fas fa-eye password-toggle"></i>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary" id="signup-btn">
+                            <span class="btn-text">Create Account</span>
+                            <i class="fas fa-spinner fa-spin hidden"></i>
+                        </button>
+                    </form>
+
+                    <form id="verify" class="form-step exit-right" novalidate>
+                        {% csrf_token %}
+                        <div class="form-header center-header">
+                            <div class="icon-circle">
+                                <i class="fas fa-envelope-open-text"></i>
+                            </div>
+                            <h2>Verify your Email</h2>
+                            <p>We've sent a 6-digit code to <br><strong id="display-email">your email</strong>.</p>
+                        </div>
+
+                        <div class="otp-container">
+                            <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" required>
+                            <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" required>
+                            <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" required>
+                            <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" required>
+                            <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" required>
+                            <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" required>
+                        </div>
+
+                        <div class="form-actions center-actions">
+                            <p class="resend-text">Didn't receive a code? <a href="#" id="resend-link">Resend</a></p>
+                        </div>
+
+                        <button type="submit" class="btn-primary" id="verify-btn">
+                            <span class="btn-text">Verify & Proceed</span>
+                            <i class="fas fa-spinner fa-spin hidden"></i>
+                        </button>
+                    </form>
+
+                    <form id="details" class="form-step exit-right" novalidate>
+                        {% csrf_token %}
+                        <div class="form-header">
+                            <h2>Delivery Details</h2>
+                            <p>Where should we deliver your plants?</p>
+                        </div>
+
+                        <div class="input-group">
+                            <button type="button" id="current-location-btn" class="btn-location">
+                                <i class="fas fa-location-arrow"></i> Use Current Location
+                            </button>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Pincode</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-map-pin"></i>
+                                <input type="text" id="pincode" name="pincode" placeholder="Enter 6-digit Pincode" maxlength="6" pattern="[0-9]{6}" required>
+                                <i class="fas fa-circle-notch fa-spin hidden input-action-icon" id="pincode-spinner"></i>
+                            </div>
+                        </div>
+
+                        <div class="row-inputs">
+                            <div class="input-group">
+                                <label>State</label>
+                                <div class="input-with-icon read-only-style">
+                                    <i class="fas fa-map"></i>
+                                    <input type="text" id="state" name="state" placeholder="Auto-filled" readonly>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label>City</label>
+                                <div class="input-with-icon read-only-style">
+                                    <i class="fas fa-city"></i>
+                                    <input type="text" id="city" name="city" placeholder="Auto-filled" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Area</label>
+                            <div class="input-with-icon read-only-style">
+                                <i class="fas fa-map-signs"></i>
+                                <input type="text" id="area" name="area" placeholder="Auto-filled via Pincode" readonly>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>House No. & Street Address</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-home"></i>
+                                <input type="text" id="address" name="address" placeholder="Flat, House no., Building, Company" minlength="10" maxlength="200" required>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Delivery Instructions (Optional)</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-comment-dots align-top"></i>
+                                <textarea id="instructions" name="instructions" placeholder="e.g., Leave with security guard..." maxlength="250"></textarea>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary" id="details-btn">
+                            <span class="btn-text">Save Details & Finish</span>
+                            <i class="fas fa-spinner fa-spin hidden"></i>
+                        </button>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script src="{% static 'js/auth.js' %}"></script>
+</body>
+</html>
