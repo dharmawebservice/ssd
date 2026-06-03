@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
     <style>
-        /* ================= DESIGN SYSTEM (FROM DASHBOARD) ================= */
+        /* ================= DESIGN SYSTEM ================= */
         :root {
             --bg-body: #F5F5F7;
             --bg-surface: #FFFFFF;
@@ -30,7 +30,6 @@
             --radius-md: 16px;
             --radius-lg: 24px;
             --shadow-sm: 0 4px 24px rgba(0, 0, 0, 0.04);
-            --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.08);
             --transition-fast: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -57,6 +56,7 @@
         .admin-layout {
             display: flex;
             min-height: 100vh;
+            min-height: 100dvh;
         }
 
         /* ================= SIDEBAR ================= */
@@ -66,6 +66,7 @@
             border-right: 1px solid var(--border-color);
             position: fixed;
             height: 100vh;
+            height: 100dvh; /* Fixes mobile cutoff issue */
             display: flex;
             flex-direction: column;
             z-index: 100;
@@ -74,6 +75,7 @@
         }
 
         .sidebar-header {
+            flex: 0 0 auto;
             padding: 32px 24px;
             display: flex;
             align-items: center;
@@ -105,13 +107,18 @@
         }
 
         .nav-menu {
+            flex: 1 1 auto; /* Allows scrolling within menu but respects footer */
+            min-height: 0; /* Crucial for flexbox scrolling */
             display: flex;
             flex-direction: column;
             gap: 4px;
             padding: 0 16px;
             overflow-y: auto;
-            flex: 1;
         }
+
+        /* Clean Sidebar Scrollbar */
+        .nav-menu::-webkit-scrollbar { width: 4px; }
+        .nav-menu::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
 
         .nav-link {
             display: flex;
@@ -143,8 +150,10 @@
         }
 
         .sidebar-footer {
+            flex: 0 0 auto; /* Glues footer to bottom */
             padding: 24px 16px;
             border-top: 1px solid var(--border-color);
+            background-color: var(--bg-surface);
         }
 
         /* ================= MAIN CONTENT ================= */
@@ -156,12 +165,20 @@
             flex-direction: column;
             gap: 32px;
             width: calc(100% - var(--sidebar-width));
+            max-width: 1400px;
         }
 
+        /* Header */
         .top-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
         }
 
         .page-title {
@@ -185,7 +202,7 @@
             border: 1px solid var(--border-color);
             overflow: hidden;
             
-            /* Hardware-accelerated entrance animation to match dashboard */
+            /* Hardware-accelerated entrance animation */
             opacity: 0;
             transform: translateY(20px);
             animation: fadeUp 0.6s var(--transition-fast) forwards;
@@ -195,7 +212,13 @@
         .table-responsive {
             width: 100%;
             overflow-x: auto;
+            /* Sleek horizontal scroll for mobile */
+            scrollbar-width: thin;
+            scrollbar-color: #D1D5DB transparent;
         }
+
+        .table-responsive::-webkit-scrollbar { height: 6px; }
+        .table-responsive::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 10px; }
 
         table {
             width: 100%;
@@ -224,13 +247,8 @@
             transition: background var(--transition-fast);
         }
 
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        tr:hover td {
-            background-color: #FAFAFA;
-        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: #FAFAFA; }
 
         /* User Identity Block */
         .user-identity {
@@ -250,18 +268,11 @@
             justify-content: center;
             font-weight: 600;
             font-size: 1rem;
+            flex-shrink: 0;
         }
 
-        .user-name {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .user-subtext {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-top: 2px;
-        }
+        .user-name { font-weight: 600; color: var(--text-primary); }
+        .user-subtext { font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; }
 
         /* Status Badges */
         .status-badge {
@@ -276,17 +287,8 @@
             justify-content: center;
         }
 
-        .badge-admin {
-            background: #FFFBEB;
-            color: #D97706;
-            border: 1px solid rgba(217, 119, 6, 0.2);
-        }
-
-        .badge-user {
-            background: var(--accent-light);
-            color: var(--accent-color);
-            border: 1px solid rgba(31, 81, 50, 0.1);
-        }
+        .badge-admin { background: #FFFBEB; color: #D97706; border: 1px solid rgba(217, 119, 6, 0.2); }
+        .badge-user { background: var(--accent-light); color: var(--accent-color); border: 1px solid rgba(31, 81, 50, 0.1); }
 
         @keyframes fadeUp {
             to { opacity: 1; transform: translateY(0); }
@@ -297,28 +299,21 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.2);
-            backdrop-filter: blur(4px);
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(2px);
             z-index: 90;
             opacity: 0;
             transition: opacity var(--transition-fast);
         }
 
         @media (max-width: 1024px) {
-            .main-content {
-                padding: 32px 24px;
-            }
+            .main-content { padding: 32px 24px; }
         }
 
         @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.active { transform: translateX(0); }
             
-            .sidebar.active {
-                transform: translateX(0);
-            }
-
             .sidebar-overlay.active {
                 display: block;
                 opacity: 1;
@@ -330,13 +325,12 @@
                 padding: 24px 16px;
             }
 
-            .close-sidebar {
-                display: block;
-            }
-
-            .mobile-toggle {
-                display: block;
-            }
+            .close-sidebar { display: block; }
+            
+            .mobile-toggle { display: block; }
+            
+            .header-left { gap: 12px; }
+            .page-title { font-size: 1.5rem; }
         }
     </style>
 </head>
@@ -382,7 +376,9 @@
                 <a href="/dashboard/banners/" class="nav-link">
                     <i class="fa-solid fa-images"></i> Banners
                 </a>
-                 
+                <a href="/" class="nav-link">
+                    <i class="fa-solid fa-house"></i> Home
+                </a>
             </nav>
 
             <div class="sidebar-footer">
@@ -398,10 +394,12 @@
         <main class="main-content">
             
             <header class="top-header">
-                <h1 class="page-title">Registered Users</h1>
-                <button class="mobile-toggle" id="openSidebar">
-                    <i class="fa-solid fa-bars-staggered"></i>
-                </button>
+                <div class="header-left">
+                    <button class="mobile-toggle" id="openSidebar">
+                        <i class="fa-solid fa-bars-staggered"></i>
+                    </button>
+                    <h1 class="page-title">Registered Users</h1>
+                </div>
             </header>
 
             <section class="data-card">
@@ -455,7 +453,7 @@
                             {% empty %}
                             <tr>
                                 <td colspan="5" style="text-align: center; padding: 60px; color: var(--text-secondary);">
-                                    <i class="fa-solid fa-users-slash" style="font-size: 2rem; margin-bottom: 12px; opacity: 0.5;"></i>
+                                    <i class="fa-solid fa-users-slash" style="font-size: 2.5rem; margin-bottom: 12px; opacity: 0.3;"></i>
                                     <br>
                                     No registered users found.
                                 </td>
@@ -481,7 +479,7 @@
                 if (force === true || (!isActive && force !== false)) {
                     sidebar.classList.add('active');
                     sidebarOverlay.classList.add('active');
-                    document.body.style.overflow = 'hidden'; 
+                    document.body.style.overflow = 'hidden'; // Prevents background scroll
                 } else {
                     sidebar.classList.remove('active');
                     sidebarOverlay.classList.remove('active');

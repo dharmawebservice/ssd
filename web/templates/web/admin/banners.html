@@ -59,24 +59,18 @@
 
         /* ================= SIDEBAR ================= */
         .sidebar {
-            width: var(--sidebar-width);
-            background-color: var(--bg-surface);
-            border-right: 1px solid var(--border-color);
-            position: fixed;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            z-index: 100;
-            transition: transform var(--transition-fast);
-            will-change: transform;
-        }
+    width: var(--sidebar-width);
+    background-color: var(--bg-surface);
+    border-right: 1px solid var(--border-color);
+    position: fixed;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    transition: transform var(--transition-fast);
+    will-change: transform;
+}
 
-        .sidebar-header {
-            padding: 32px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
 
         .brand {
             display: flex;
@@ -93,9 +87,24 @@
         .close-sidebar { display: none; font-size: 1.2rem; color: var(--text-secondary); }
 
         .nav-menu {
-            display: flex; flex-direction: column; gap: 4px;
-            padding: 0 16px; overflow-y: auto; flex: 1;
-        }
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 16px;
+    overflow-y: auto;
+}
+
+/* Clean Sidebar Scrollbar */
+.nav-menu::-webkit-scrollbar {
+    width: 4px;
+}
+
+.nav-menu::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.1);
+    border-radius: 10px;
+}
 
         .nav-link {
             display: flex; align-items: center; gap: 16px;
@@ -113,7 +122,20 @@
             font-weight: 600;
         }
 
-        .sidebar-footer { padding: 24px 16px; border-top: 1px solid var(--border-color); }
+        .sidebar-header {
+    flex: 0 0 auto;
+    padding: 32px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sidebar-footer {
+    flex: 0 0 auto;
+    padding: 24px 16px;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--bg-surface);
+}
 
         /* ================= MAIN CONTENT ================= */
         .main-content {
@@ -326,6 +348,9 @@
                 <!-- Active Link is on Banners -->
                 <a href="/dashboard/banners/" class="nav-link active">
                     <i class="fa-solid fa-images"></i> Banners
+                </a>
+                <a href="/" class="nav-link">
+                    <i class="fa-solid fa-house"></i> Home
                 </a>
                  
             </nav>

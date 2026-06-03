@@ -70,6 +70,7 @@
             border-right: 1px solid var(--border-color);
             position: fixed;
             height: 100vh;
+            height: 100dvh;
             display: flex;
             flex-direction: column;
             z-index: 100;
@@ -77,12 +78,7 @@
             will-change: transform;
         }
 
-        .sidebar-header {
-            padding: 32px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
+        
 
         .brand {
             display: flex;
@@ -109,12 +105,23 @@
         }
 
         .nav-menu {
+            flex: 1 1 auto;
+            min-height: 0;
             display: flex;
             flex-direction: column;
             gap: 4px;
             padding: 0 16px;
             overflow-y: auto;
-            flex: 1;
+        }
+
+        /* Clean Sidebar Scrollbar */
+        .nav-menu::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .nav-menu::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.1);
+            border-radius: 10px;
         }
 
         .nav-link {
@@ -146,10 +153,20 @@
             font-weight: 600;
         }
 
-        .sidebar-footer {
-            padding: 24px 16px;
-            border-top: 1px solid var(--border-color);
-        }
+        .sidebar-header {
+    flex: 0 0 auto;
+    padding: 32px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sidebar-footer {
+    flex: 0 0 auto;
+    padding: 24px 16px;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--bg-surface);
+}
 
         /* ================= MAIN CONTENT ================= */
         .main-content {
@@ -439,6 +456,9 @@
                 </a>
                 <a href="/dashboard/banners/" class="nav-link">
                     <i class="fa-solid fa-images"></i> Banners
+                </a>
+                <a href="/" class="nav-link">
+                    <i class="fa-solid fa-house"></i> Home
                 </a>
                  
             </nav>
