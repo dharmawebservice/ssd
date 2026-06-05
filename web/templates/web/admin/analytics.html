@@ -1,33 +1,74 @@
-<h1>Analytics</h1>
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics | SSD Nursery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+    <style>
+        .chart-card{background:var(--bg-surface);border-radius:var(--r-lg);box-shadow:var(--shadow);border:1px solid var(--border);padding:28px;animation:fadeUp 0.55s var(--t) 0.2s forwards;opacity:0;transform:translateY(20px);}
+        .chart-title{font-size:1rem;font-weight:700;margin-bottom:20px;color:var(--text-primary);}
+        canvas{max-height:320px;}
+    </style>
+</head>
+<body>
+<div class="admin-layout">
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "web/admin/_sidebar.html" %}
+    <main class="main-content">
+        <header class="top-header">
+            <div class="header-left">
+                <button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button>
+                <div><h1 class="page-title">Analytics</h1><p class="page-subtitle">Store performance overview</p></div>
+            </div>
+        </header>
 
-<div>
+        <section class="metrics-grid">
+            <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-users"></i></div>Total Users</div><div class="metric-value">{{ total_users }}</div></div>
+            <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-seedling"></i></div>Products</div><div class="metric-value">{{ total_products }}</div></div>
+            <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-box"></i></div>Orders</div><div class="metric-value">{{ total_orders }}</div></div>
+            <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-indian-rupee-sign"></i></div>Revenue</div><div class="metric-value">₹{{ total_revenue|floatformat:0 }}</div></div>
+        </section>
 
-Users:
-{{ total_users }}
-
+        <div class="chart-card">
+            <div class="chart-title">Monthly Revenue (Delivered Orders)</div>
+            <canvas id="revenueChart"></canvas>
+        </div>
+    </main>
 </div>
-
-<div>
-
-Products:
-{{ total_products }}
-
-</div>
-
-<div>
-
-Orders:
-{{ total_orders }}
-
-</div>
-
-<div>
-
-Revenue:
-₹{{ total_revenue }}
-
-</div>
-
-<canvas id="salesChart"></canvas>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/admin.js' %}"></script>
+<script>
+const labels  = {{ chart_labels|safe }};
+const revenue = {{ chart_revenue|safe }};
+const ctx = document.getElementById('revenueChart');
+if (ctx) {
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Revenue (₹)',
+                data: revenue,
+                backgroundColor: 'rgba(31,81,50,0.15)',
+                borderColor: '#1F5132',
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => '₹' + v } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+</script>
+</body>
+</html>

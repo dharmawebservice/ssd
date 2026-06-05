@@ -92,42 +92,66 @@ urlpatterns = [
     # Categories
 
     path(
-        "dashboard/categories/",
-        views.category_list,
-        name="category_list"
-    ),
+    "dashboard/categories/",
+    views.category_list,
+    name="category_list"
+),
 
-    path(
-        "dashboard/categories/add/",
-        views.add_category,
-        name="add_category"
-    ),
+path(
+    "dashboard/categories/add/",
+    views.add_category,
+    name="add_category"
+),
 
-    path(
-        "dashboard/categories/delete/<int:id>/",
-        views.delete_category,
-        name="delete_category"
-    ),
+path(
+    "dashboard/categories/delete/<int:id>/",
+    views.delete_category,
+    name="delete_category"
+),
+
+path(
+    "dashboard/categories/toggle/<int:id>/",
+    views.toggle_category,
+    name="toggle_category"
+),
+
+path(
+    "dashboard/categories/edit/<int:id>/",
+    views.edit_category,
+    name="edit_category"
+),
 
     # Products
 
     path(
-        "dashboard/products/",
-        views.product_list,
-        name="product_list"
-    ),
+    "dashboard/products/",
+    views.product_list,
+    name="product_list"
+),
 
-    path(
-        "dashboard/products/add/",
-        views.add_product,
-        name="add_product"
-    ),
+path(
+    "dashboard/products/add/",
+    views.add_product,
+    name="add_product"
+),
 
-    path(
-        "dashboard/products/delete/<int:id>/",
-        views.delete_product,
-        name="delete_product"
-    ),
+path(
+    "dashboard/products/edit/<int:id>/",
+    views.edit_product,
+    name="edit_product"
+),
+
+path(
+    "dashboard/products/toggle/<int:id>/",
+    views.toggle_product,
+    name="toggle_product"
+),
+
+path(
+    "dashboard/products/delete/<int:id>/",
+    views.delete_product,
+    name="delete_product"
+),
 
     # Orders
 
@@ -210,4 +234,43 @@ urlpatterns = [
         views.analytics,
         name="analytics"
     ),
+
+    # Notifications
+
+path(
+    "dashboard/notifications/",
+    views.notifications_list,
+    name="notifications_list"
+),
+
+path(
+    "dashboard/notifications/add/",
+    views.add_notification,
+    name="add_notification"
+),
+
+path(
+    "dashboard/notifications/delete/<int:id>/",
+    views.delete_notification,
+    name="delete_notification"
+),
+
+path(
+    "shop/",
+    views.shop,
+    name="shop"
+),
+
+path(
+    "product/<slug:slug>/",
+    views.product_detail,
+    name="product_detail"
+),
+
+path(
+    "review/<int:product_id>/",
+    views.submit_review,
+    name="submit_review"
+),
+
 ]

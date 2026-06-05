@@ -1,4 +1,4 @@
-{% load static %}
+{% comment %} {% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -133,5 +133,144 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
 </div>
 
+</body>
+</html> {% endcomment %}
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Profile | SSD Nursery</title>
+    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}?v=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <nav class="navbar scrolled" id="navbar">
+        <div class="logo"><a href="{% url 'home' %}"><img src="{% static 'images/logo.png' %}" alt="SSD Nursery" class="brand-logo"></a></div>
+        <ul class="nav-links" id="nav-links">
+            <li><a href="{% url 'home' %}">Home</a></li>
+            <li><a href="{% url 'shop' %}">Shop</a></li>
+        </ul>
+        <div class="nav-actions">
+            <button class="icon-btn cart-btn"><i class="fas fa-shopping-bag"></i><span class="cart-count">0</span></button>
+            <div class="profile-dropdown">
+                <button class="icon-btn" id="profileToggle"><i class="far fa-user"></i></button>
+                <div class="dropdown-menu" id="profileMenu">
+                    <div class="user-info">Welcome, <strong>{{ request.user.first_name|default:request.user.username }}</strong></div>
+                    <a href="{% url 'profile' %}"><i class="fas fa-user-circle"></i> My Profile</a>
+                    <a href="{% url 'logout_user' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+            <div class="menu-toggle" id="mobile-menu"><i class="fas fa-bars"></i></div>
+        </div>
+    </nav>
+
+    <div class="profile-page">
+
+        <!-- Hero card -->
+        <div class="profile-hero">
+            <div class="profile-avatar">{{ request.user.first_name|slice:":1"|upper|default:"U" }}</div>
+            <div class="profile-hero-info">
+                <h2>{{ request.user.first_name|default:request.user.username }}</h2>
+                <p>{{ request.user.email }}</p>
+                <p style="margin-top:6px;font-size:0.85rem;opacity:0.6;">Member since {{ request.user.date_joined|date:"F Y" }}</p>
+            </div>
+            <a href="{% url 'logout_user' %}" style="margin-left:auto;background:rgba(255,255,255,0.12);color:white;padding:10px 22px;border-radius:30px;font-family:'Cormorant Garamond',serif;font-size:0.95rem;border:1px solid rgba(255,255,255,0.2);display:inline-flex;align-items:center;gap:8px;transition:var(--transition);">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+
+        <!-- Info grid -->
+        <div class="profile-grid">
+            <div class="profile-card">
+                <h3><i class="fas fa-user-circle"></i> Personal Information</h3>
+                <div class="info-row"><label>Full Name</label><span>{{ request.user.first_name|default:"—" }}</span></div>
+                <div class="info-row"><label>Email</label><span>{{ request.user.email }}</span></div>
+                <div class="info-row"><label>Phone</label><span>{{ profile.phone|default:"Not provided" }}</span></div>
+            </div>
+
+            <div class="profile-card">
+                <h3><i class="fas fa-location-dot"></i> Delivery Address</h3>
+                {% if profile.address %}
+                    <div class="info-row"><label>House / Street</label><span>{{ profile.address }}</span></div>
+                    <div class="info-row"><label>Area</label><span>{{ profile.area|default:"—" }}</span></div>
+                    <div class="info-row"><label>City</label><span>{{ profile.city|default:"—" }}</span></div>
+                    <div class="info-row"><label>State</label><span>{{ profile.state|default:"—" }}</span></div>
+                    <div class="info-row"><label>Pincode</label><span>{{ profile.pincode|default:"—" }}</span></div>
+                    {% if profile.instructions %}
+                    <div class="info-row"><label>Instructions</label><span>{{ profile.instructions }}</span></div>
+                    {% endif %}
+                {% else %}
+                    <p style="font-family:'Cormorant Garamond',serif;color:var(--text-light);padding:12px 0;">No delivery address saved yet.</p>
+                    <a href="{% url 'auth' %}?tab=details" style="color:var(--terracotta);font-family:'Cormorant Garamond',serif;font-size:0.95rem;">Add address →</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Orders -->
+        <div class="orders-table-wrap">
+            <h3 style="font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--forest);margin-bottom:24px;display:flex;align-items:center;gap:10px;">
+                <i class="fas fa-box" style="color:var(--terracotta);font-size:1rem;"></i> My Orders
+            </h3>
+            {% if orders %}
+            <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-family:'Cormorant Garamond',serif;">
+                    <thead>
+                        <tr style="border-bottom:2px solid var(--ivory-dark);">
+                            <th style="padding:12px 16px;text-align:left;font-size:0.78rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-light);">Order</th>
+                            <th style="padding:12px 16px;text-align:left;font-size:0.78rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-light);">Date</th>
+                            <th style="padding:12px 16px;text-align:left;font-size:0.78rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-light);">Amount</th>
+                            <th style="padding:12px 16px;text-align:left;font-size:0.78rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-light);">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr style="border-bottom:1px solid var(--ivory-dark);">
+                            <td style="padding:14px 16px;font-weight:600;color:var(--forest);">#{{ order.id }}</td>
+                            <td style="padding:14px 16px;color:var(--text-mid);">{{ order.created_at|date:"M d, Y" }}</td>
+                            <td style="padding:14px 16px;font-weight:700;color:var(--forest);">₹{{ order.total_amount }}</td>
+                            <td style="padding:14px 16px;">
+                                {% if order.status == 'Delivered' %}
+                                    <span style="background:#E6F4EA;color:#1E8E3E;padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:700;">{{ order.status }}</span>
+                                {% elif order.status == 'Cancelled' %}
+                                    <span style="background:#FEF2F2;color:#DC2626;padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:700;">{{ order.status }}</span>
+                                {% elif order.status == 'Pending' %}
+                                    <span style="background:#FFFBEB;color:#D97706;padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:700;">{{ order.status }}</span>
+                                {% else %}
+                                    <span style="background:#EFF6FF;color:#3B82F6;padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:700;">{{ order.status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:48px 20px;color:var(--text-light);">
+                <i class="fas fa-box-open" style="font-size:2.5rem;color:var(--sage);display:block;margin-bottom:14px;"></i>
+                <p style="font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--forest);margin-bottom:8px;">No orders yet</p>
+                <p style="font-family:'Cormorant Garamond',serif;margin-bottom:20px;">Start shopping and your orders will appear here.</p>
+                <a href="{% url 'shop' %}" style="display:inline-flex;align-items:center;gap:8px;background:var(--forest);color:white;padding:12px 28px;border-radius:30px;font-family:'DM Serif Display',serif;font-size:1rem;transition:var(--transition);">Shop Plants <i class="fas fa-arrow-right"></i></a>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <div class="cart-overlay" id="cartOverlay"></div>
+    <div class="cart-sidebar" id="cartSidebar">
+        <div class="cart-header"><h3>Your Basket <span class="cart-item-label">(<span id="cartItemCount">0</span> items)</span></h3><button class="cart-close" id="cartClose"><i class="fas fa-times"></i></button></div>
+        <div class="cart-body" id="cartBody"><div class="cart-empty"><i class="fas fa-seedling"></i><p>Your basket is empty</p></div></div>
+        <div class="cart-footer" id="cartFooter" style="display:none;"><div class="cart-total">Total: <strong id="cartTotal">₹0</strong></div><button class="btn-checkout">Checkout <i class="fas fa-arrow-right"></i></button></div>
+    </div>
+    <div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg">Done!</span></div>
+
+    <script src="{% static 'js/script.js' %}"></script>
 </body>
 </html>

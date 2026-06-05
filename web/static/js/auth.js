@@ -1,541 +1,310 @@
-document.addEventListener("DOMContentLoaded", () => {
-    
-    // --- Elements ---
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    const authTabs = document.getElementById('auth-tabs');
-    const formLogin = document.getElementById('login');
-    const formSignup = document.getElementById('signup');
-    const formVerify = document.getElementById('verify');
-    const formDetails = document.getElementById('details');
-    const displayEmail = document.getElementById('display-email');
-    const authLayout = document.getElementById('auth-layout');
+(function () {
+    "use strict";
 
-    // --- CSRF Helper (Robust Cookie Parser for Django) ---
-    function getCSRFToken() {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== "") {
-            const cookies = document.cookie.split(";");
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                // Does this cookie string begin with the name we want?
-                if (cookie.startsWith("csrftoken=")) {
-                    cookieValue = cookie.substring("csrftoken=".length, cookie.length);
-                    break;
-                }
-            }
-        }
-        
-        // Fallback to meta tag if cookie isn't available
-        if (!cookieValue) {
-            const meta = document.querySelector('meta[name="csrf-token"]');
-            if (meta) cookieValue = meta.content;
-        }
-        
-        return cookieValue;
+    const CSRF = () => document.querySelector("[name=csrfmiddlewaretoken]")?.value
+                     || document.querySelector("meta[name='csrf-token']")?.content || "";
+
+    // ── Toast ─────────────────────────────────────────────────
+    function showToast(msg, type = "error") {
+        const el   = document.getElementById("custom-toast");
+        const icon = document.getElementById("toast-icon");
+        const text = document.getElementById("toast-message");
+        if (!el) return;
+        text.textContent = msg;
+        el.className = `toast-notification ${type}`;
+        icon.className = type === "success" ? "fas fa-check-circle" : "fas fa-exclamation-circle";
+        el.classList.add("show");
+        clearTimeout(el._t);
+        el._t = setTimeout(() => el.classList.remove("show"), 3500);
     }
 
-    // --- Custom Toast UI ---
-    function showToast(message, isSuccess = false) {
-        const toast = document.getElementById('custom-toast');
-        const icon = document.getElementById('toast-icon');
-        const msgSpan = document.getElementById('toast-message');
+    // ── Set loading state on button ───────────────────────────
+    function setLoading(btn, loading) {
+        const text    = btn.querySelector(".btn-text");
+        const spinner = btn.querySelector(".fa-spin");
+        btn.disabled  = loading;
+        if (text)    text.style.opacity    = loading ? "0.5" : "1";
+        if (spinner) spinner.classList.toggle("hidden", !loading);
+    }
 
-        msgSpan.textContent = message;
-        
-        if (isSuccess) {
-            toast.classList.add('success');
-            icon.className = 'fas fa-check-circle';
+    // ── Tab switching ─────────────────────────────────────────
+    function showForm(id) {
+
+    document.querySelectorAll(".form-step").forEach(form => {
+        form.classList.remove("active");
+    });
+
+    const target = document.getElementById(id);
+
+    if (target) {
+        target.classList.add("active");
+    }
+
+    const authTabs = document.getElementById("auth-tabs");
+
+    if (authTabs) {
+
+        if (id === "verify" || id === "details") {
+            authTabs.style.display = "none";
         } else {
-            toast.classList.remove('success');
-            icon.className = 'fas fa-exclamation-circle';
+            authTabs.style.display = "flex";
         }
 
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 4000);
     }
-    
-    // --- HTML5 Validation Interceptor ---
-    function validateForm(formElement) {
-        if (!formElement.checkValidity()) {
-            const firstInvalid = formElement.querySelector(':invalid');
-            if (firstInvalid) {
-                showToast(firstInvalid.validationMessage);
-                firstInvalid.focus();
-            }
-            return false;
-        }
-        return true;
-    }
+}
 
-    // --- Input Restrictions & Sanitization ---
+    const tabBtns = document.querySelectorAll(".tab-btn");
+    tabBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            tabBtns.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            showForm(btn.dataset.target);
+        });
+    });
 
-    const signupEmail = document.getElementById("signup-email");
-    if(signupEmail) {
-        signupEmail.addEventListener("input", function() {
-            this.value = this.value.replace(/\s/g, "");
+    // ── Default tab from URL ──────────────────────────────────
+    const urlTab = new URLSearchParams(window.location.search).get("tab") || "login";
+    showForm(urlTab);
+    tabBtns.forEach(b => b.classList.toggle("active", b.dataset.target === urlTab));
+
+    // ── Password toggle ───────────────────────────────────────
+    document.querySelectorAll(".password-toggle").forEach(icon => {
+        icon.addEventListener("click", () => {
+            const input = icon.previousElementSibling;
+            if (!input) return;
+            const show = input.type === "password";
+            input.type = show ? "text" : "password";
+            icon.classList.toggle("fa-eye", !show);
+            icon.classList.toggle("fa-eye-slash", show);
+        });
+    });
+
+    // ── LOGIN ─────────────────────────────────────────────────
+    const loginForm = document.getElementById("login");
+    if (loginForm) {
+        loginForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const btn  = document.getElementById("login-btn");
+            const email    = loginForm.querySelector("[name=email]").value.trim();
+            const password = loginForm.querySelector("[name=password]").value;
+            if (!email || !password) return showToast("Please fill in all fields.");
+            setLoading(btn, true);
+            try {
+                const res  = await fetch("/login-user/", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF() }, body: JSON.stringify({ email, password }) });
+                const data = await res.json();
+                if (data.success) { showToast("Welcome back!", "success"); setTimeout(() => window.location.href = data.redirect || "/", 800); }
+                else { showToast(data.message || "Invalid credentials."); setLoading(btn, false); }
+            } catch { showToast("Network error. Please try again."); setLoading(btn, false); }
         });
     }
 
-    const phoneInput = document.getElementById("phone");
-    if(phoneInput) {
-        phoneInput.addEventListener("input", function() {
-            this.value = this.value.replace(/\D/g, "").slice(0, 10);
+    // ── SIGNUP ────────────────────────────────────────────────
+    const signupForm = document.getElementById("signup");
+    if (signupForm) {
+        signupForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const btn      = document.getElementById("signup-btn");
+            const fullname = document.getElementById("reg-fullname")?.value.trim();
+            const email    = document.getElementById("signup-email")?.value.trim();
+            const phone    = document.getElementById("phone")?.value.trim();
+            const password = document.getElementById("reg-pass")?.value;
+            const confirm  = document.getElementById("reg-confirm-pass")?.value;
+            if (!fullname || !email || !phone || !password || !confirm) return showToast("Please fill in all fields.");
+            if (password !== confirm) return showToast("Passwords do not match.");
+            setLoading(btn, true);
+            try {
+                const res  = await fetch("/send-otp/", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF() }, body: JSON.stringify({ fullname, email, phone, password }) });
+                const data = await res.json();
+                if (data.success) {
+                    showToast("OTP sent to " + email, "success");
+                    const displayEl = document.getElementById("display-email");
+                    if (displayEl) displayEl.textContent = email;
+                    // clear old otp boxes
+
+otpInputs.forEach(input => {
+    input.value = "";
+    input.classList.remove("filled");
+});
+
+showForm("verify");
+
+otpInputs[0].focus();
+                    tabBtns.forEach(b => b.classList.remove("active"));
+                    const authTabs = document.getElementById("auth-tabs");
+                    if (authTabs) {
+                        authTabs.style.display = "none";
+                    }
+                } else { showToast(data.message || "Something went wrong."); }
+                setLoading(btn, false);
+            } catch { showToast("Network error. Please try again."); setLoading(btn, false); }
+        });
+    }
+
+    // ── OTP inputs ────────────────────────────────────────────
+    const otpInputs = document.querySelectorAll(".otp-input");
+    otpInputs.forEach((inp, idx) => {
+        inp.addEventListener("input", () => {
+            inp.value = inp.value.replace(/\D/g, "").slice(0, 1);
+            if (inp.value && idx < otpInputs.length - 1) otpInputs[idx + 1].focus();
+            inp.classList.toggle("filled", !!inp.value);
+        });
+        inp.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && !inp.value && idx > 0) otpInputs[idx - 1].focus();
+        });
+        inp.addEventListener("paste", (e) => {
+            e.preventDefault();
+            const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+            [...pasted].forEach((ch, i) => { if (otpInputs[i]) { otpInputs[i].value = ch; otpInputs[i].classList.add("filled"); } });
+            if (otpInputs[pasted.length]) otpInputs[pasted.length].focus();
+        });
+    });
+
+    // ── VERIFY OTP ────────────────────────────────────────────
+    const verifyForm = document.getElementById("verify");
+    if (verifyForm) {
+        verifyForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById("verify-btn");
+            const otp = [...otpInputs].map(i => i.value).join("");
+            if (otp.length < 6) return showToast("Please enter the complete 6-digit OTP.");
+            setLoading(btn, true);
+            try {
+                const res  = await fetch("/verify-otp/", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF() }, body: JSON.stringify({ otp }) });
+                const data = await res.json();
+                if (data.success) {
+
+    showToast(
+        "Verified! Now add your delivery details.",
+        "success"
+    );
+
+    showForm("details");
+}
+                else { showToast(data.message || "Invalid OTP."); }
+                setLoading(btn, false);
+            } catch { showToast("Network error."); setLoading(btn, false); }
+        });
+    }
+
+    // ── RESEND OTP ────────────────────────────────────────────
+    const resendLink = document.getElementById("resend-link");
+    if (resendLink) {
+        resendLink.addEventListener("click", async (e) => {
+            e.preventDefault();
+            resendLink.textContent = "Sending…";
+            try {
+                const res  = await fetch("/resend-otp/", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF() } });
+                const data = await res.json();
+
+if (data.success) {
+
+    otpInputs.forEach(input => {
+        input.value = "";
+        input.classList.remove("filled");
+    });
+
+    otpInputs[0].focus();
+
+    showToast(
+        "New OTP sent successfully!",
+        "success"
+    );
+
+} else {
+
+    showToast(
+        data.message || "Error"
+    );
+
+}
+                showToast(data.success ? "OTP resent!" : (data.message || "Error"), data.success ? "success" : "error");
+            } catch { showToast("Network error."); }
+            resendLink.textContent = "Resend";
+        });
+    }
+
+    // ── LOCATION & PINCODE ────────────────────────────────────
+    async function fillAddress(lat, lon) {
+        try {
+            const res  = await fetch(`/reverse-geocode/?lat=${lat}&lon=${lon}`);
+            const data = await res.json();
+            if (data.success) {
+                const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ""; };
+                set("state", data.state);
+                set("city", data.city);
+                set("area", data.area);
+                set("pincode", data.pincode);
+                showToast("Location detected!", "success");
+            } else showToast(data.message || "Could not detect location.");
+        } catch { showToast("Location lookup failed."); }
+    }
+
+    const locBtn = document.getElementById("current-location-btn");
+    if (locBtn) {
+        locBtn.addEventListener("click", () => {
+            if (!navigator.geolocation) return showToast("Geolocation not supported.");
+            locBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Detecting…';
+            navigator.geolocation.getCurrentPosition(
+                async pos => { await fillAddress(pos.coords.latitude, pos.coords.longitude); locBtn.innerHTML = '<i class="fas fa-check"></i> Location Detected'; },
+                () => { showToast("Location permission denied."); locBtn.innerHTML = '<i class="fas fa-location-arrow"></i> Use Current Location'; }
+            );
         });
     }
 
     const pincodeInput = document.getElementById("pincode");
-    const pincodeSpinner = document.getElementById('pincode-spinner');
-    
-    if(pincodeInput) {
-        pincodeInput.addEventListener("input", function() {
-            this.value = this.value.replace(/\D/g, "").slice(0, 6);
-        });
-        
-        // Pincode Lookup API
-        pincodeInput.addEventListener("keyup", async function () {
-            const pincode = this.value;
-            
-            if (pincode.length !== 6) {
-                // Clear fields if backspaced/invalid length
-                document.getElementById("area").value = "";
-                document.getElementById("city").value = "";
-                document.getElementById("state").value = "";
-                return;
-            }
-
-            pincodeSpinner.classList.remove('hidden');
-
-            try {
-                const response = await fetch(`/get-location/?pincode=${pincode}`);
-                const result = await response.json();
-                
-                // Debugging Log
-                console.log("Pincode API Response:", result);
-
-                if (result.success) {
-                    document.getElementById("area").value = result.area || "";
-                    document.getElementById("city").value = result.city || "";
-                    document.getElementById("state").value = result.state || "";
-                    showToast("Location details found!", true);
-                } else {
-                    showToast("Pincode not found or invalid.");
-                }
-            } catch (error) {
-                console.error(error);
-                showToast("Failed to fetch location details.");
-            } finally {
-                pincodeSpinner.classList.add('hidden');
-            }
-        });
-    }
-
-    const pass = document.getElementById("reg-pass");
-    const confirmPass = document.getElementById("reg-confirm-pass");
-    if (pass && confirmPass) {
-        confirmPass.addEventListener("input", function() {
-            if (pass.value !== confirmPass.value) {
-                confirmPass.setCustomValidity("Passwords do not match");
-            } else {
-                confirmPass.setCustomValidity("");
-            }
-        });
-    }
-
-    // --- Password Visibility Toggle ---
-    const togglePasswordIcons = document.querySelectorAll('.password-toggle');
-    togglePasswordIcons.forEach(icon => {
-        icon.addEventListener('click', function() {
-            const inputField = this.previousElementSibling;
-            if (inputField.type === 'password') {
-                inputField.type = 'text';
-                this.classList.remove('fa-eye');
-                this.classList.add('fa-eye-slash');
-            } else {
-                inputField.type = 'password';
-                this.classList.remove('fa-eye-slash');
-                this.classList.add('fa-eye');
-            }
-        });
-    });
-    
-    // --- Step Navigation Logic ---
-    function navigateTo(targetForm) {
-        [formLogin, formSignup, formVerify, formDetails].forEach(form => {
-            form.className = 'form-step exit-right';
-        });
-
-        if (targetForm === 'login') {
-            authLayout.className = 'auth-layout scroll-locked'; 
-            formLogin.className = 'form-step active';
-            authTabs.classList.remove('hidden'); 
-            updateTabUI('login');
-        } 
-        else if (targetForm === 'signup') {
-            authLayout.className = 'auth-layout scroll-enabled'; 
-            formLogin.className = 'form-step exit-left'; 
-            formSignup.className = 'form-step active';
-            authTabs.classList.remove('hidden'); 
-            updateTabUI('signup');
-        }
-        else if (targetForm === 'verify') {
-            authLayout.className = 'auth-layout scroll-locked';
-            formLogin.className = 'form-step exit-left';
-            formSignup.className = 'form-step exit-left';
-            formVerify.className = 'form-step active';
-            authTabs.classList.add('hidden'); 
-        }
-        else if (targetForm === 'details') {
-            authLayout.className = 'auth-layout scroll-enabled';
-            formLogin.className = 'form-step exit-left';
-            formSignup.className = 'form-step exit-left';
-            formVerify.className = 'form-step exit-left';
-            formDetails.className = 'form-step active';
-            authTabs.classList.add('hidden');
-        }
-    }
-
-    function updateTabUI(targetId) {
-        tabBtns.forEach(btn => {
-            if (btn.dataset.target === targetId) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-    }
-
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            navigateTo(e.target.dataset.target);
-        });
-    });
-
-    // --- Geolocation (Current Location) Logic ---
-    const currentLocationBtn = document.getElementById("current-location-btn");
-    if(currentLocationBtn){
-        currentLocationBtn.addEventListener("click", getCurrentLocation);
-    }
-
-    function getCurrentLocation() {
-        if (!navigator.geolocation) {
-            showToast("Geolocation not supported by your browser");
-            return;
-        }
-
-        showToast("Fetching your location...", true);
-
-        navigator.geolocation.getCurrentPosition(
-            async function(position) {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-
-                try {
-                    const response = await fetch(`/reverse-geocode/?lat=${lat}&lon=${lon}`);
-                    const result = await response.json();
-
-                        if (result.success) {
-                                                if(result.pincode){
-
-                            document.getElementById("pincode").value =
-                                result.pincode;
-
-                        }else{
-
-                            showToast(
-                                "Location found. Please enter pincode manually."
-                            );
+    if (pincodeInput) {
+        let pincodeTimer = null;
+        pincodeInput.addEventListener("input", () => {
+            clearTimeout(pincodeTimer);
+            const val = pincodeInput.value.replace(/\D/g, "").slice(0, 6);
+            pincodeInput.value = val;
+            if (val.length === 6) {
+                pincodeTimer = setTimeout(async () => {
+                    const spinner = document.getElementById("pincode-spinner");
+                    if (spinner) spinner.classList.remove("hidden");
+                    try {
+                        const res  = await fetch(`https://api.postalpincode.in/pincode/${val}`);
+                        const data = await res.json();
+                        if (data[0]?.Status === "Success") {
+                            const po = data[0].PostOffice[0];
+                            const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ""; };
+                            set("state", po.State);
+                            set("city", po.District);
+                            set("area", po.Name);
                         }
-                        document.getElementById("state").value = result.state || "";
-                        document.getElementById("city").value = result.city || "";
-                        document.getElementById("area").value = result.area || "";
-                        document.getElementById("address").value = result.address || "";
-
-                        showToast("Location detected successfully", true);
-                    } else {
-                        showToast(result.message);
-                    }
-                } catch(error) {
-                    console.error(error);
-                    showToast("Unable to fetch location details");
-                }
-            },
-            function(error) {
-                showToast("Location permission denied");
+                    } catch {}
+                    if (spinner) spinner.classList.add("hidden");
+                }, 600);
             }
-        );
+        });
     }
 
-    // --- API Requests ---
-    
-    // 1. SIGNUP
-    formSignup.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        if (!validateForm(formSignup)) return;
-
-        const password = document.getElementById("reg-pass").value;
-        const confirmPassword = document.getElementById("reg-confirm-pass").value;
-
-        if (password !== confirmPassword) {
-            showToast("Passwords do not match.");
-            return;
-        }
-
-        const btn = document.getElementById('signup-btn');
-        const btnText = btn.querySelector('.btn-text');
-        const spinner = btn.querySelector('.fa-spinner');
-        
-        btnText.textContent = "Sending Code...";
-        spinner.classList.remove('hidden');
-        btn.disabled = true;
-
-        try {
-            const response = await fetch("/send-otp/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": getCSRFToken()
-                },
-                body: JSON.stringify({
-                    fullname: document.querySelector('#signup [name="fullname"]').value,
-                    email: document.getElementById("signup-email").value,
-                    phone: document.querySelector('#signup [name="phone"]').value,
-                    password: password
-                })
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                displayEmail.textContent = document.getElementById("signup-email").value;
-                showToast("OTP sent to your email.", true);
-                navigateTo("verify");
-            } else {
-                showToast(result.message || "Signup failed. Please try again.");
-            }
-        } catch (error) {
-            console.error("Error:", error);
-            showToast("Network error. Please try again.");
-        } finally {
-            btnText.textContent = "Create Account";
-            spinner.classList.add('hidden');
-            btn.disabled = false;
-        }
-    });
-
-    // 2. VERIFY OTP
-    formVerify.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        if (!validateForm(formVerify)) return;
-
-        let otp = "";
-        document.querySelectorAll(".otp-input").forEach(input => { otp += input.value; });
-
-        if (otp.length < 6) {
-            showToast("Please enter the complete 6-digit OTP.");
-            return;
-        }
-
-        const btn = document.getElementById('verify-btn');
-        const btnText = btn.querySelector('.btn-text');
-        const spinner = btn.querySelector('.fa-spinner');
-        
-        btnText.textContent = "Verifying...";
-        spinner.classList.remove('hidden');
-        btn.disabled = true;
-
-        try {
-            const response = await fetch("/verify-otp/", {
-                method: "POST",
-                headers: {
-                    "Content-Type":"application/json",
-                    "X-CSRFToken": getCSRFToken()
-                },
-                body: JSON.stringify({
-                    email: document.getElementById("signup-email").value,
-                    otp: otp
-                })
-            });
-
-            const result = await response.json();
-
-            if(result.success){
-                showToast("Email Verified!", true);
-                navigateTo("details");
-            } else {
-                showToast(result.message || "Invalid OTP.");
-            }
-        } catch (error) {
-            console.error("Error:", error);
-            showToast("Network error during verification.");
-        } finally {
-            btnText.textContent = "Verify & Proceed";
-            spinner.classList.add('hidden');
-            btn.disabled = false;
-        }
-    });
-
-    // 3. RESEND OTP
-    const resendLink = document.getElementById("resend-link");
-    if (resendLink) {
-        resendLink.addEventListener("click", async function(e) {
+    // ── SAVE DETAILS ─────────────────────────────────────────
+    const detailsForm = document.getElementById("details");
+    if (detailsForm) {
+        detailsForm.addEventListener("submit", async (e) => {
             e.preventDefault();
+            const btn    = document.getElementById("details-btn");
+            const get    = id => document.getElementById(id)?.value?.trim() || "";
+            const payload = {
+                address:      get("address"),
+                pincode:      get("pincode"),
+                area:         get("area"),
+                city:         get("city"),
+                state:        get("state"),
+                instructions: get("instructions"),
+            };
+            if (!payload.address) return showToast("Please enter your address.");
+            if (!payload.pincode || payload.pincode.length !== 6) return showToast("Please enter a valid 6-digit pincode.");
+            setLoading(btn, true);
             try {
-                const response = await fetch("/resend-otp/", {
-                    method: "POST",
-                    headers: {
-                        "X-CSRFToken": getCSRFToken(),
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        email: document.getElementById("signup-email").value
-                    })
-                });
-                const result = await response.json();
-                showToast(result.message, result.success);
-            } catch (error) {
-                console.error(error);
-                showToast("Failed to resend OTP. Please try again.");
-            }
+                const res  = await fetch("/save-details/", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF() }, body: JSON.stringify(payload) });
+                const data = await res.json();
+                if (data.success) { showToast("All done! Welcome to SSD Nursery 🌱", "success"); setTimeout(() => window.location.href = "/", 1200); }
+                else { showToast(data.message || "Something went wrong."); }
+                setLoading(btn, false);
+            } catch { showToast("Network error."); setLoading(btn, false); }
         });
     }
 
-    // 4. SUBMIT DETAILS
-    formDetails.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        if (!validateForm(formDetails)) return;
-
-        const btn = document.getElementById('details-btn');
-        const btnText = btn.querySelector('.btn-text');
-        const spinner = btn.querySelector('.fa-spinner');
-        
-        btnText.textContent = "Saving...";
-        spinner.classList.remove('hidden');
-        btn.disabled = true;
-
-        try {
-            const response = await fetch("/save-details/", {
-                method: "POST",
-                headers: {
-                    "Content-Type":"application/json",
-                    "X-CSRFToken": getCSRFToken()
-                },
-                body: JSON.stringify({
-                    email: document.getElementById("signup-email").value,
-                    pincode: document.getElementById("pincode").value,
-                    state: document.getElementById("state").value,
-                    city: document.getElementById("city").value,
-                    area: document.getElementById("area").value,
-                    address: document.getElementById("address").value,
-                    instructions: document.getElementById("instructions").value
-                })
-            });
-
-            const result = await response.json();
-
-            if(result.success){
-                showToast("Welcome to SSD Nursery!", true);
-                setTimeout(() => { window.location.href = result.redirect || "/"; }, 1000);
-            } else {
-                showToast(result.message || "Failed to save details.");
-            }
-        } catch (error) {
-            console.error("Error:", error);
-            showToast("Network error. Please try again.");
-        } finally {
-            btnText.textContent = "Save Details & Finish";
-            spinner.classList.add('hidden');
-            btn.disabled = false;
-        }
-    });
-
-    // 5. LOGIN REQUEST
-    formLogin.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        if (!validateForm(formLogin)) return;
-
-        const btn = document.getElementById('login-btn');
-        const btnText = btn.querySelector('.btn-text');
-        const spinner = btn.querySelector('.fa-spinner');
-        
-        btnText.textContent = "Authenticating...";
-        spinner.classList.remove('hidden');
-        btn.disabled = true;
-
-        try {
-            const response = await fetch("/login-user/", {
-                method: "POST",
-                headers: {
-                    "Content-Type":"application/json",
-                    "X-CSRFToken": getCSRFToken()
-                },
-                body: JSON.stringify({
-                    email: document.querySelector('#login input[name="email"]').value,
-                    password: document.querySelector('#login input[name="password"]').value
-                })
-            });
-
-            const result = await response.json();
-
-            if(result.success){
-                showToast("Login Successful!", true);
-                setTimeout(() => { window.location.href = result.redirect || "/"; }, 1000);
-            } else {
-                showToast(result.message || "Invalid credentials.");
-            }
-        } catch (error) {
-            console.error("Login Error:", error);
-            showToast("Error connecting to server.");
-        } finally {
-            btnText.textContent = "Sign In";
-            spinner.classList.add('hidden');
-            btn.disabled = false;
-        }
-    });
-
-    // --- OTP Input Auto-Advance Logic ---
-    const otpInputs = document.querySelectorAll('.otp-input');
-    
-    otpInputs.forEach((input, index) => {
-        input.addEventListener("keypress", function(e){
-            if(!/[0-9]/.test(e.key)){
-                e.preventDefault();
-            }
-        });
-
-        input.addEventListener('input', (e) => {
-            e.target.value = e.target.value.replace(/[^0-9]/g, '');
-            if (e.target.value.length === 1 && index < otpInputs.length - 1) {
-                otpInputs[index + 1].focus();
-            }
-        });
-
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Backspace' && !e.target.value && index > 0) {
-                otpInputs[index - 1].focus();
-            }
-        });
-        
-        input.addEventListener('paste', (e) => {
-            e.preventDefault();
-            const pastedData = e.clipboardData.getData('text').slice(0, 6).replace(/[^0-9]/g, '');
-            for(let i = 0; i < pastedData.length; i++) {
-                if(i < otpInputs.length) {
-                    otpInputs[i].value = pastedData[i];
-                    if(i < otpInputs.length - 1) otpInputs[i+1].focus();
-                }
-            }
-        });
-    });
-
-    // --- Init: Check URL for pre-selected tab ---
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('tab') === 'signup' || window.location.hash === '#signup') {
-        navigateTo('signup');
-    } else {
-        navigateTo('login');
-    }
-});
+})();

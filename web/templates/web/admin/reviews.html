@@ -2,439 +2,64 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SSD Nursery | Reviews</title>
-
-    <!-- Premium Typography -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
-    
-    <!-- Icons -->
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reviews | SSD Nursery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
-    <style>
-        /* ================= DESIGN SYSTEM (MATCHING DASHBOARD) ================= */
-        :root {
-            --bg-body: #F5F5F7;
-            --bg-surface: #FFFFFF;
-            --text-primary: #1D1D1F;
-            --text-secondary: #86868B;
-            --accent-color: #1F5132;
-            --accent-light: #E8F0EA;
-            --border-color: rgba(0, 0, 0, 0.05);
-            
-            --danger-color: #DC2626;
-            --danger-light: #FEF2F2;
-            --success-color: #16A34A;
-            --success-light: #DCFCE7;
-            --warning-color: #D97706;
-            --warning-light: #FFFBEB;
-            
-            --font-sans: 'Inter', -apple-system, sans-serif;
-            --font-serif: 'Playfair Display', serif;
-            
-            --sidebar-width: 260px;
-            --radius-md: 16px;
-            --radius-lg: 24px;
-            --shadow-sm: 0 4px 24px rgba(0, 0, 0, 0.04);
-            --transition-fast: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        /* ================= RESET & BASE ================= */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: var(--font-sans);
-            background-color: var(--bg-body);
-            color: var(--text-primary);
-            line-height: 1.5;
-            -webkit-font-smoothing: antialiased;
-            overflow-x: hidden;
-        }
-
-        a { text-decoration: none; color: inherit; }
-        button { background: none; border: none; cursor: pointer; }
-
-        /* ================= LAYOUT ================= */
-        .admin-layout { display: flex; min-height: 100vh; }
-
-        /* ================= SIDEBAR ================= */
-        .sidebar {
-    width: var(--sidebar-width);
-    background-color: var(--bg-surface);
-    border-right: 1px solid var(--border-color);
-    position: fixed;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    z-index: 100;
-    transition: transform var(--transition-fast);
-    will-change: transform;
-}
-
-        .sidebar-header {
-    flex: 0 0 auto;
-    padding: 32px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.sidebar-footer {
-    flex: 0 0 auto;
-    padding: 24px 16px;
-    border-top: 1px solid var(--border-color);
-    background-color: var(--bg-surface);
-}
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-family: var(--font-serif);
-            font-size: 1.35rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            letter-spacing: -0.5px;
-        }
-
-        .brand-logo { width: 36px; height: 36px; object-fit: contain; border-radius: 8px; }
-        .close-sidebar { display: none; font-size: 1.2rem; color: var(--text-secondary); }
-
-        .nav-menu {
-    flex: 1 1 auto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 0 16px;
-    overflow-y: auto;
-}
-
-/* Clean Sidebar Scrollbar */
-.nav-menu::-webkit-scrollbar {
-    width: 4px;
-}
-
-.nav-menu::-webkit-scrollbar-thumb {
-    background: rgba(0,0,0,0.1);
-    border-radius: 10px;
-}
-
-        .nav-link {
-            display: flex; align-items: center; gap: 16px;
-            padding: 12px 16px; border-radius: 12px;
-            color: var(--text-secondary); font-size: 0.95rem; font-weight: 500;
-            transition: all var(--transition-fast);
-        }
-
-        .nav-link i { font-size: 1.1rem; width: 20px; text-align: center; }
-        .nav-link:hover { background-color: var(--bg-body); color: var(--text-primary); }
-        
-        .nav-link.active {
-            background-color: var(--accent-light);
-            color: var(--accent-color);
-            font-weight: 600;
-        }
-
-
-        /* ================= MAIN CONTENT ================= */
-        .main-content {
-            flex: 1; margin-left: var(--sidebar-width);
-            padding: 40px; display: flex; flex-direction: column; gap: 32px;
-            width: calc(100% - var(--sidebar-width));
-        }
-
-        /* Header */
-        .top-header { display: flex; justify-content: space-between; align-items: center; }
-        .header-left { display: flex; align-items: center; gap: 16px; }
-        .page-title { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.5px; }
-        .mobile-toggle { display: none; font-size: 1.5rem; color: var(--text-primary); padding: 8px; }
-
-        /* ================= DATA TABLE CARD ================= */
-        .data-card {
-            background: var(--bg-surface);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border-color);
-            overflow: hidden;
-            opacity: 0; transform: translateY(20px);
-            animation: fadeUp 0.6s var(--transition-fast) forwards;
-            will-change: transform, opacity;
-        }
-
-        .table-responsive { width: 100%; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; white-space: nowrap; text-align: left; }
-        
-        th {
-            padding: 20px 24px; color: var(--text-secondary);
-            font-size: 0.85rem; font-weight: 600; text-transform: uppercase;
-            letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color);
-            background: #FAFAFA;
-        }
-
-        td {
-            padding: 16px 24px; font-size: 0.95rem; color: var(--text-primary);
-            border-bottom: 1px solid var(--border-color); vertical-align: middle;
-            transition: background var(--transition-fast);
-        }
-
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background-color: #FAFAFA; }
-
-        /* User Identity Block */
-        .user-identity {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .user-avatar {
-            width: 36px; height: 36px; border-radius: 50%;
-            background: var(--accent-light); color: var(--accent-color);
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 600; font-size: 0.9rem;
-        }
-
-        .text-bold { font-weight: 600; color: var(--text-primary); }
-        .text-muted { color: var(--text-secondary); font-size: 0.85rem; margin-top: 2px; }
-
-        .truncate-text {
-            max-width: 280px; overflow: hidden; text-overflow: ellipsis;
-            white-space: nowrap; color: var(--text-secondary);
-        }
-
-        /* Status Badges */
-        .status-badge {
-            padding: 6px 14px; border-radius: 100px; font-size: 0.75rem;
-            font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-            display: inline-flex; align-items: center; gap: 6px;
-        }
-        
-        .badge-active { background: #E6F4EA; color: #1E8E3E; }
-        .badge-pending { background: var(--warning-light); color: var(--warning-color); border: 1px solid rgba(217, 119, 6, 0.1); }
-        .status-badge i { font-size: 0.4rem; }
-
-        /* Action Buttons */
-        .actions-cell {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-        }
-
-        .btn-icon-danger, .btn-icon-success {
-            width: 36px; height: 36px; border-radius: 10px;
-            display: inline-flex; align-items: center; justify-content: center;
-            color: var(--text-secondary); transition: all 0.2s;
-        }
-        .btn-icon-danger:hover { background: var(--danger-light); color: var(--danger-color); }
-        .btn-icon-success:hover { background: var(--success-light); color: var(--success-color); }
-
-        @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
-
-        /* ================= RESPONSIVE ================= */
-        .sidebar-overlay {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.2);
-            backdrop-filter: blur(4px); z-index: 90; opacity: 0; transition: opacity var(--transition-fast);
-        }
-
-        @media (max-width: 1024px) {
-            .main-content { padding: 32px 24px; }
-        }
-
-        @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.active { transform: translateX(0); }
-            .sidebar-overlay.active { display: block; opacity: 1; }
-            .main-content { margin-left: 0; width: 100%; padding: 24px 16px; }
-            .close-sidebar { display: block; }
-            .mobile-toggle { display: block; }
-            .page-title { font-size: 1.5rem; }
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+    <style>.stars{color:#F59E0B;font-size:0.8rem;letter-spacing:1px;}</style>
 </head>
 <body>
-
-    <div class="admin-layout">
-        
-        <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <a href="#" class="brand">
-                    <img src="{% static 'images/logo.png' %}" alt="SSD Nursery Logo" class="brand-logo">
-                    <span>SSD Nursery</span>
-                </a>
-                <button class="close-sidebar" id="closeSidebar">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+<div class="admin-layout">
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "web/admin/_sidebar.html" %}
+    <main class="main-content">
+        <header class="top-header">
+            <div class="header-left">
+                <button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button>
+                <div><h1 class="page-title">Reviews</h1><p class="page-subtitle">{{ reviews.count }} total reviews</p></div>
             </div>
-
-            <nav class="nav-menu">
-                <a href="/dashboard/" class="nav-link">
-                    <i class="fa-solid fa-chart-line"></i> Dashboard
-                </a>
-                <a href="/dashboard/users/" class="nav-link">
-                    <i class="fa-solid fa-users"></i> Users
-                </a>
-                <a href="/dashboard/categories/" class="nav-link">
-                    <i class="fa-solid fa-list"></i> Categories
-                </a>
-                <a href="/dashboard/products/" class="nav-link">
-                    <i class="fa-solid fa-seedling"></i> Products
-                </a>
-                <a href="/dashboard/orders/" class="nav-link">
-                    <i class="fa-solid fa-box"></i> Orders
-                </a>
-                <a href="/dashboard/coupons/" class="nav-link">
-                    <i class="fa-solid fa-tags"></i> Coupons
-                </a>
-                <!-- Active Link is on Reviews -->
-                <a href="/dashboard/reviews/" class="nav-link active">
-                    <i class="fa-solid fa-star"></i> Reviews
-                </a>
-                <a href="/dashboard/banners/" class="nav-link">
-                    <i class="fa-solid fa-images"></i> Banners
-                </a>
-                <a href="/" class="nav-link">
-                    <i class="fa-solid fa-house"></i> Home
-                </a>
-                 
-            </nav>
-
-            <div class="sidebar-footer">
-                <a href="/admin/" class="nav-link">
-                    <i class="fa-solid fa-shield-halved"></i> Django Admin
-                </a>
-                <a href="/logout/" class="nav-link" style="color: #DC2626;">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
-                </a>
-            </div>
-        </aside>
-
-        <!-- Main Workspace -->
-        <main class="main-content">
-            
-            <header class="top-header">
-                <div class="header-left">
-                    <button class="mobile-toggle" id="openSidebar">
-                        <i class="fa-solid fa-bars-staggered"></i>
-                    </button>
-                    <h1 class="page-title">Reviews Management</h1>
-                </div>
-            </header>
-
-            <!-- Data Table Card -->
-            <section class="data-card">
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>User</th>
-                                <th>Product</th>
-                                <th>Rating</th>
-                                <th>Review</th>
-                                <th>Status</th>
-                                <th style="text-align: right;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for review in reviews %}
-                            <tr>
-                                <td>
-                                    <div class="user-identity">
-                                        <div class="user-avatar">
-                                            {{ review.user.email|make_list|first|default:"U"|upper }}
-                                        </div>
-                                        <div>
-                                            <div style="font-weight: 500; color: var(--text-primary);">
-                                                {{ review.user.first_name|default:"Customer" }}
-                                            </div>
-                                            <div class="text-muted">{{ review.user.email }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                
-                                <td class="text-bold">{{ review.product.name }}</td>
-                                
-                                <td>
-                                    <div style="color: #F59E0B; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 4px;">
-                                        <i class="fa-solid fa-star"></i> {{ review.rating }}/5
-                                    </div>
-                                </td>
-                                
-                                <td>
-                                    <div class="truncate-text" title="{{ review.review }}">
-                                        {{ review.review }}
-                                    </div>
-                                </td>
-                                
-                                <td>
-                                    {% if review.is_approved %}
-                                        <span class="status-badge badge-active"><i class="fa-solid fa-circle"></i> Approved</span>
-                                    {% else %}
-                                        <span class="status-badge badge-pending"><i class="fa-solid fa-circle"></i> Pending</span>
+        </header>
+        <div class="data-card">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr><th>#</th><th>Customer</th><th>Product</th><th>Rating</th><th>Review</th><th>Status</th><th style="text-align:right">Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for r in reviews %}
+                        <tr>
+                            <td style="color:var(--text-secondary);">{{ r.id }}</td>
+                            <td style="font-weight:600;">{{ r.user.first_name|default:r.user.username }}</td>
+                            <td style="color:var(--text-secondary);">{{ r.product.name|truncatechars:30 }}</td>
+                            <td>
+                                <div class="stars">
+                                    {% for i in "12345" %}{% if forloop.counter <= r.rating %}★{% else %}☆{% endif %}{% endfor %}
+                                </div>
+                            </td>
+                            <td><div class="truncate">{{ r.review }}</div></td>
+                            <td>
+                                {% if r.is_approved %}<span class="badge badge-active"><i class="fa-solid fa-circle"></i>Approved</span>
+                                {% else %}<span class="badge badge-pending"><i class="fa-solid fa-circle"></i>Pending</span>{% endif %}
+                            </td>
+                            <td>
+                                <div class="action-group">
+                                    {% if not r.is_approved %}
+                                    <a href="{% url 'approve_review' r.id %}" class="btn-icon btn-icon-toggle" title="Approve"><i class="fa-solid fa-check"></i></a>
                                     {% endif %}
-                                </td>
-                                
-                                <td>
-                                    <div class="actions-cell">
-                                        {% if not review.is_approved %}
-                                        <a href="{% url 'approve_review' review.id %}" class="btn-icon-success" title="Approve Review">
-                                            <i class="fa-solid fa-check"></i>
-                                        </a>
-                                        {% endif %}
-                                        <a href="{% url 'delete_review' review.id %}" class="btn-icon-danger" title="Delete Review">
-                                            <i class="fa-solid fa-trash-can"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="6" style="text-align: center; padding: 60px; color: var(--text-secondary);">
-                                    <i class="fa-regular fa-star" style="font-size: 2rem; margin-bottom: 12px; opacity: 0.3;"></i>
-                                    <br>No customer reviews available yet.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-            
-        </main>
-    </div>
-
-    <!-- Interactive Logic -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Sidebar Logic
-            const sidebar = document.getElementById('sidebar');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
-            const openSidebarBtn = document.getElementById('openSidebar');
-            const closeSidebarBtn = document.getElementById('closeSidebar');
-
-            const toggleSidebar = (force) => {
-                const isActive = sidebar.classList.contains('active');
-                if (force === true || (!isActive && force !== false)) {
-                    sidebar.classList.add('active');
-                    sidebarOverlay.classList.add('active');
-                    document.body.style.overflow = 'hidden'; 
-                } else {
-                    sidebar.classList.remove('active');
-                    sidebarOverlay.classList.remove('active');
-                    document.body.style.overflow = '';
-                }
-            };
-
-            if(openSidebarBtn) openSidebarBtn.addEventListener('click', () => toggleSidebar(true));
-            if(closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => toggleSidebar(false));
-            if(sidebarOverlay) sidebarOverlay.addEventListener('click', () => toggleSidebar(false));
-        });
-    </script>
+                                    <a href="{% url 'delete_review' r.id %}" class="btn-icon btn-icon-danger" title="Delete" data-confirm="Delete this review?"><i class="fa-solid fa-trash"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr class="empty-row"><td colspan="7"><i class="fa-solid fa-star"></i><br>No reviews yet</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+<script src="{% static 'js/admin.js' %}"></script>
 </body>
 </html>

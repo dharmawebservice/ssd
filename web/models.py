@@ -1,26 +1,24 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 
-class EmailOTP(models.Model):
-    email = models.EmailField(unique=True)
-    otp = models.CharField(max_length=6)
-    created_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.email
-
+# ==========================================
+# USER PROFILE
+# ==========================================
 
 class UserProfile(models.Model):
-
     user = models.OneToOneField(
         User,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name="profile"
     )
 
     phone = models.CharField(
-        max_length=10,
-        unique=True
+        max_length=15,
+        unique=True,
+        blank=True,
+        null=True
     )
 
     address = models.TextField(
@@ -47,7 +45,7 @@ class UserProfile(models.Model):
     )
 
     pincode = models.CharField(
-        max_length=6,
+        max_length=10,
         blank=True,
         null=True
     )
@@ -60,15 +58,46 @@ class UserProfile(models.Model):
     created_at = models.DateTimeField(
         auto_now_add=True
     )
-    
-    def __str__(self):
-        return self.user.email
-    
-class Category(models.Model):
 
+    def __str__(self):
+        return f"{self.user.username} Profile"
+
+
+# ==========================================
+# EMAIL OTP
+# ==========================================
+
+class EmailOTP(models.Model):
+    email = models.EmailField(
+        unique=True
+    )
+
+    otp = models.CharField(
+        max_length=6
+    )
+
+    created_at = models.DateTimeField(
+        default=timezone.now
+    )
+
+    def __str__(self):
+        return f"OTP for {self.email}"
+
+
+# ==========================================
+# CATEGORY
+# ==========================================
+
+class Category(models.Model):
     name = models.CharField(
         max_length=100,
         unique=True
+    )
+
+    slug = models.SlugField(
+        max_length=120,
+        unique=True,
+        blank=True
     )
 
     image = models.ImageField(
@@ -89,14 +118,23 @@ class Category(models.Model):
         auto_now_add=True
     )
 
+    class Meta:
+        verbose_name_plural = "Categories"
+        ordering = ["name"]
+
     def __str__(self):
         return self.name
-    
-class Product(models.Model):
 
+
+# ==========================================
+# PRODUCT
+# ==========================================
+
+class Product(models.Model):
     category = models.ForeignKey(
         Category,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name="products"
     )
 
     name = models.CharField(
@@ -104,7 +142,9 @@ class Product(models.Model):
     )
 
     slug = models.SlugField(
-        unique=True
+        max_length=220,
+        unique=True,
+        blank=True
     )
 
     price = models.DecimalField(
@@ -119,15 +159,19 @@ class Product(models.Model):
         null=True
     )
 
-    stock = models.IntegerField(
+    stock = models.PositiveIntegerField(
         default=0
     )
 
     image = models.ImageField(
-        upload_to="products/"
+        upload_to="products/",
+        blank=True,
+        null=True
     )
 
-    description = models.TextField()
+    description = models.TextField(
+        blank=True
+    )
 
     care_guide = models.TextField(
         blank=True
@@ -155,11 +199,30 @@ class Product(models.Model):
         auto_now_add=True
     )
 
+    class Meta:
+        ordering = ["-created_at"]
+
     def __str__(self):
         return self.name
-    
-class ProductImage(models.Model):
 
+    @property
+    def effective_price(self):
+        return self.offer_price if self.offer_price else self.price
+
+    @property
+    def discount_percent(self):
+        if self.offer_price and self.price:
+            return int(
+                ((self.price - self.offer_price) / self.price) * 100
+            )
+        return 0
+
+
+# ==========================================
+# PRODUCT GALLERY
+# ==========================================
+
+class ProductImage(models.Model):
     product = models.ForeignKey(
         Product,
         on_delete=models.CASCADE,
@@ -170,50 +233,39 @@ class ProductImage(models.Model):
         upload_to="products/gallery/"
     )
 
-from django.db import models
-from django.contrib.auth.models import User
+    def __str__(self):
+        return self.product.name
 
 
-class Order(models.Model):
+# ==========================================
+# BANNERS
+# ==========================================
 
-    STATUS_CHOICES = (
+class Banner(models.Model):
 
-        ("Pending", "Pending"),
-        ("Confirmed", "Confirmed"),
-        ("Packed", "Packed"),
-        ("Shipped", "Shipped"),
-        ("Delivered", "Delivered"),
-        ("Cancelled", "Cancelled"),
+    BANNER_TYPES = [
+        ("SLIDER", "Slider"),
+        ("OFFER", "Offer"),
+        ("FESTIVAL", "Festival"),
+    ]
 
+    title = models.CharField(
+        max_length=200,
+        blank=True
     )
 
-    PAYMENT_CHOICES = (
-
-        ("COD", "Cash On Delivery"),
-        ("ONLINE", "Online Payment"),
-
+    image = models.ImageField(
+        upload_to="banners/"
     )
 
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE
-    )
-
-    total_amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2
-    )
-
-    payment_method = models.CharField(
+    banner_type = models.CharField(
         max_length=20,
-        choices=PAYMENT_CHOICES,
-        default="COD"
+        choices=BANNER_TYPES,
+        default="SLIDER"
     )
 
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default="Pending"
+    is_active = models.BooleanField(
+        default=True
     )
 
     created_at = models.DateTimeField(
@@ -221,42 +273,58 @@ class Order(models.Model):
     )
 
     def __str__(self):
-        return f"Order #{self.id}"
-    
-class OrderItem(models.Model):
+        return self.title or f"Banner {self.id}"
 
-    order = models.ForeignKey(
-        Order,
+
+# ==========================================
+# REVIEWS
+# ==========================================
+
+class Review(models.Model):
+    user = models.ForeignKey(
+        User,
         on_delete=models.CASCADE,
-        related_name="items"
+        related_name="reviews"
     )
 
     product = models.ForeignKey(
         Product,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name="reviews"
     )
 
-    quantity = models.PositiveIntegerField(
-        default=1
+    rating = models.PositiveSmallIntegerField(
+        default=5
     )
 
-    price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2
+    review = models.TextField()
+
+    is_approved = models.BooleanField(
+        default=False
     )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+        unique_together = ("product", "user")
+        ordering = ["-created_at"]
 
     def __str__(self):
-        return self.product.name
-    
+        return f"{self.user.username} - {self.product.name}"
+
+
+# ==========================================
+# COUPONS
+# ==========================================
 
 class Coupon(models.Model):
 
-    DISCOUNT_TYPES = (
-
+    DISCOUNT_TYPES = [
         ("PERCENTAGE", "Percentage"),
         ("FLAT", "Flat"),
-
-    )
+    ]
 
     code = models.CharField(
         max_length=50,
@@ -286,7 +354,10 @@ class Coupon(models.Model):
         null=True
     )
 
-    expiry_date = models.DateField()
+    expiry_date = models.DateField(
+        blank=True,
+        null=True
+    )
 
     is_active = models.BooleanField(
         default=True
@@ -298,9 +369,13 @@ class Coupon(models.Model):
 
     def __str__(self):
         return self.code
-    
-class CouponUsage(models.Model):
 
+
+# ==========================================
+# COUPON USAGE
+# ==========================================
+
+class CouponUsage(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE
@@ -316,17 +391,91 @@ class CouponUsage(models.Model):
     )
 
     class Meta:
+        unique_together = ("user", "coupon")
 
-        unique_together = (
-            "user",
-            "coupon"
-        )
+    def __str__(self):
+        return f"{self.user.username} - {self.coupon.code}"
 
-class Review(models.Model):
+
+# ==========================================
+# ORDERS
+# ==========================================
+
+class Order(models.Model):
+
+    STATUS_CHOICES = [
+        ("Pending", "Pending"),
+        ("Confirmed", "Confirmed"),
+        ("Packed", "Packed"),
+        ("Shipped", "Shipped"),
+        ("Delivered", "Delivered"),
+        ("Cancelled", "Cancelled"),
+    ]
+
+    PAYMENT_CHOICES = [
+        ("COD", "Cash On Delivery"),
+        ("ONLINE", "Online Payment"),
+    ]
 
     user = models.ForeignKey(
         User,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name="orders"
+    )
+
+    total_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_CHOICES,
+        default="COD"
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="Pending"
+    )
+
+    address = models.TextField(
+        blank=True
+    )
+
+    coupon = models.ForeignKey(
+        Coupon,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Order #{self.id}"
+
+
+# ==========================================
+# ORDER ITEMS
+# ==========================================
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="items"
     )
 
     product = models.ForeignKey(
@@ -334,42 +483,34 @@ class Review(models.Model):
         on_delete=models.CASCADE
     )
 
-    rating = models.IntegerField()
-
-    review = models.TextField()
-
-    is_approved = models.BooleanField(
-        default=False
+    quantity = models.PositiveIntegerField(
+        default=1
     )
 
-    created_at = models.DateTimeField(
-        auto_now_add=True
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
     )
+
+    @property
+    def subtotal(self):
+        return self.price * self.quantity
 
     def __str__(self):
-        return self.product.name
-    
-class Banner(models.Model):
+        return f"{self.product.name} x {self.quantity}"
 
-    BANNER_TYPES = (
 
-        ("SLIDER","Slider"),
-        ("OFFER","Offer"),
-        ("FESTIVAL","Festival"),
+# ==========================================
+# NOTIFICATIONS
+# ==========================================
 
-    )
-
+class Notification(models.Model):
     title = models.CharField(
-        max_length=200
+        max_length=300
     )
 
-    image = models.ImageField(
-        upload_to="banners/"
-    )
-
-    banner_type = models.CharField(
-        max_length=20,
-        choices=BANNER_TYPES
+    message = models.TextField(
+        blank=True
     )
 
     is_active = models.BooleanField(
@@ -380,14 +521,5 @@ class Banner(models.Model):
         auto_now_add=True
     )
 
-class Notification(models.Model):
-
-    title = models.CharField(
-        max_length=200
-    )
-
-    message = models.TextField()
-
-    created_at = models.DateTimeField(
-        auto_now_add=True
-    )
+    def __str__(self):
+        return self.title

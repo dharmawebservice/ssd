@@ -5,217 +5,348 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SSD Nursery | Botanical Haven</title>
-
     <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}?v=1">
-    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
 
-    {% if notifications %}
-    <div class="offer-strip" style="background:#1f5132; color:white; padding:10px; text-align:center; font-weight:600;">
-        {% for note in notifications %}
-            <span>{{ note.title }}</span>
-            {% if not forloop.last %} | {% endif %}
+{% if notifications %}
+<div class="offer-strip">
+    <div class="strip-track">
+        {% for note in notifications %}<span class="strip-item"><i class="fas fa-seedling"></i> {{ note.title }}</span>{% endfor %}
+        {% for note in notifications %}<span class="strip-item"><i class="fas fa-seedling"></i> {{ note.title }}</span>{% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<nav class="navbar" id="navbar">
+    <div class="logo"><a href="{% url 'home' %}"><img src="{% static 'images/logo.png' %}" alt="SSD Nursery Logo" class="brand-logo"></a></div>
+    <ul class="nav-links" id="nav-links">
+        <li><a href="{% url 'home' %}" class="active">Home</a></li>
+        <li><a href="{% url 'shop' %}">Shop</a></li>
+        <li><a href="#categories">Collections</a></li>
+        <li><a href="#reviews">Reviews</a></li>
+        <li><a href="#">Our Story</a></li>
+    </ul>
+    <div class="nav-actions">
+        <button class="icon-btn hide-mobile search-trigger"><i class="fas fa-search"></i></button>
+        <button class="icon-btn hide-mobile"><i class="far fa-heart"></i></button>
+        <button class="icon-btn cart-btn"><i class="fas fa-shopping-bag"></i><span class="cart-count">0</span></button>
+        <div class="profile-dropdown">
+            <button class="icon-btn profile-btn" id="profileToggle"><i class="far fa-user"></i></button>
+            <div class="dropdown-menu" id="profileMenu">
+                {% if request.user.is_authenticated %}
+                    {% if request.user.is_superuser %}
+                        <a href="{% url 'admin_dashboard' %}"><i class="fas fa-chart-line"></i> Dashboard</a>
+                        <a href="{% url 'logout_user' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    {% else %}
+                        <div class="user-info">Welcome, <strong>{{ request.user.first_name|default:request.user.username }}</strong></div>
+                        <a href="{% url 'profile' %}"><i class="fas fa-user-circle"></i> My Profile</a>
+                        <a href="{% url 'logout_user' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'auth' %}?tab=login"><i class="fas fa-sign-in-alt"></i> Login</a>
+                    <a href="{% url 'auth' %}?tab=signup"><i class="fas fa-user-plus"></i> Sign Up</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="menu-toggle" id="mobile-menu"><i class="fas fa-bars"></i></div>
+    </div>
+</nav>
+
+<div class="search-overlay" id="searchOverlay">
+    <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search plants, pots, accessories…" id="searchInput">
+        <button class="search-close" id="searchClose"><i class="fas fa-times"></i></button>
+    </div>
+</div>
+
+<!-- HERO SLIDER -->
+<header class="hero-slider" id="home">
+    <div class="slider-track" id="sliderTrack">
+        <div class="slide slide-1">
+            <div class="slide-bg">
+                {% if banners and banners.0.image %}<img src="{{ banners.0.image.url }}" alt="{{ banners.0.title }}" class="slide-img">{% else %}<img src="{% static 'images/default-banner.jpg' %}" alt="Plants" class="slide-img">{% endif %}
+                <div class="slide-overlay"></div>
+            </div>
+            <div class="slide-content">
+                <span class="slide-tag">✦ New Arrivals 2025</span>
+                <h1 class="slide-heading">Cultivate Your<br><em>Indoor Jungle.</em></h1>
+                <p class="slide-desc">Hand-curated rare plants delivered straight to your door. Transform any space into a living sanctuary.</p>
+                <div class="slide-actions">
+                    <a href="{% url 'shop' %}" class="btn-hero">Shop Collection <i class="fas fa-arrow-right"></i></a>
+                    <span class="hero-stat"><strong>10,000+</strong> Happy plant parents</span>
+                </div>
+            </div>
+            <div class="slide-decoration"><div class="deco-circle c1"></div><div class="deco-circle c2"></div><div class="deco-leaf"><svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><path d="M100,10 C140,10 180,50 180,100 C180,150 140,190 100,190 C60,190 10,160 10,100 C10,40 60,10 100,10 Z" fill="rgba(255,255,255,0.05)"/></svg></div></div>
+        </div>
+        <div class="slide slide-2">
+            <div class="slide-bg">
+                {% if banners and banners.1.image %}<img src="{{ banners.1.image.url }}" alt="{{ banners.1.title }}" class="slide-img">{% else %}<img src="{% static 'images/default-banner.jpg' %}" alt="" class="slide-img">{% endif %}
+                <div class="slide-overlay"></div>
+            </div>
+            <div class="slide-content">
+                <span class="slide-tag">✦ Limited Collection</span>
+                <h1 class="slide-heading">Rare Tropicals<br><em>Just Arrived.</em></h1>
+                <p class="slide-desc">Monstera, Philodendron, Alocasia — exotic species that make a bold statement.</p>
+                <div class="slide-actions">
+                    <a href="{% url 'shop' %}" class="btn-hero btn-hero-alt">Explore Rare Plants <i class="fas fa-arrow-right"></i></a>
+                    <span class="hero-stat"><strong>Free</strong> delivery over ₹999</span>
+                </div>
+            </div>
+            <div class="slide-decoration"><div class="deco-circle c1"></div><div class="deco-circle c2"></div></div>
+        </div>
+        <div class="slide slide-3">
+            <div class="slide-bg">
+                {% if banners and banners.2.image %}<img src="{{ banners.2.image.url }}" alt="{{ banners.2.title }}" class="slide-img">{% else %}<img src="{% static 'images/default-banner.jpg' %}" alt="" class="slide-img">{% endif %}
+                <div class="slide-overlay"></div>
+            </div>
+            <div class="slide-content">
+                <span class="slide-tag">✦ Seasonal Sale</span>
+                <h1 class="slide-heading">Greenery for<br><em>Every Corner.</em></h1>
+                <p class="slide-desc">Low-maintenance beauties perfect for offices, balconies and living rooms. Up to 40% off today.</p>
+                <div class="slide-actions">
+                    <a href="{% url 'shop' %}?sale=1" class="btn-hero">Shop Sale <i class="fas fa-tag"></i></a>
+                    <span class="hero-stat"><strong>40% off</strong> selected plants</span>
+                </div>
+            </div>
+            <div class="slide-decoration"><div class="deco-circle c1"></div><div class="deco-circle c2"></div></div>
+        </div>
+    </div>
+    <button class="slider-arrow prev" id="sliderPrev"><i class="fas fa-chevron-left"></i></button>
+    <button class="slider-arrow next" id="sliderNext"><i class="fas fa-chevron-right"></i></button>
+    <div class="slider-dots" id="sliderDots">
+        <button class="dot active" data-index="0"></button>
+        <button class="dot" data-index="1"></button>
+        <button class="dot" data-index="2"></button>
+    </div>
+    <div class="scroll-hint"><div class="scroll-line"></div><span>Scroll</span></div>
+</header>
+
+<!-- TRUST BAR -->
+<section class="trust-bar">
+    <div class="trust-item"><i class="fas fa-truck-fast"></i><div><strong>Free Delivery</strong><span>Orders above ₹999</span></div></div>
+    <div class="trust-item"><i class="fas fa-shield-halved"></i><div><strong>7-Day Guarantee</strong><span>Healthy plant promise</span></div></div>
+    <div class="trust-item"><i class="fas fa-leaf"></i><div><strong>Hand-Curated</strong><span>Expert-grown plants</span></div></div>
+    <div class="trust-item"><i class="fas fa-headset"></i><div><strong>Plant Care Support</strong><span>Expert advice always</span></div></div>
+</section>
+
+<!-- CATEGORIES -->
+<section id="categories" class="categories reveal-section">
+    <div class="section-header">
+        <div class="section-label">Browse by category</div>
+        <h2>Find Your <em>Perfect Plant</em></h2>
+        <p>Curated collections for every lifestyle, space, and skill level.</p>
+    </div>
+    <div class="category-wrapper">
+        {% for category in categories %}
+        <a href="{% url 'shop' %}?category={{ category.slug }}" class="cat-card reveal-child" style="text-decoration:none;">
+            <div class="cat-img-wrap">
+                {% if category.image %}<img src="{{ category.image.url }}" alt="{{ category.name }}">
+                {% else %}<div class="cat-icon-fallback"><i class="fa-solid fa-leaf"></i></div>{% endif %}
+                <div class="cat-overlay"><span>Explore <i class="fas fa-arrow-right"></i></span></div>
+            </div>
+            <div class="cat-body">
+                <h3>{{ category.name }}</h3>
+                <p>{{ category.description|truncatechars:55 }}</p>
+            </div>
+        </a>
+        {% empty %}
+        <p style="font-family:'Cormorant Garamond',serif;color:var(--text-light);">No categories available.</p>
         {% endfor %}
     </div>
-    {% endif %}
+</section>
 
-    <nav class="navbar" id="navbar">
-        <div class="logo">
-            <img src="{% static 'images/logo.png' %}" alt="SSD Nursery Logo" class="brand-logo">
+<!-- MARQUEE -->
+<div class="marquee-strip">
+    <div class="marquee-track">
+        <span>🌿 Monstera</span><span class="sep">✦</span><span>🌸 Orchids</span><span class="sep">✦</span>
+        <span>🪴 Succulents</span><span class="sep">✦</span><span>🌱 Ferns</span><span class="sep">✦</span>
+        <span>🍃 Pothos</span><span class="sep">✦</span><span>🌺 Anthuriums</span><span class="sep">✦</span>
+        <span>🌴 Palms</span><span class="sep">✦</span><span>🎋 Bamboo</span><span class="sep">✦</span>
+        <span>🌿 Monstera</span><span class="sep">✦</span><span>🌸 Orchids</span><span class="sep">✦</span>
+        <span>🪴 Succulents</span><span class="sep">✦</span><span>🌱 Ferns</span><span class="sep">✦</span>
+        <span>🍃 Pothos</span><span class="sep">✦</span><span>🌺 Anthuriums</span><span class="sep">✦</span>
+        <span>🌴 Palms</span><span class="sep">✦</span><span>🎋 Bamboo</span><span class="sep">✦</span>
+    </div>
+</div>
+
+<!-- PRODUCTS -->
+<section id="shop" class="featured-shop reveal-section">
+    <div class="section-header split-header">
+        <div>
+            <div class="section-label">Freshly stocked</div>
+            <h2>New <em>Arrivals</em></h2>
         </div>
-
-        <ul class="nav-links" id="nav-links">
-            <li><a href="#" class="active">Home</a></li>
-            <li><a href="#shop">Shop</a></li>
-            <li><a href="#categories">Collections</a></li>
-            <li><a href="#">Our Story</a></li>
-        </ul>
-
-        <div class="nav-actions">
-            <button class="icon-btn hide-mobile"><i class="fas fa-search"></i></button>
-            <button class="icon-btn hide-mobile"><i class="far fa-heart"></i></button>
-            
-            <button class="icon-btn cart-btn">
-                <i class="fas fa-shopping-bag"></i>
-                <span class="cart-count">0</span>
-            </button>
-
-            <div class="profile-dropdown">
-                <button class="icon-btn profile-btn" id="profileToggle">
-                    <i class="far fa-user"></i>
-                </button>
-                <div class="dropdown-menu" id="profileMenu">
-
-                    {% if request.user.is_authenticated %}
-                        {% if request.user.is_superuser %}
-                            <a href="{% url 'admin_dashboard' %}">
-                                <i class="fas fa-chart-line"></i> Dashboard
-                            </a>
-                            <a href="{% url 'logout_user' %}">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        {% else %}
-                            <div class="user-info">
-                                Welcome, <strong>{{ request.user.first_name|default:request.user.username }}</strong>
-                            </div>
-                            <a href="{% url 'profile' %}">
-                                <i class="fas fa-user-circle"></i> My Profile
-                            </a>
-                            <a href="{% url 'logout_user' %}">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        {% endif %}
-                    {% else %}
-                        <a href="{% url 'auth' %}?tab=login">
-                            <i class="fas fa-sign-in-alt"></i> Login
-                        </a>
-                        <a href="{% url 'auth' %}?tab=signup">
-                            <i class="fas fa-user-plus"></i> Sign Up
-                        </a>
-                    {% endif %}
-
-                </div>
-            </div>
-
-            <div class="menu-toggle" id="mobile-menu">
-                <i class="fas fa-bars"></i>
-            </div>
-        </div>
-    </nav>
-
-    <header class="hero">
-        <div class="hero-text">
-            <p class="subtitle">✨ Bring the outside in</p>
-            <h1>Cultivate Your Own <br> <span>Indoor Jungle.</span></h1>
-            <p class="description">
-                Elevate your living space with our hand-curated collection of rare, beautiful, and easy-to-care-for plants delivered straight to your door.
-            </p>
-            <div class="hero-cta">
-                <button class="btn-primary">Shop Collection <i class="fas fa-arrow-right"></i></button>
-                <div class="trust-badges">
-                    <span>Loved by 10k+ plant parents</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="hero-visual">
-            <div class="organic-blob"></div>
-            {% if banners %}
-                {% if banners.0.image %}
-                <img src="{{ banners.0.image.url }}" alt="{{ banners.0.title }}" class="floating-plant">
-                {% endif %}
-            {% else %}
-                <img src="{% static 'images/default-banner.jpg' %}" alt="Monstera Plant" class="floating-plant">
-            {% endif %}
-        </div>
-    </header>
-
-    <section id="categories" class="categories">
-        <div class="section-header center-mobile">
-            <h2>Explore by Need</h2>
-            <p>Find the perfect green companion for your specific space.</p>
-        </div>
-
-        <div class="category-wrapper">
-            {% for category in categories %}
-            <div class="cat-card">
-                {% if category.image %}
-                    <img src="{{ category.image.url }}" alt="{{ category.name }}" style="width:80px; height:80px; object-fit:cover; border-radius:50%; margin-bottom:15px;">
-                {% else %}
-                    <div class="cat-icon"><i class="fa-solid fa-leaf"></i></div>
-                {% endif %}
-                <h3>{{ category.name }}</h3>
-                <p>{{ category.description|truncatechars:50 }}</p>
-            </div>
-            {% empty %}
-                <p>No Categories Available</p>
-            {% endfor %}
-        </div>
-    </section>
-
-    <section id="shop" class="featured-shop">
-        <div class="section-header split-header">
-            <h2>New Arrivals</h2>
-            <a href="#" class="view-all">View All Plants</a>
-        </div>
-
-        <div class="product-grid">
-            {% for product in products %}
-            <div class="product-card">
+        <a href="{% url 'shop' %}" class="view-all-link">View All <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all">All Plants</button>
+        <button class="filter-tab" data-filter="sale">On Sale</button>
+        <button class="filter-tab" data-filter="instock">In Stock</button>
+    </div>
+    <div class="product-grid">
+        {% for product in products %}
+        <div class="product-card reveal-child"
+             data-has-offer="{% if product.offer_price %}true{% else %}false{% endif %}"
+             data-in-stock="{% if product.stock > 0 %}true{% else %}false{% endif %}">
+            <a href="{% url 'product_detail' product.slug %}" style="text-decoration:none;display:contents;">
                 <div class="img-container">
-                    {% if product.offer_price %}
-                    <span class="badge">SALE</span>
-                    {% endif %}
-                    
-                    {% if product.image %}
-                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
-                    {% endif %}
-
-                    <button class="quick-add" data-product="{{ product.id }}">
-                        <i class="fas fa-plus"></i>
-                    </button>
+                    {% if product.offer_price %}<span class="badge badge-sale">SALE</span>{% endif %}
+                    {% if product.stock == 0 %}<span class="badge badge-oos">Sold Out</span>{% endif %}
+                    {% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
+                    {% else %}<div class="img-placeholder"><i class="fas fa-seedling"></i></div>{% endif %}
+                    <div class="card-actions">
+                        <button class="action-btn wishlist-btn" onclick="event.preventDefault();" title="Wishlist"><i class="far fa-heart"></i></button>
+                        <button class="action-btn quick-add" data-product="{{ product.id }}" onclick="event.preventDefault();" title="Add to cart"><i class="fas fa-shopping-bag"></i></button>
+                        <a href="{% url 'product_detail' product.slug %}" class="action-btn" title="Quick view" style="display:flex;align-items:center;justify-content:center;"><i class="far fa-eye"></i></a>
+                    </div>
                 </div>
                 <div class="product-info">
                     <h3>{{ product.name }}</h3>
-                    <p class="price">
-                        {% if product.offer_price %}
-                            ₹{{ product.offer_price }}
-                            <span class="old-price">₹{{ product.price }}</span>
-                        {% else %}
-                            ₹{{ product.price }}
-                        {% endif %}
-                    </p>
-                    <small style="color: #718096; font-size: 0.85rem;">Stock: {{ product.stock }}</small>
+                    <div class="price-row">
+                        <p class="price">
+                            {% if product.offer_price %}₹{{ product.offer_price }}<span class="old-price">₹{{ product.price }}</span>
+                            {% else %}₹{{ product.price }}{% endif %}
+                        </p>
+                        <span class="stock-tag {% if product.stock < 5 and product.stock > 0 %}low{% endif %}">
+                            {% if product.stock == 0 %}Out of stock{% elif product.stock < 5 %}{{ product.stock }} left{% else %}In Stock{% endif %}
+                        </span>
+                    </div>
                 </div>
+            </a>
+        </div>
+        {% empty %}
+        <div class="empty-state"><i class="fas fa-seedling"></i><p>No Products Available</p></div>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- CTA BANNER -->
+<section class="cta-banner reveal-section">
+    <div class="cta-content">
+        <div class="section-label" style="color:rgba(255,255,255,0.7)">Plant care made easy</div>
+        <h2>Not Sure Where<br>To <em>Start?</em></h2>
+        <p>Browse our curated collections by category and find the perfect plant for your space, lifestyle, and care level.</p>
+        <a href="{% url 'shop' %}" class="btn-cta">Browse All Plants <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="cta-visual">
+        <div class="cta-plant-grid">
+            <div class="cta-plant-img p1"></div>
+            <div class="cta-plant-img p2"></div>
+            <div class="cta-plant-img p3"></div>
+            <div class="cta-plant-img p4"></div>
+        </div>
+    </div>
+</section>
+
+<!-- REVIEWS -->
+<section id="reviews" class="reviews-section reveal-section">
+    <div class="section-header center-header">
+        <div class="section-label">What plant parents say</div>
+        <h2>Loved by <em>Thousands</em></h2>
+        <div class="rating-summary">
+            <div class="big-rating">4.9</div>
+            <div>
+                <div class="stars-row"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+                <span>Based on 2,400+ reviews</span>
             </div>
-            {% empty %}
-                <p>No Products Available</p>
-            {% endfor %}
         </div>
-    </section>
-
-    <section class="featured-shop">
-        <div class="section-header center-mobile">
-            <h2>Customer Reviews</h2>
-        </div>
-
-        <div class="product-grid">
+    </div>
+    <div class="reviews-slider" id="reviewsSlider">
+        <div class="reviews-track" id="reviewsTrack">
             {% for review in reviews %}
-            <div class="product-card">
-                <div class="product-info" style="justify-content: flex-start; gap: 10px;">
-                    <h3>{{ review.user.first_name }}</h3>
-                    <p style="color: #FFD700; margin: 0; font-size: 0.9rem;">
-                        {% for i in "12345" %}
-                            {% if forloop.counter <= review.rating %}
-                                <i class="fas fa-star"></i>
-                            {% else %}
-                                <i class="far fa-star"></i>
-                            {% endif %}
-                        {% endfor %}
-                    </p>
-                    <p style="color: #718096; font-size: 0.95rem; line-height: 1.5;">
-                        {{ review.review }}
-                    </p>
+            <div class="review-card">
+                <div class="review-header">
+                    <div class="reviewer-avatar">{{ review.user.first_name|slice:":1"|upper|default:"U" }}</div>
+                    <div class="reviewer-info">
+                        <strong>{{ review.user.first_name|default:review.user.username }}</strong>
+                        <div class="review-stars">
+                            {% for i in "12345" %}{% if forloop.counter <= review.rating %}<i class="fas fa-star"></i>{% else %}<i class="far fa-star"></i>{% endif %}{% endfor %}
+                        </div>
+                    </div>
+                    <div class="review-quote"><i class="fas fa-quote-right"></i></div>
                 </div>
+                <p class="review-text">{{ review.review }}</p>
             </div>
             {% empty %}
-                <p>No reviews available yet.</p>
+            <div class="review-card"><div class="review-header"><div class="reviewer-avatar">S</div><div class="reviewer-info"><strong>Shreya M.</strong><div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div></div></div><p class="review-text">Amazing quality plants! My Monstera arrived perfectly packed and is thriving.</p></div>
+            <div class="review-card"><div class="review-header"><div class="reviewer-avatar">R</div><div class="reviewer-info"><strong>Rahul K.</strong><div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div></div></div><p class="review-text">Best plant nursery online! The care tips they include made it so easy.</p></div>
+            <div class="review-card"><div class="review-header"><div class="reviewer-avatar">P</div><div class="reviewer-info"><strong>Priya S.</strong><div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div></div></div><p class="review-text">The 7-day guarantee gave me so much confidence. Plant arrived healthy!</p></div>
             {% endfor %}
         </div>
-    </section>
+    </div>
+    <div class="reviews-nav">
+        <button class="rev-arrow" id="revPrev"><i class="fas fa-chevron-left"></i></button>
+        <button class="rev-arrow" id="revNext"><i class="fas fa-chevron-right"></i></button>
+    </div>
+</section>
 
-    <script src="{% static 'js/script.js' %}"></script>
-    <script>
-        const defaultTab = "{{ request.GET.tab|default:'login' }}";
-    </script>
-    <script src="{% static 'js/auth.js' %}"></script>
+<!-- FOOTER -->
+<footer class="site-footer">
+    <div class="footer-top">
+        <div class="footer-brand">
+            <img src="{% static 'images/logo.png' %}" alt="SSD Nursery" class="footer-logo">
+            <p>Bringing nature into your home since 2018. Every plant is hand-selected, expertly grown, and shipped with care.</p>
+            <div class="social-links">
+                <a href="#"><i class="fab fa-instagram"></i></a>
+                <a href="#"><i class="fab fa-facebook-f"></i></a>
+                <a href="#"><i class="fab fa-pinterest-p"></i></a>
+                <a href="#"><i class="fab fa-whatsapp"></i></a>
+            </div>
+        </div>
+        <div class="footer-links">
+            <h4>Shop</h4>
+            <a href="{% url 'shop' %}">All Plants</a>
+            <a href="{% url 'shop' %}?sort=newest">New Arrivals</a>
+            <a href="{% url 'shop' %}?sale=1">On Sale</a>
+        </div>
+        <div class="footer-links">
+            <h4>Help</h4>
+            <a href="#">Plant Care Guide</a>
+            <a href="#">Delivery Info</a>
+            <a href="#">Returns</a>
+            <a href="#">Contact Us</a>
+        </div>
+        <div class="footer-newsletter">
+            <h4>Stay in the Loop</h4>
+            <p>Get care tips, new arrivals & exclusive offers.</p>
+            <div class="newsletter-form">
+                <input type="email" placeholder="your@email.com">
+                <button><i class="fas fa-arrow-right"></i></button>
+            </div>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <span>© 2025 SSD Nursery. All rights reserved.</span>
+        <span>Made with 🌱 in India</span>
+    </div>
+</footer>
+
+<!-- CART SIDEBAR -->
+<div class="cart-overlay" id="cartOverlay"></div>
+<div class="cart-sidebar" id="cartSidebar">
+    <div class="cart-header">
+        <h3>Your Basket <span class="cart-item-label">(<span id="cartItemCount">0</span> items)</span></h3>
+        <button class="cart-close" id="cartClose"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="cart-body" id="cartBody">
+        <div class="cart-empty"><i class="fas fa-seedling"></i><p>Your basket is empty</p><a href="{% url 'shop' %}" class="btn-hero-sm">Start Shopping</a></div>
+    </div>
+    <div class="cart-footer" id="cartFooter" style="display:none;">
+        <div class="cart-total">Total: <strong id="cartTotal">₹0</strong></div>
+        <button class="btn-checkout">Proceed to Checkout <i class="fas fa-arrow-right"></i></button>
+    </div>
+</div>
+
+<div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg">Added to cart!</span></div>
+
+<script src="{% static 'js/script.js' %}"></script>
+<script src="{% static 'js/auth.js' %}"></script>
 </body>
 </html>

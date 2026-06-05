@@ -1,0 +1,58 @@
+{% load static %}
+<!-- ============ SHARED ADMIN SIDEBAR ============ -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <a href="/" class="brand">
+            <img src="{% static 'images/logo.png' %}" alt="Logo" class="brand-logo">
+            <span>SSD Nursery</span>
+        </a>
+        <button class="close-sidebar" id="closeSidebar">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+
+    <nav class="nav-menu">
+        <a href="{% url 'admin_dashboard' %}"    class="nav-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+            <i class="fa-solid fa-chart-line"></i> Dashboard
+        </a>
+        <a href="{% url 'users_list' %}"         class="nav-link {% if request.resolver_match.url_name == 'users_list' %}active{% endif %}">
+            <i class="fa-solid fa-users"></i> Users
+        </a>
+        <a href="{% url 'category_list' %}"      class="nav-link {% if 'categor' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-list"></i> Categories
+        </a>
+        <a href="{% url 'product_list' %}"       class="nav-link {% if 'product' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-seedling"></i> Products
+        </a>
+        <a href="{% url 'order_list' %}"         class="nav-link {% if 'order' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-box"></i> Orders
+        </a>
+        <a href="{% url 'coupon_list' %}"        class="nav-link {% if 'coupon' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-tags"></i> Coupons
+        </a>
+        <a href="{% url 'reviews_list' %}"       class="nav-link {% if 'review' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-star"></i> Reviews
+        </a>
+        <a href="{% url 'banners_list' %}"       class="nav-link {% if 'banner' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-images"></i> Banners
+        </a>
+        <a href="{% url 'notifications_list' %}" class="nav-link {% if 'notification' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-bell"></i> Notifications
+        </a>
+        <a href="{% url 'analytics' %}"          class="nav-link {% if request.resolver_match.url_name == 'analytics' %}active{% endif %}">
+            <i class="fa-solid fa-chart-bar"></i> Analytics
+        </a>
+        <a href="{% url 'home' %}" class="nav-link">
+            <i class="fa-solid fa-house"></i> View Site
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <a href="/admin/" class="nav-link">
+            <i class="fa-solid fa-shield-halved"></i> Django Admin
+        </a>
+        <a href="{% url 'logout_user' %}" class="nav-link logout-link">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+        </a>
+    </div>
+</aside>

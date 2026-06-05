@@ -3,457 +3,130 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SSD Nursery | Admin Dashboard</title>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | SSD Nursery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
     <style>
-        /* ================= DESIGN SYSTEM ================= */
-        :root {
-            --bg-body: #F5F5F7;
-            --bg-surface: #FFFFFF;
-            --text-primary: #1D1D1F;
-            --text-secondary: #86868B;
-            --accent-color: #1F5132;
-            --accent-light: #E8F0EA;
-            --border-color: rgba(0, 0, 0, 0.05);
-            
-            --font-sans: 'Inter', -apple-system, sans-serif;
-            --font-serif: 'Playfair Display', serif;
-            
-            --sidebar-width: 260px;
-            --radius-md: 16px;
-            --radius-lg: 24px;
-            --shadow-sm: 0 4px 24px rgba(0, 0, 0, 0.04);
-            --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.08);
-            --transition-fast: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        /* ================= RESET & BASE ================= */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: var(--font-sans);
-            background-color: var(--bg-body);
-            color: var(--text-primary);
-            line-height: 1.5;
-            -webkit-font-smoothing: antialiased;
-            overflow-x: hidden;
-        }
-
-        a { text-decoration: none; color: inherit; }
-        button { background: none; border: none; cursor: pointer; }
-
-        /* ================= LAYOUT ================= */
-        .admin-layout {
-            display: flex;
-            min-height: 100vh;
-            min-height: 100dvh;
-        }
-
-        /* ================= SIDEBAR ================= */
-        .sidebar {
-            width: var(--sidebar-width);
-            background-color: var(--bg-surface);
-            border-right: 1px solid var(--border-color);
-            position: fixed;
-            height: 100vh;
-            height: 100dvh; /* Fixes mobile cutoff issue */
-            display: flex;
-            flex-direction: column;
-            z-index: 100;
-            transition: transform var(--transition-fast);
-            will-change: transform;
-        }
-
-        .sidebar-header {
-            flex: 0 0 auto;
-            padding: 32px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-family: var(--font-serif);
-            font-size: 1.35rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            letter-spacing: -0.5px;
-        }
-
-        .brand-logo {
-            width: 36px;
-            height: 36px;
-            object-fit: contain;
-            border-radius: 8px;
-        }
-
-        .close-sidebar {
-            display: none;
-            font-size: 1.2rem;
-            color: var(--text-secondary);
-        }
-
-        .nav-menu {
-            flex: 1 1 auto; /* Allows scrolling within menu but respects footer */
-            min-height: 0; /* Crucial for flexbox scrolling */
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            padding: 0 16px;
-            overflow-y: auto;
-        }
-
-        /* Clean Sidebar Scrollbar */
-        .nav-menu::-webkit-scrollbar { width: 4px; }
-        .nav-menu::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
-
-        .nav-link {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 12px 16px;
-            border-radius: 12px;
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-            font-weight: 500;
-            transition: all var(--transition-fast);
-        }
-
-        .nav-link i {
-            font-size: 1.1rem;
-            width: 20px;
-            text-align: center;
-        }
-
-        .nav-link:hover {
-            background-color: var(--bg-body);
-            color: var(--text-primary);
-        }
-
-        .nav-link.active {
-            background-color: var(--accent-light);
-            color: var(--accent-color);
-            font-weight: 600;
-        }
-
-        .sidebar-footer {
-            flex: 0 0 auto; /* Glues footer to bottom */
-            padding: 24px 16px;
-            border-top: 1px solid var(--border-color);
-            background-color: var(--bg-surface);
-        }
-
-        /* ================= MAIN CONTENT ================= */
-        .main-content {
-            flex: 1;
-            margin-left: var(--sidebar-width);
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            gap: 32px;
-            width: calc(100% - var(--sidebar-width));
-            max-width: 1400px;
-        }
-
-        /* Header */
-        .top-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .page-title {
-            font-size: 1.75rem;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-        }
-
-        .mobile-toggle {
-            display: none;
-            font-size: 1.5rem;
-            color: var(--text-primary);
-            padding: 8px;
-        }
-
-        /* Metrics Grid */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 24px;
-        }
-
-        .metric-card {
-            background: var(--bg-surface);
-            padding: 24px;
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-sm);
-            border: 1px solid rgba(0,0,0,0.02);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-            
-            /* Hardware-accelerated entrance animation */
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeUp 0.6s var(--transition-fast) forwards;
-            will-change: transform, opacity;
-        }
-
-        .metric-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-hover);
-        }
-
-        .metric-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-            font-weight: 500;
-        }
-
-        .metric-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            background: var(--bg-body);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--accent-color);
-            font-size: 1.1rem;
-        }
-
-        .metric-value {
-            font-size: 2.25rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            letter-spacing: -1px;
-        }
-
-        /* Staggered Animations */
-        @keyframes fadeUp {
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .metric-card:nth-child(1) { animation-delay: 0.05s; }
-        .metric-card:nth-child(2) { animation-delay: 0.10s; }
-        .metric-card:nth-child(3) { animation-delay: 0.15s; }
-        .metric-card:nth-child(4) { animation-delay: 0.20s; }
-        .metric-card:nth-child(5) { animation-delay: 0.25s; }
-
-        /* ================= RESPONSIVE DESIGN ================= */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.2);
-            backdrop-filter: blur(4px);
-            z-index: 90;
-            opacity: 0;
-            transition: opacity var(--transition-fast);
-        }
-
-        @media (max-width: 1024px) {
-            .main-content {
-                padding: 32px 24px;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-            
-            .sidebar.active {
-                transform: translateX(0);
-            }
-
-            .sidebar-overlay.active {
-                display: block;
-                opacity: 1;
-            }
-
-            .main-content {
-                margin-left: 0;
-                width: 100%;
-                padding: 24px 16px;
-            }
-
-            .close-sidebar {
-                display: block;
-            }
-
-            .mobile-toggle {
-                display: block;
-            }
-            
-            .header-left { gap: 12px; }
-            .page-title { font-size: 1.5rem; }
-        }
+        .recent-orders-card { background:var(--bg-surface); border-radius:var(--r-lg); box-shadow:var(--shadow); border:1px solid var(--border); overflow:hidden; animation:fadeUp 0.55s var(--t) 0.2s forwards; opacity:0; transform:translateY(20px); }
+        .card-header { padding:20px 24px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+        .card-title { font-size:1rem; font-weight:700; color:var(--text-primary); }
+        .card-link { font-size:0.85rem; color:var(--accent); font-weight:500; }
+        .card-link:hover { text-decoration:underline; }
+        .summary-row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+        .summary-item { background:var(--bg-body); border-radius:12px; padding:16px 18px; }
+        .summary-item .label { font-size:0.8rem; color:var(--text-secondary); font-weight:500; margin-bottom:4px; }
+        .summary-item .val { font-size:1.5rem; font-weight:800; color:var(--text-primary); letter-spacing:-0.5px; }
+        .summary-item .val.green { color:var(--accent); }
+        .summary-item .val.orange { color:var(--warn); }
+        .summary-item .val.red { color:var(--danger); }
     </style>
 </head>
 <body>
+{% for message in messages %}
+    <div class="django-message" data-level="{% if message.tags == 'error' %}error{% else %}success{% endif %}" style="display:none;">{{ message }}</div>
+{% endfor %}
 
-    <div class="admin-layout">
-        
-        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="admin-layout">
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "web/admin/_sidebar.html" %}
 
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <a href="#" class="brand">
-                    <img src="{% static 'images/logo.png' %}" alt="SSD Nursery Logo" class="brand-logo">
-                    <span>SSD Nursery</span>
-                </a>
-                <button class="close-sidebar" id="closeSidebar">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <nav class="nav-menu">
-                <a href="/dashboard/" class="nav-link active">
-                    <i class="fa-solid fa-chart-line"></i> Dashboard
-                </a>
-                <a href="/dashboard/users/" class="nav-link">
-                    <i class="fa-solid fa-users"></i> Users
-                </a>
-                <a href="/dashboard/categories/" class="nav-link">
-                    <i class="fa-solid fa-list"></i> Categories
-                </a>
-                <a href="/dashboard/products/" class="nav-link">
-                    <i class="fa-solid fa-seedling"></i> Products
-                </a>
-                <a href="/dashboard/orders/" class="nav-link">
-                    <i class="fa-solid fa-box"></i> Orders
-                </a>
-                <a href="/dashboard/coupons/" class="nav-link">
-                    <i class="fa-solid fa-tags"></i> Coupons
-                </a>
-                <a href="/dashboard/reviews/" class="nav-link">
-                    <i class="fa-solid fa-star"></i> Reviews
-                </a>
-                <a href="/dashboard/banners/" class="nav-link">
-                    <i class="fa-solid fa-images"></i> Banners
-                </a>
-                <a href="/" class="nav-link">
-                    <i class="fa-solid fa-house"></i> Home
-                </a>
-            </nav>
-
-            <div class="sidebar-footer">
-                <a href="/admin/" class="nav-link">
-                    <i class="fa-solid fa-shield-halved"></i> Django Admin
-                </a>
-                <a href="/logout/" class="nav-link" style="color: #DC2626;">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
-                </a>
-            </div>
-        </aside>
-
-        <main class="main-content">
-            
-            <header class="top-header">
-                <div class="header-left">
-                    <button class="mobile-toggle" id="openSidebar">
-                        <i class="fa-solid fa-bars-staggered"></i>
-                    </button>
+    <main class="main-content">
+        <header class="top-header">
+            <div class="header-left">
+                <button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button>
+                <div>
                     <h1 class="page-title">Overview</h1>
+                    <p class="page-subtitle">Welcome back, {{ request.user.first_name }}</p>
                 </div>
-            </header>
+            </div>
+            <a href="{% url 'home' %}" class="btn-accent" target="_blank">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> View Store
+            </a>
+        </header>
 
-            <section class="metrics-grid">
-                
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div class="metric-icon"><i class="fa-solid fa-users"></i></div>
-                        Total Users
-                    </div>
-                    <div class="metric-value">{{ total_users|default:"0" }}</div>
-                </div>
+        <section class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-users"></i></div>Total Users</div>
+                <div class="metric-value">{{ total_users }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-seedling"></i></div>Products</div>
+                <div class="metric-value">{{ total_products }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-box"></i></div>Total Orders</div>
+                <div class="metric-value">{{ total_orders }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-clock"></i></div>Pending</div>
+                <div class="metric-value" style="color:var(--warn);">{{ pending_orders }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-check-circle"></i></div>Delivered</div>
+                <div class="metric-value" style="color:var(--success);">{{ completed_orders }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-indian-rupee-sign"></i></div>Revenue</div>
+                <div class="metric-value">₹{{ total_revenue|floatformat:0 }}</div>
+            </div>
+        </section>
 
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div class="metric-icon"><i class="fa-solid fa-seedling"></i></div>
-                        Total Products
-                    </div>
-                    <div class="metric-value">{{ total_products|default:"0" }}</div>
-                </div>
+        <div class="summary-row" style="animation:fadeUp 0.55s var(--t) 0.15s forwards; opacity:0; transform:translateY(20px);">
+            <div class="summary-item">
+                <div class="label">Categories</div>
+                <div class="val green">{{ total_categories }}</div>
+            </div>
+            <div class="summary-item">
+                <div class="label">Pending Orders</div>
+                <div class="val orange">{{ pending_orders }}</div>
+            </div>
+            <div class="summary-item">
+                <div class="label">Revenue (Delivered)</div>
+                <div class="val">₹{{ total_revenue|floatformat:0 }}</div>
+            </div>
+        </div>
 
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div class="metric-icon"><i class="fa-solid fa-box"></i></div>
-                        Total Orders
-                    </div>
-                    <div class="metric-value">{{ total_orders|default:"0" }}</div>
-                </div>
-
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div class="metric-icon"><i class="fa-solid fa-list"></i></div>
-                        Categories
-                    </div>
-                    <div class="metric-value">{{ total_categories|default:"0" }}</div>
-                </div>
-
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div class="metric-icon"><i class="fa-solid fa-indian-rupee-sign"></i></div>
-                        Revenue
-                    </div>
-                    <div class="metric-value">₹{{ total_revenue|default:"0.00" }}</div>
-                </div>
-
-            </section>
-            
-        </main>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.getElementById('sidebar');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
-            const openSidebarBtn = document.getElementById('openSidebar');
-            const closeSidebarBtn = document.getElementById('closeSidebar');
-
-            const toggleSidebar = (force) => {
-                const isActive = sidebar.classList.contains('active');
-                if (force === true || (!isActive && force !== false)) {
-                    sidebar.classList.add('active');
-                    sidebarOverlay.classList.add('active');
-                    document.body.style.overflow = 'hidden'; 
-                } else {
-                    sidebar.classList.remove('active');
-                    sidebarOverlay.classList.remove('active');
-                    document.body.style.overflow = '';
-                }
-            };
-
-            if(openSidebarBtn) openSidebarBtn.addEventListener('click', () => toggleSidebar(true));
-            if(closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => toggleSidebar(false));
-            if(sidebarOverlay) sidebarOverlay.addEventListener('click', () => toggleSidebar(false));
-        });
-    </script>
+        <div class="recent-orders-card">
+            <div class="card-header">
+                <span class="card-title">Recent Orders</span>
+                <a href="{% url 'order_list' %}" class="card-link">View all →</a>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                        <tr>
+                            <td style="color:var(--text-secondary);font-weight:500;">#{{ order.id }}</td>
+                            <td style="font-weight:600;">{{ order.user.first_name|default:"Guest" }}</td>
+                            <td style="font-weight:700;color:var(--accent);">₹{{ order.total_amount }}</td>
+                            <td style="color:var(--text-secondary);">{{ order.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                {% if order.status == 'Pending' %}<span class="badge badge-pending"><i class="fa-solid fa-circle"></i>{{ order.status }}</span>
+                                {% elif order.status == 'Delivered' %}<span class="badge badge-delivered"><i class="fa-solid fa-circle"></i>{{ order.status }}</span>
+                                {% elif order.status == 'Cancelled' %}<span class="badge badge-cancelled"><i class="fa-solid fa-circle"></i>{{ order.status }}</span>
+                                {% else %}<span class="badge badge-confirmed"><i class="fa-solid fa-circle"></i>{{ order.status }}</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr class="empty-row"><td colspan="5"><i class="fa-solid fa-box-open"></i><br>No recent orders</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+<script src="{% static 'js/admin.js' %}"></script>
 </body>
 </html>

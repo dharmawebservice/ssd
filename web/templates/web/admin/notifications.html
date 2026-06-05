@@ -1,0 +1,61 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications | SSD Nursery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+</head>
+<body>
+<div class="admin-layout">
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "web/admin/_sidebar.html" %}
+    <main class="main-content">
+        <header class="top-header">
+            <div class="header-left">
+                <button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button>
+                <div><h1 class="page-title">Notifications</h1><p class="page-subtitle">Scrolling announcement bar</p></div>
+            </div>
+            <button class="btn-primary" data-modal-open="addNotifModal"><i class="fa-solid fa-plus"></i> Add Notification</button>
+        </header>
+        <div class="data-card">
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>#</th><th>Message</th><th>Status</th><th style="text-align:right">Action</th></tr></thead>
+                    <tbody>
+                        {% for n in notifications %}
+                        <tr>
+                            <td style="color:var(--text-secondary);">{{ n.id }}</td>
+                            <td style="font-weight:500;">{{ n.title }}</td>
+                            <td>{% if n.is_active %}<span class="badge badge-active"><i class="fa-solid fa-circle"></i>Active</span>{% else %}<span class="badge badge-disabled">Hidden</span>{% endif %}</td>
+                            <td><div class="action-group"><a href="{% url 'delete_notification' n.id %}" class="btn-icon btn-icon-danger" data-confirm="Delete this notification?"><i class="fa-solid fa-trash"></i></a></div></td>
+                        </tr>
+                        {% empty %}
+                        <tr class="empty-row"><td colspan="4"><i class="fa-solid fa-bell"></i><br>No notifications</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+<div class="modal-overlay" id="addNotifModal">
+    <div class="modal-card">
+        <div class="modal-header"><h2>Add Notification</h2><button class="close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+        <form method="POST" action="{% url 'add_notification' %}">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="form-group"><label>Message *</label><input type="text" name="title" class="form-control" placeholder="e.g. 🌿 Free delivery on orders above ₹999!" required></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel">Cancel</button>
+                <button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Add</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script src="{% static 'js/admin.js' %}"></script>
+</body>
+</html>
