@@ -11,6 +11,115 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        /* ── Hero: sits BELOW the navbar, never hidden under it ── */
+
+        /* Offset accounts for: offer-strip (38px) + navbar (88px) = 126px */
+        .hero-slider {
+            margin-top: 0;          /* no gap — hero starts right after the fixed bars */
+            padding-top: 126px;     /* push slide CONTENT below the layered fixed bars  */
+            height: 100vh;
+            min-height: 680px;
+            box-sizing: border-box;
+        }
+
+        /* When there is NO offer strip the navbar starts at top:0 → offset = 88px */
+        body:not(:has(.offer-strip)) .hero-slider {
+            padding-top: 88px;
+        }
+
+        /* On mobile the navbar is shorter (~62px) and strip is 32px → 94px */
+        @media (max-width: 768px) {
+            .hero-slider { padding-top: 94px; }
+            body:not(:has(.offer-strip)) .hero-slider { padding-top: 62px; }
+        }
+
+        /* Slide content: vertically centred inside the padded hero area */
+        .slide {
+            align-items: center;
+        }
+
+        /* ── Banner link wrapper: fill the entire slide ── */
+        .slide-link-wrap {
+            position: absolute;
+            inset: 0;
+            z-index: 1;          /* sits above bg, below content */
+            display: block;
+            cursor: pointer;
+        }
+
+        /* slides WITHOUT a link should not show a pointer */
+        .slide-link-wrap.no-link {
+            pointer-events: none;
+            cursor: default;
+        }
+
+        /* Content & actions must sit above the link layer */
+        .slide-content {
+            position: relative;
+            z-index: 5;
+        }
+
+        .slide-decoration {
+            z-index: 2;
+        }
+
+        /* ── "Click to explore" hint on banner (only when link exists) ── */
+        .banner-cta-hint {
+            position: absolute;
+            bottom: 80px;
+            left: 8%;
+            z-index: 6;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.25);
+            backdrop-filter: blur(8px);
+            color: rgba(255,255,255,0.85);
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.82rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 8px 18px;
+            border-radius: 30px;
+            pointer-events: none;   /* the parent .slide-link-wrap handles the click */
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity 0.4s ease 0.5s, transform 0.4s ease 0.5s;
+        }
+
+        .slide.active .banner-cta-hint {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .banner-cta-hint i { font-size: 0.75rem; }
+
+        @media (max-width: 768px) {
+            .banner-cta-hint { bottom: 90px; font-size: 0.75rem; }
+        }
+        /* Force navbar to white */
+.navbar,
+.navbar.scrolled,
+#navbar {
+    background: #ffffff !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+}
+
+/* Keep text/icons visible */
+.nav-links a,
+.icon-btn,
+.icon-btn i {
+    color: #000 !important;
+}
+
+/* Mobile menu */
+.nav-links {
+    background: #ffffff !important;
+}
+    </style>
 </head>
 <body>
 
@@ -66,14 +175,33 @@
     </div>
 </div>
 
-<!-- HERO SLIDER -->
+<!-- ═══════════════════════════════════════════════════════════
+     HERO SLIDER
+     • padding-top pushes content below the fixed navbar
+     • each slide has a full-cover <a> link driven by banner.link
+     ═══════════════════════════════════════════════════════════ -->
 <header class="hero-slider" id="home">
     <div class="slider-track" id="sliderTrack">
+
+        <!-- SLIDE 1 -->
         <div class="slide slide-1">
             <div class="slide-bg">
-                {% if banners and banners.0.image %}<img src="{{ banners.0.image.url }}" alt="{{ banners.0.title }}" class="slide-img">{% else %}<img src="{% static 'images/default-banner.jpg' %}" alt="Plants" class="slide-img">{% endif %}
+                {% if banners and banners.0.image %}
+                    <img src="{{ banners.0.image.url }}" alt="{{ banners.0.title }}" class="slide-img">
+                {% else %}
+                    <img src="{% static 'images/default-banner.jpg' %}" alt="Plants" class="slide-img">
+                {% endif %}
                 <div class="slide-overlay"></div>
             </div>
+
+            {# Full-slide clickable link — only rendered when the banner has a link #}
+            {% if banners and banners.0.link %}
+                <a href="{{ banners.0.link }}" class="slide-link-wrap" aria-label="{{ banners.0.title }}"></a>
+                <span class="banner-cta-hint"><i class="fas fa-arrow-right"></i> Explore offer</span>
+            {% else %}
+                <span class="slide-link-wrap no-link"></span>
+            {% endif %}
+
             <div class="slide-content">
                 <span class="slide-tag">✦ New Arrivals 2025</span>
                 <h1 class="slide-heading">Cultivate Your<br><em>Indoor Jungle.</em></h1>
@@ -85,11 +213,25 @@
             </div>
             <div class="slide-decoration"><div class="deco-circle c1"></div><div class="deco-circle c2"></div><div class="deco-leaf"><svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><path d="M100,10 C140,10 180,50 180,100 C180,150 140,190 100,190 C60,190 10,160 10,100 C10,40 60,10 100,10 Z" fill="rgba(255,255,255,0.05)"/></svg></div></div>
         </div>
+
+        <!-- SLIDE 2 -->
         <div class="slide slide-2">
             <div class="slide-bg">
-                {% if banners and banners.1.image %}<img src="{{ banners.1.image.url }}" alt="{{ banners.1.title }}" class="slide-img">{% else %}<img src="{% static 'images/default-banner.jpg' %}" alt="" class="slide-img">{% endif %}
+                {% if banners and banners.1.image %}
+                    <img src="{{ banners.1.image.url }}" alt="{{ banners.1.title }}" class="slide-img">
+                {% else %}
+                    <img src="{% static 'images/default-banner.jpg' %}" alt="" class="slide-img">
+                {% endif %}
                 <div class="slide-overlay"></div>
             </div>
+
+            {% if banners and banners.1.link %}
+                <a href="{{ banners.1.link }}" class="slide-link-wrap" aria-label="{{ banners.1.title }}"></a>
+                <span class="banner-cta-hint"><i class="fas fa-arrow-right"></i> Explore offer</span>
+            {% else %}
+                <span class="slide-link-wrap no-link"></span>
+            {% endif %}
+
             <div class="slide-content">
                 <span class="slide-tag">✦ Limited Collection</span>
                 <h1 class="slide-heading">Rare Tropicals<br><em>Just Arrived.</em></h1>
@@ -101,11 +243,25 @@
             </div>
             <div class="slide-decoration"><div class="deco-circle c1"></div><div class="deco-circle c2"></div></div>
         </div>
+
+        <!-- SLIDE 3 -->
         <div class="slide slide-3">
             <div class="slide-bg">
-                {% if banners and banners.2.image %}<img src="{{ banners.2.image.url }}" alt="{{ banners.2.title }}" class="slide-img">{% else %}<img src="{% static 'images/default-banner.jpg' %}" alt="" class="slide-img">{% endif %}
+                {% if banners and banners.2.image %}
+                    <img src="{{ banners.2.image.url }}" alt="{{ banners.2.title }}" class="slide-img">
+                {% else %}
+                    <img src="{% static 'images/default-banner.jpg' %}" alt="" class="slide-img">
+                {% endif %}
                 <div class="slide-overlay"></div>
             </div>
+
+            {% if banners and banners.2.link %}
+                <a href="{{ banners.2.link }}" class="slide-link-wrap" aria-label="{{ banners.2.title }}"></a>
+                <span class="banner-cta-hint"><i class="fas fa-arrow-right"></i> Explore offer</span>
+            {% else %}
+                <span class="slide-link-wrap no-link"></span>
+            {% endif %}
+
             <div class="slide-content">
                 <span class="slide-tag">✦ Seasonal Sale</span>
                 <h1 class="slide-heading">Greenery for<br><em>Every Corner.</em></h1>
@@ -117,16 +273,21 @@
             </div>
             <div class="slide-decoration"><div class="deco-circle c1"></div><div class="deco-circle c2"></div></div>
         </div>
-    </div>
+
+    </div><!-- /slider-track -->
+
     <button class="slider-arrow prev" id="sliderPrev"><i class="fas fa-chevron-left"></i></button>
     <button class="slider-arrow next" id="sliderNext"><i class="fas fa-chevron-right"></i></button>
+
     <div class="slider-dots" id="sliderDots">
         <button class="dot active" data-index="0"></button>
         <button class="dot" data-index="1"></button>
         <button class="dot" data-index="2"></button>
     </div>
+
     <div class="scroll-hint"><div class="scroll-line"></div><span>Scroll</span></div>
 </header>
+<!-- /hero-slider -->
 
 <!-- TRUST BAR -->
 <section class="trust-bar">
