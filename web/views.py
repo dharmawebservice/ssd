@@ -1,197 +1,237 @@
-import json
-import random
-import re
+import json, random, re, hmac, hashlib
 from datetime import timedelta
+from decimal import Decimal
 
+import razorpay
 from geopy.geocoders import Nominatim
 
-from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
-from django.contrib.auth.models import User
+from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.mail import send_mail
+from django.core.paginator import Paginator
+from django.db.models import Q, Min, Max, Sum, Avg, Count
+from django.db.models.functions import TruncMonth
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.text import slugify
-from django.core.paginator import Paginator
-from django.db.models import Q, Min, Max, Sum, Avg
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.db.models.functions import TruncMonth
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
 from .models import (
-    Category,
-    Product,
-    Banner,
-    Review,
-    Order,
-    Coupon,
-    EmailOTP,
-    UserProfile,
-    Notification,
+    Banner, CartItem, Category, Coupon, EmailOTP,
+    Notification, Order, OrderItem, Product, Review,
+    UserProfile, Wishlist,
 )
 
 
-# ============================================================
+# ─────────────────────────────────────────────────────────────
 # HELPERS
-# ============================================================
+# ─────────────────────────────────────────────────────────────
 
-def _admin_required(func):
-    """Decorator: redirect non-superusers to home."""
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated or not request.user.is_superuser:
-            return redirect("/")
-        return func(request, *args, **kwargs)
-    wrapper.__name__ = func.__name__
-    return wrapper
+def _admin_guard(request):
+    if not request.user.is_authenticated or not request.user.is_superuser:
+        return redirect("/")
+    return None
 
 
-# ============================================================
-# HOME & CORE STORE PAGES
-# ============================================================
+def _razorpay_client():
+    return razorpay.Client(
+        auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+    )
+
+
+def _get_cart_items(request):
+    """Return CartItem queryset for logged-in user, or [] for anon."""
+    if request.user.is_authenticated:
+        return CartItem.objects.filter(user=request.user).select_related("product__category")
+    return []
+
+
+def _cart_totals(items):
+    subtotal = sum(i.product.effective_price * i.quantity for i in items)
+    return subtotal
+
+
+def _apply_coupon_discount(code, subtotal, request):
+    """Return (discount, coupon_obj, error_msg)."""
+    try:
+        coupon = Coupon.objects.get(code=code.upper(), is_active=True)
+    except Coupon.DoesNotExist:
+        return Decimal("0"), None, "Invalid or expired coupon."
+    if coupon.expiry_date and coupon.expiry_date < timezone.now().date():
+        return Decimal("0"), None, "Coupon has expired."
+    if subtotal < coupon.minimum_order_amount:
+        return Decimal("0"), None, f"Minimum order ₹{coupon.minimum_order_amount} required."
+    if coupon.discount_type == "percentage":
+        discount = subtotal * coupon.discount_value / 100
+        if coupon.maximum_discount:
+            discount = min(discount, coupon.maximum_discount)
+    else:
+        discount = coupon.discount_value
+    return discount, coupon, ""
+
+
+# ─────────────────────────────────────────────────────────────
+# PUBLIC — HOME
+# ─────────────────────────────────────────────────────────────
 
 def home(request):
-    try:
-        categories = Category.objects.filter(is_active=True).order_by("-id")
-    except Exception:
-        categories = []
+    banners       = Banner.objects.filter(is_active=True).order_by("sort_order", "-created_at")[:5]
+    categories    = Category.objects.filter(is_active=True).order_by("-id")[:8]
+    products      = Product.objects.filter(is_active=True).select_related("category").order_by("-id")[:8]
+    reviews       = Review.objects.filter(is_approved=True).select_related("user").order_by("-id")[:6]
+    notifications = Notification.objects.filter(is_active=True).order_by("-id")[:5]
 
-    try:
-        products = Product.objects.filter(is_active=True).order_by("-id")[:8]
-    except Exception:
-        products = []
-
-    try:
-        banners = Banner.objects.filter(is_active=True).order_by("-id")
-    except Exception:
-        banners = []
-
-    try:
-        reviews = Review.objects.filter(is_approved=True).order_by("-id")[:6]
-    except Exception:
-        reviews = []
+    wishlist_ids = []
+    if request.user.is_authenticated:
+        wishlist_ids = list(
+            Wishlist.objects.filter(user=request.user).values_list("product_id", flat=True)
+        )
 
     return render(request, "web/home.html", {
-        "categories": categories,
-        "products": products,
-        "banners": banners,
-        "reviews": reviews,
+        "banners":       banners,
+        "categories":    categories,
+        "products":      products,
+        "reviews":       reviews,
+        "notifications": notifications,
+        "wishlist_ids":  wishlist_ids,
     })
 
 
+# ─────────────────────────────────────────────────────────────
+# PUBLIC — COLLECTIONS PAGE
+# ─────────────────────────────────────────────────────────────
+
+def collections(request):
+    categories = Category.objects.filter(is_active=True).annotate(
+        product_count=Count("products", filter=Q(products__is_active=True))
+    ).order_by("name")
+    return render(request, "web/collections.html", {"categories": categories})
+
+
+# ─────────────────────────────────────────────────────────────
+# PUBLIC — SHOP
+# ─────────────────────────────────────────────────────────────
+
 def shop(request):
-    """
-    URL params:
-      category  — slug of category
-      q         — search query
-      sort      — price_asc | price_desc | newest | name_asc
-      min_price — min price filter
-      max_price — max price filter
-      sale      — 1  (only offer items)
-      in_stock  — 1  (only in-stock items)
-      page      — pagination
-    """
-    products_qs = (
-        Product.objects
-        .filter(is_active=True)
-        .select_related("category")
-    )
+    qs = Product.objects.filter(is_active=True).select_related("category")
 
-    # Category filter
-    category_slug = request.GET.get("category", "")
+    cat_slug        = request.GET.get("category", "").strip()
     active_category = None
-    if category_slug:
-        active_category = get_object_or_404(Category, slug=category_slug, is_active=True)
-        products_qs = products_qs.filter(category=active_category)
+    if cat_slug:
+        active_category = get_object_or_404(Category, slug=cat_slug, is_active=True)
+        qs = qs.filter(category=active_category)
 
-    # Search
     query = request.GET.get("q", "").strip()
     if query:
-        products_qs = products_qs.filter(
-            Q(name__icontains=query) | Q(description__icontains=query)
-        )
+        qs = qs.filter(Q(name__icontains=query) | Q(description__icontains=query) | Q(category__name__icontains=query))
 
-    # Price range
-    price_bounds = Product.objects.filter(is_active=True).aggregate(
-        min_p=Min("price"), max_p=Max("price")
-    )
-    global_min = int(price_bounds["min_p"] or 0)
-    global_max = int(price_bounds["max_p"] or 5000)
+    bounds     = Product.objects.filter(is_active=True).aggregate(mn=Min("price"), mx=Max("price"))
+    global_min = int(bounds["mn"] or 0)
+    global_max = int(bounds["mx"] or 5000)
 
     min_price = request.GET.get("min_price", "")
     max_price = request.GET.get("max_price", "")
-    if min_price.isdigit():
-        products_qs = products_qs.filter(price__gte=int(min_price))
-    if max_price.isdigit():
-        products_qs = products_qs.filter(price__lte=int(max_price))
+    if min_price.lstrip("-").isdigit():
+        qs = qs.filter(price__gte=int(min_price))
+    if max_price.lstrip("-").isdigit():
+        qs = qs.filter(price__lte=int(max_price))
 
-    # Sale / stock toggle
     if request.GET.get("sale") == "1":
-        products_qs = products_qs.exclude(offer_price=None)
+        qs = qs.exclude(offer_price__isnull=True)
     if request.GET.get("in_stock") == "1":
-        products_qs = products_qs.filter(stock__gt=0)
+        qs = qs.filter(stock__gt=0)
 
-    # Sort
     sort = request.GET.get("sort", "newest")
     sort_map = {
-        "newest": "-id",
-        "price_asc": "price",
+        "newest":     "-id",
+        "price_asc":  "price",
         "price_desc": "-price",
-        "name_asc": "name",
+        "name_asc":   "name",
     }
-    products_qs = products_qs.order_by(sort_map.get(sort, "-id"))
+    qs = qs.order_by(sort_map.get(sort, "-id"))
 
-    # Pagination
-    paginator = Paginator(products_qs, 12)
-    page_number = request.GET.get("page", 1)
-    page_obj = paginator.get_page(page_number)
-
-    # Sidebar data
+    paginator = Paginator(qs, 12)
+    page_obj  = paginator.get_page(request.GET.get("page", 1))
     categories = Category.objects.filter(is_active=True).order_by("name")
 
-    # Build clean query string without 'page' for pagination links
-    query_params = request.GET.copy()
-    query_params.pop("page", None)
-    filter_string = query_params.urlencode()
+    qp = request.GET.copy()
+    qp.pop("page", None)
+    filter_string = qp.urlencode()
+
+    wishlist_ids = []
+    if request.user.is_authenticated:
+        wishlist_ids = list(
+            Wishlist.objects.filter(user=request.user).values_list("product_id", flat=True)
+        )
 
     return render(request, "web/shop.html", {
-        "page_obj": page_obj,
-        "categories": categories,
+        "page_obj":        page_obj,
+        "categories":      categories,
         "active_category": active_category,
-        "query": query,
-        "sort": sort,
-        "min_price": min_price or global_min,
-        "max_price": max_price or global_max,
-        "global_min": global_min,
-        "global_max": global_max,
-        "sale_only": request.GET.get("sale", ""),
-        "stock_only": request.GET.get("in_stock", ""),
-        "filter_string": filter_string,
-        "total_count": paginator.count,
+        "query":           query,
+        "sort":            sort,
+        "min_price":       min_price or global_min,
+        "max_price":       max_price or global_max,
+        "global_min":      global_min,
+        "global_max":      global_max,
+        "sale_only":       request.GET.get("sale", ""),
+        "stock_only":      request.GET.get("in_stock", ""),
+        "filter_string":   filter_string,
+        "total_count":     paginator.count,
+        "wishlist_ids":    wishlist_ids,
     })
 
 
-def product_detail(request, slug):
-    product = get_object_or_404(Product, slug=slug, is_active=True)
-    reviews = Review.objects.filter(product=product, is_approved=True).select_related("user")
-    related = (
-        Product.objects
-        .filter(category=product.category, is_active=True)
-        .exclude(id=product.id)
-        .order_by("-id")[:4]
-    )
-    avg_rating = reviews.aggregate(avg=Avg("rating"))["avg"] or 0
+# ─────────────────────────────────────────────────────────────
+# PUBLIC — SEARCH SUGGESTIONS (AJAX)
+# ─────────────────────────────────────────────────────────────
 
+def search_suggestions(request):
+    q = request.GET.get("q", "").strip()
+    if len(q) < 2:
+        return JsonResponse({"products": [], "categories": []})
+    products = Product.objects.filter(
+        is_active=True, name__icontains=q
+    ).select_related("category").values("id", "name", "slug", "price", "offer_price")[:6]
+    categories = Category.objects.filter(
+        is_active=True, name__icontains=q
+    ).values("id", "name", "slug")[:4]
+    return JsonResponse({
+        "products":   list(products),
+        "categories": list(categories),
+    })
+
+
+# ─────────────────────────────────────────────────────────────
+# PUBLIC — PRODUCT DETAIL
+# ─────────────────────────────────────────────────────────────
+
+def product_detail(request, slug):
+    product     = get_object_or_404(Product, slug=slug, is_active=True)
+    reviews     = Review.objects.filter(product=product, is_approved=True).select_related("user")
+    related     = Product.objects.filter(category=product.category, is_active=True).exclude(id=product.id).order_by("-id")[:4]
+    avg_rating  = reviews.aggregate(avg=Avg("rating"))["avg"] or 0
     user_review = None
+    in_wishlist = False
+    cart_qty    = 0
     if request.user.is_authenticated:
         user_review = Review.objects.filter(product=product, user=request.user).first()
-
+        in_wishlist = Wishlist.objects.filter(user=request.user, product=product).exists()
+        ci = CartItem.objects.filter(user=request.user, product=product).first()
+        cart_qty = ci.quantity if ci else 0
     return render(request, "web/product_detail.html", {
-        "product": product,
-        "reviews": reviews,
-        "related": related,
-        "avg_rating": round(avg_rating, 1),
+        "product":     product,
+        "reviews":     reviews,
+        "related":     related,
+        "avg_rating":  round(avg_rating, 1),
         "user_review": user_review,
+        "in_wishlist": in_wishlist,
+        "cart_qty":    cart_qty,
     })
 
 
@@ -201,30 +241,359 @@ def submit_review(request, product_id):
         return JsonResponse({"success": False, "message": "Invalid request"})
     try:
         product = get_object_or_404(Product, id=product_id)
-        data = json.loads(request.body)
-        rating = int(data.get("rating", 5))
-        review_text = data.get("review", "").strip()
-
-        if not review_text or len(review_text) < 10:
-            return JsonResponse({"success": False, "message": "Review too short (min 10 chars)"})
-
+        data    = json.loads(request.body)
+        rating  = max(1, min(5, int(data.get("rating", 5))))
+        text    = data.get("review", "").strip()
+        if len(text) < 10:
+            return JsonResponse({"success": False, "message": "Review must be at least 10 characters."})
         Review.objects.update_or_create(
-            product=product,
-            user=request.user,
-            defaults={
-                "rating": rating,
-                "review": review_text,
-                "is_approved": False,
-            }
+            product=product, user=request.user,
+            defaults={"rating": rating, "review": text, "is_approved": False},
         )
-        return JsonResponse({"success": True, "message": "Review submitted for approval!"})
+        return JsonResponse({"success": True, "message": "Review submitted — it will appear after approval!"})
     except Exception as e:
         return JsonResponse({"success": False, "message": str(e)})
 
 
-# ============================================================
-# AUTHENTICATION & USER PROFILE
-# ============================================================
+# ─────────────────────────────────────────────────────────────
+# CART — server-side (requires login)
+# ─────────────────────────────────────────────────────────────
+
+def _cart_json(request):
+    items = CartItem.objects.filter(user=request.user).select_related("product")
+    data  = []
+    for ci in items:
+        p = ci.product
+        data.append({
+            "id":       p.id,
+            "name":     p.name,
+            "slug":     p.slug,
+            "price":    float(p.effective_price),
+            "qty":      ci.quantity,
+            "subtotal": float(p.effective_price * ci.quantity),
+            "image":    p.image.url if p.image else "",
+            "stock":    p.stock,
+        })
+    subtotal = sum(d["subtotal"] for d in data)
+    return data, subtotal
+
+
+def cart_page(request):
+    if not request.user.is_authenticated:
+        return redirect(f"/auth/?tab=login&next=/cart/")
+    items    = CartItem.objects.filter(user=request.user).select_related("product__category")
+    subtotal = sum(i.product.effective_price * i.quantity for i in items)
+    delivery = Decimal("0") if subtotal >= 999 else Decimal("49")
+    return render(request, "web/cart.html", {
+        "items":    items,
+        "subtotal": subtotal,
+        "delivery": delivery,
+        "total":    subtotal + delivery,
+    })
+
+
+@require_POST
+def cart_add(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"success": False, "message": "login_required"})
+    try:
+        data    = json.loads(request.body)
+        product = get_object_or_404(Product, id=data["product_id"], is_active=True)
+        qty     = max(1, int(data.get("qty", 1)))
+        if product.stock == 0:
+            return JsonResponse({"success": False, "message": "Out of stock"})
+        ci, created = CartItem.objects.get_or_create(user=request.user, product=product, defaults={"quantity": 0})
+        ci.quantity = min(ci.quantity + qty, product.stock)
+        ci.save()
+        items, subtotal = _cart_json(request)
+        return JsonResponse({"success": True, "message": f"{product.name} added to cart!", "cart": items, "subtotal": float(subtotal), "count": len(items)})
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)})
+
+
+@require_POST
+def cart_update(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"success": False, "message": "login_required"})
+    try:
+        data    = json.loads(request.body)
+        ci      = get_object_or_404(CartItem, user=request.user, product_id=data["product_id"])
+        qty     = int(data.get("qty", 1))
+        if qty <= 0:
+            ci.delete()
+        else:
+            ci.quantity = min(qty, ci.product.stock)
+            ci.save()
+        items, subtotal = _cart_json(request)
+        return JsonResponse({"success": True, "cart": items, "subtotal": float(subtotal), "count": len(items)})
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)})
+
+
+@require_POST
+def cart_remove(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"success": False, "message": "login_required"})
+    try:
+        data = json.loads(request.body)
+        CartItem.objects.filter(user=request.user, product_id=data["product_id"]).delete()
+        items, subtotal = _cart_json(request)
+        return JsonResponse({"success": True, "cart": items, "subtotal": float(subtotal), "count": len(items)})
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)})
+
+
+def cart_data(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"cart": [], "subtotal": 0, "count": 0})
+    items, subtotal = _cart_json(request)
+    return JsonResponse({"cart": items, "subtotal": float(subtotal), "count": len(items)})
+
+
+@require_POST
+def cart_clear(request):
+    if request.user.is_authenticated:
+        CartItem.objects.filter(user=request.user).delete()
+    return JsonResponse({"success": True})
+
+
+# ─────────────────────────────────────────────────────────────
+# WISHLIST — server-side
+# ─────────────────────────────────────────────────────────────
+
+def wishlist_page(request):
+    if not request.user.is_authenticated:
+        return redirect(f"/auth/?tab=login&next=/wishlist/")
+    items = Wishlist.objects.filter(user=request.user).select_related("product__category").order_by("-added_at")
+    return render(request, "web/wishlist.html", {"items": items})
+
+
+@require_POST
+def wishlist_toggle(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"success": False, "message": "login_required"})
+    try:
+        data    = json.loads(request.body)
+        product = get_object_or_404(Product, id=data["product_id"], is_active=True)
+        obj, created = Wishlist.objects.get_or_create(user=request.user, product=product)
+        if not created:
+            obj.delete()
+            return JsonResponse({"success": True, "action": "removed", "message": f"{product.name} removed from wishlist"})
+        return JsonResponse({"success": True, "action": "added", "message": f"{product.name} added to wishlist!"})
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)})
+
+
+def wishlist_data(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ids": []})
+    ids = list(Wishlist.objects.filter(user=request.user).values_list("product_id", flat=True))
+    return JsonResponse({"ids": ids})
+
+
+# ─────────────────────────────────────────────────────────────
+# COUPON
+# ─────────────────────────────────────────────────────────────
+
+@require_POST
+def apply_coupon(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"success": False, "message": "login_required"})
+    try:
+        data     = json.loads(request.body)
+        code     = data.get("code", "").strip()
+        subtotal = Decimal(str(data.get("subtotal", "0")))
+        discount, coupon, err = _apply_coupon_discount(code, subtotal, request)
+        if err:
+            return JsonResponse({"success": False, "message": err})
+        return JsonResponse({
+            "success":  True,
+            "message":  f"Coupon applied! You save ₹{discount}",
+            "discount": float(discount),
+            "total":    float(subtotal - discount),
+        })
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)})
+
+
+# ─────────────────────────────────────────────────────────────
+# CHECKOUT
+# ─────────────────────────────────────────────────────────────
+
+@login_required
+def checkout(request):
+    items = CartItem.objects.filter(user=request.user).select_related("product")
+    if not items.exists():
+        return redirect("cart_page")
+    subtotal = sum(i.product.effective_price * i.quantity for i in items)
+    delivery = Decimal("0") if subtotal >= 999 else Decimal("49")
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    return render(request, "web/checkout.html", {
+        "items":          items,
+        "subtotal":       subtotal,
+        "delivery":       delivery,
+        "total":          subtotal + delivery,
+        "profile":        profile,
+        "razorpay_key":   settings.RAZORPAY_KEY_ID,
+    })
+
+
+@require_POST
+@login_required
+def create_razorpay_order(request):
+    try:
+        data     = json.loads(request.body)
+        items    = CartItem.objects.filter(user=request.user).select_related("product")
+        if not items.exists():
+            return JsonResponse({"success": False, "message": "Cart is empty"})
+
+        subtotal = sum(i.product.effective_price * i.quantity for i in items)
+        delivery = Decimal("0") if subtotal >= 999 else Decimal("49")
+        discount = Decimal("0")
+        coupon_obj = None
+
+        code = data.get("coupon_code", "").strip()
+        if code:
+            discount, coupon_obj, err = _apply_coupon_discount(code, subtotal, request)
+            if err:
+                return JsonResponse({"success": False, "message": err})
+
+        total = subtotal + delivery - discount
+        amount_paise = int(total * 100)
+
+        client   = _razorpay_client()
+        rz_order = client.order.create({
+            "amount":   amount_paise,
+            "currency": "INR",
+            "receipt":  f"order_{request.user.id}_{int(timezone.now().timestamp())}",
+        })
+
+        # Store pending order context in session
+        request.session["pending_checkout"] = {
+            "subtotal":    float(subtotal),
+            "delivery":    float(delivery),
+            "discount":    float(discount),
+            "total":       float(total),
+            "coupon_id":   coupon_obj.id if coupon_obj else None,
+            "rz_order_id": rz_order["id"],
+            "address":     data.get("address", ""),
+            "notes":       data.get("notes", ""),
+        }
+
+        return JsonResponse({
+            "success":    True,
+            "order_id":   rz_order["id"],
+            "amount":     amount_paise,
+            "currency":   "INR",
+            "key":        settings.RAZORPAY_KEY_ID,
+            "name":       request.user.first_name or request.user.username,
+            "email":      request.user.email,
+        })
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)})
+
+
+@require_POST
+@login_required
+def verify_razorpay_payment(request):
+    try:
+        data = json.loads(request.body)
+        pending = request.session.get("pending_checkout")
+        if not pending:
+            return JsonResponse({"success": False, "message": "Session expired"})
+
+        # Signature verification
+        generated = hmac.new(
+            settings.RAZORPAY_KEY_SECRET.encode(),
+            f"{data['razorpay_order_id']}|{data['razorpay_payment_id']}".encode(),
+            hashlib.sha256,
+        ).hexdigest()
+
+        if generated != data.get("razorpay_signature"):
+            return JsonResponse({"success": False, "message": "Payment verification failed"})
+
+        # Create order
+        cart_items  = CartItem.objects.filter(user=request.user).select_related("product")
+        coupon_obj  = Coupon.objects.filter(id=pending["coupon_id"]).first() if pending["coupon_id"] else None
+
+        order = Order.objects.create(
+            user=request.user,
+            total_amount=pending["total"],
+            discount_amount=pending["discount"],
+            status="Confirmed",
+            payment_method="razorpay",
+            payment_id=data["razorpay_payment_id"],
+            razorpay_order_id=data["razorpay_order_id"],
+            address=pending["address"],
+            notes=pending["notes"],
+            coupon=coupon_obj,
+        )
+        for ci in cart_items:
+            OrderItem.objects.create(order=order, product=ci.product, quantity=ci.quantity, price=ci.product.effective_price)
+            # Deduct stock
+            ci.product.stock = max(0, ci.product.stock - ci.quantity)
+            ci.product.save(update_fields=["stock"])
+
+        cart_items.delete()
+        del request.session["pending_checkout"]
+
+        return JsonResponse({"success": True, "order_id": order.id})
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)})
+
+
+@require_POST
+@login_required
+def place_cod_order(request):
+    try:
+        data     = json.loads(request.body)
+        items    = CartItem.objects.filter(user=request.user).select_related("product")
+        if not items.exists():
+            return JsonResponse({"success": False, "message": "Cart is empty"})
+
+        subtotal = sum(i.product.effective_price * i.quantity for i in items)
+        delivery = Decimal("0") if subtotal >= 999 else Decimal("49")
+        discount = Decimal("0")
+        coupon_obj = None
+
+        code = data.get("coupon_code", "").strip()
+        if code:
+            discount, coupon_obj, err = _apply_coupon_discount(code, subtotal, request)
+            if err:
+                return JsonResponse({"success": False, "message": err})
+
+        total = subtotal + delivery - discount
+        order = Order.objects.create(
+            user=request.user,
+            total_amount=total,
+            discount_amount=discount,
+            status="Pending",
+            payment_method="cod",
+            address=data.get("address", ""),
+            notes=data.get("notes", ""),
+            coupon=coupon_obj,
+        )
+        for ci in items:
+            OrderItem.objects.create(order=order, product=ci.product, quantity=ci.quantity, price=ci.product.effective_price)
+            ci.product.stock = max(0, ci.product.stock - ci.quantity)
+            ci.product.save(update_fields=["stock"])
+
+        items.delete()
+        return JsonResponse({"success": True, "order_id": order.id})
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)})
+
+
+@login_required
+def order_success(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    items = order.items.select_related("product")
+    return render(request, "web/order_success.html", {"order": order, "items": items})
+
+
+# ─────────────────────────────────────────────────────────────
+# AUTH
+# ─────────────────────────────────────────────────────────────
 
 def auth_page(request):
     return render(request, "web/auth.html")
@@ -234,67 +603,33 @@ def send_signup_otp(request):
     if request.method != "POST":
         return JsonResponse({"success": False, "message": "Invalid request"})
     try:
-        data = json.loads(request.body)
+        data     = json.loads(request.body)
         fullname = data.get("fullname", "").strip()
-        email = data.get("email", "").strip().lower()
-        phone = data.get("phone", "").strip()
+        email    = data.get("email", "").strip().lower()
+        phone    = data.get("phone", "").strip()
         password = data.get("password", "")
-
-        # Full name
         if len(fullname) < 3:
-            return JsonResponse({"success": False, "message": "Name must be at least 3 characters"})
+            return JsonResponse({"success": False, "message": "Name must be at least 3 characters."})
         if not re.match(r"^[A-Za-z ]+$", fullname):
-            return JsonResponse({"success": False, "message": "Name should contain only letters"})
-
-        # Email
+            return JsonResponse({"success": False, "message": "Name should contain only letters."})
         if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
-            return JsonResponse({"success": False, "message": "Enter a valid email address"})
+            return JsonResponse({"success": False, "message": "Enter a valid email address."})
         if User.objects.filter(email__iexact=email).exists():
-            return JsonResponse({"success": False, "message": "Email already registered"})
-
-        # Phone
+            return JsonResponse({"success": False, "message": "Email already registered."})
         if not phone.isdigit() or len(phone) != 10:
-            return JsonResponse({"success": False, "message": "Phone number must be exactly 10 digits"})
+            return JsonResponse({"success": False, "message": "Phone must be exactly 10 digits."})
         if UserProfile.objects.filter(phone=phone).exists():
-            return JsonResponse({"success": False, "message": "Phone number already registered"})
-
-        # Password
-        if len(password) < 8:
-            return JsonResponse({"success": False, "message": "Password must be at least 8 characters"})
-        if not re.search(r"[A-Z]", password):
-            return JsonResponse({"success": False, "message": "Password must contain one uppercase letter"})
-        if not re.search(r"[a-z]", password):
-            return JsonResponse({"success": False, "message": "Password must contain one lowercase letter"})
-        if not re.search(r"\d", password):
-            return JsonResponse({"success": False, "message": "Password must contain one number"})
-        if not re.search(r"[!@#$%^&*()_+=\-{}[\]:;'<>,.?/]", password):
-            return JsonResponse({"success": False, "message": "Password must contain one special character"})
-
+            return JsonResponse({"success": False, "message": "Phone already registered."})
+        if len(password) < 8 or not re.search(r"[A-Z]", password) or not re.search(r"[a-z]", password) or not re.search(r"\d", password) or not re.search(r"[!@#$%^&*()_+=\-{}[\]:;'<>,.?/]", password):
+            return JsonResponse({"success": False, "message": "Password must be 8+ chars with uppercase, lowercase, number and special character."})
         otp = str(random.randint(100000, 999999))
         EmailOTP.objects.update_or_create(email=email, defaults={"otp": otp})
-
-        request.session["signup_data"] = {
-            "fullname": fullname,
-            "email": email,
-            "phone": phone,
-            "password": password,
-        }
+        request.session["signup_data"]  = {"fullname": fullname, "email": email, "phone": phone, "password": password}
         request.session["verify_email"] = email
-
-        send_mail(
-            subject="SSD Nursery Email Verification",
-            message=(
-                f"Hello {fullname},\n\n"
-                f"Your OTP for SSD Nursery account verification is:\n\n"
-                f"{otp}\n\n"
-                f"This OTP is valid for 5 minutes.\n\n"
-                f"Thank You,\nSSD Nursery Team"
-            ),
-            from_email=None,
-            recipient_list=[email],
-        )
-        return JsonResponse({"success": True, "message": "OTP sent successfully"})
-
+        send_mail(subject="SSD Nursery — Verify Your Email",
+                  message=f"Hi {fullname},\n\nYour OTP is: {otp}\n\nValid for 5 minutes.\n\n— SSD Nursery",
+                  from_email=None, recipient_list=[email])
+        return JsonResponse({"success": True, "message": "OTP sent successfully!"})
     except Exception as e:
         return JsonResponse({"success": False, "message": str(e)})
 
@@ -303,40 +638,87 @@ def verify_signup_otp(request):
     if request.method != "POST":
         return JsonResponse({"success": False, "message": "Invalid request"})
     try:
-        data = json.loads(request.body)
+        data  = json.loads(request.body)
         email = request.session.get("verify_email")
-        otp = data.get("otp")
-
+        otp   = data.get("otp")
         saved = EmailOTP.objects.get(email=email)
-
         if timezone.now() - saved.created_at > timedelta(minutes=5):
             saved.delete()
-            return JsonResponse({"success": False, "message": "OTP expired. Please request a new one."})
-
+            return JsonResponse({"success": False, "message": "OTP expired."})
         if saved.otp != otp:
-            return JsonResponse({"success": False, "message": "Invalid OTP"})
-
+            return JsonResponse({"success": False, "message": "Invalid OTP."})
         signup_data = request.session.get("signup_data")
         if not signup_data:
-            return JsonResponse({"success": False, "message": "Session expired. Please sign up again."})
-
+            return JsonResponse({"success": False, "message": "Session expired."})
         if User.objects.filter(email__iexact=email).exists():
-            return JsonResponse({"success": False, "message": "Account already exists"})
-
-        user = User.objects.create_user(
-            username=email,
-            email=email,
-            password=signup_data["password"],
-            first_name=signup_data["fullname"],
-        )
+            return JsonResponse({"success": False, "message": "Account already exists."})
+        user = User.objects.create_user(username=email, email=email, password=signup_data["password"], first_name=signup_data["fullname"])
         UserProfile.objects.create(user=user, phone=signup_data["phone"])
         saved.delete()
-
         login(request, user)
-        return JsonResponse({"success": True, "message": "OTP Verified Successfully"})
-
+        return JsonResponse({"success": True, "message": "OTP verified!"})
     except EmailOTP.DoesNotExist:
-        return JsonResponse({"success": False, "message": "OTP not found"})
+        return JsonResponse({"success": False, "message": "OTP not found."})
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)})
+
+
+def login_user(request):
+    if request.method != "POST":
+        return JsonResponse({"success": False})
+    data          = json.loads(request.body)
+    email_or_user = data.get("email", "").strip()
+    password      = data.get("password", "").strip()
+    user = authenticate(request, username=email_or_user, password=password)
+    if not user:
+        try:
+            db_user = User.objects.get(email=email_or_user)
+            user    = authenticate(request, username=db_user.username, password=password)
+        except User.DoesNotExist:
+            pass
+    if user:
+        login(request, user)
+        return JsonResponse({"success": True, "redirect": "/dashboard/" if user.is_superuser else "/"})
+    return JsonResponse({"success": False, "message": "Invalid credentials."})
+
+
+@csrf_exempt
+def save_details(request):
+    if request.method != "POST":
+        return JsonResponse({"success": False, "message": "Invalid request"})
+    try:
+        if not request.user.is_authenticated:
+            return JsonResponse({"success": False, "message": "Please log in first."})
+        data         = json.loads(request.body)
+        address      = data.get("address", "").strip()
+        pincode      = data.get("pincode", "").strip()
+        if len(address) < 10:
+            return JsonResponse({"success": False, "message": "Address must be at least 10 characters."})
+        if not pincode.isdigit() or len(pincode) != 6:
+            return JsonResponse({"success": False, "message": "Pincode must be 6 digits."})
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        profile.address = address; profile.area = data.get("area",""); profile.city = data.get("city","")
+        profile.state = data.get("state",""); profile.pincode = pincode; profile.instructions = data.get("instructions","")
+        profile.save()
+        return JsonResponse({"success": True, "message": "Details saved!"})
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)})
+
+
+def reverse_geocode(request):
+    lat = request.GET.get("lat"); lon = request.GET.get("lon")
+    try:
+        if not lat or not lon:
+            return JsonResponse({"success": False, "message": "Lat/Lon required."})
+        geo      = Nominatim(user_agent="ssd_nursery")
+        location = geo.reverse(f"{lat}, {lon}", exactly_one=True, language="en")
+        if not location:
+            return JsonResponse({"success": False, "message": "Location not found."})
+        addr = location.raw.get("address", {})
+        return JsonResponse({"success": True, "address": location.address,
+            "area":    addr.get("suburb") or addr.get("neighbourhood") or addr.get("village") or "",
+            "city":    addr.get("city") or addr.get("town") or addr.get("county") or "",
+            "state":   addr.get("state", ""), "pincode": addr.get("postcode") or ""})
     except Exception as e:
         return JsonResponse({"success": False, "message": str(e)})
 
@@ -347,484 +729,292 @@ def resend_otp(request):
     try:
         email = request.session.get("verify_email")
         if not email:
-            return JsonResponse({"success": False, "message": "Session expired"})
-
+            return JsonResponse({"success": False, "message": "Session expired."})
         otp = str(random.randint(100000, 999999))
         EmailOTP.objects.update_or_create(email=email, defaults={"otp": otp})
-
-        send_mail(
-            subject="SSD Nursery OTP",
-            message=f"Your OTP is {otp}",
-            from_email=None,
-            recipient_list=[email],
-        )
-        return JsonResponse({"success": True, "message": "OTP resent successfully"})
+        send_mail(subject="SSD Nursery OTP", message=f"Your OTP: {otp}", from_email=None, recipient_list=[email])
+        return JsonResponse({"success": True, "message": "OTP resent!"})
     except Exception as e:
         return JsonResponse({"success": False, "message": str(e)})
 
 
-def login_user(request):
-    if request.method != "POST":
-        return JsonResponse({"success": False})
-
-    data = json.loads(request.body)
-    email_or_user = data.get("email", "").strip()
-    password = data.get("password", "").strip()
-
-    user = authenticate(request, username=email_or_user, password=password)
-    if not user:
-        try:
-            db_user = User.objects.get(email=email_or_user)
-            user = authenticate(request, username=db_user.username, password=password)
-        except User.DoesNotExist:
-            pass
-
-    if user:
-        login(request, user)
-        return JsonResponse({
-            "success": True,
-            "redirect": "/dashboard/" if user.is_superuser else "/",
-        })
-
-    return JsonResponse({"success": False, "message": "Invalid credentials"})
-
-
 def logout_user(request):
-    logout(request)
-    return redirect("/")
+    logout(request); return redirect("/")
 
 
 @login_required
 def profile(request):
-    user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
-    orders = Order.objects.filter(user=request.user).order_by("-id")[:10]
-    return render(request, "web/profile.html", {
-        "profile": user_profile,
-        "orders": orders,
-    })
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    orders     = Order.objects.filter(user=request.user).prefetch_related("items__product").order_by("-id")[:10]
+    wishlist   = Wishlist.objects.filter(user=request.user).select_related("product").order_by("-added_at")[:6]
+    return render(request, "web/profile.html", {"profile": profile, "orders": orders, "wishlist": wishlist})
 
 
-@login_required
-def save_details(request):
-    if request.method != "POST":
-        return JsonResponse({"success": False, "message": "Invalid request"})
-    try:
-        data = json.loads(request.body)
-        address = data.get("address", "").strip()
-        pincode = data.get("pincode", "").strip()
-        instructions = data.get("instructions", "").strip()
-
-        if len(address) < 15:
-            return JsonResponse({"success": False, "message": "Address must be at least 15 characters"})
-        if not pincode.isdigit() or len(pincode) != 6:
-            return JsonResponse({"success": False, "message": "Pincode must be exactly 6 digits"})
-
-        user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
-        user_profile.address = address
-        user_profile.area = data.get("area", "")
-        user_profile.city = data.get("city", "")
-        user_profile.state = data.get("state", "")
-        user_profile.pincode = pincode
-        user_profile.instructions = instructions
-        user_profile.save()
-
-        return JsonResponse({
-            "success": True,
-            "message": "Details saved successfully",
-            "area": user_profile.area,
-            "city": user_profile.city,
-            "state": user_profile.state,
-        })
-    except Exception as e:
-        return JsonResponse({"success": False, "message": str(e)})
-
-
-def reverse_geocode(request):
-    lat = request.GET.get("lat")
-    lon = request.GET.get("lon")
-    try:
-        if not lat or not lon:
-            return JsonResponse({"success": False, "message": "Lat/Lon required"})
-
-        geolocator = Nominatim(user_agent="ssd_nursery")
-        location = geolocator.reverse(f"{lat}, {lon}", exactly_one=True, language="en")
-
-        if not location:
-            return JsonResponse({"success": False, "message": "Location not found"})
-
-        addr = location.raw.get("address", {})
-        area = (
-            addr.get("suburb")
-            or addr.get("neighbourhood")
-            or addr.get("village")
-            or addr.get("hamlet")
-            or ""
-        )
-        city = (
-            addr.get("city")
-            or addr.get("town")
-            or addr.get("county")
-            or addr.get("municipality")
-            or ""
-        )
-        state = addr.get("state", "")
-        pincode = addr.get("postcode") or addr.get("postal_code") or ""
-
-        return JsonResponse({
-            "success": True,
-            "address": location.address,
-            "area": area,
-            "city": city,
-            "state": state,
-            "pincode": pincode,
-        })
-    except Exception as e:
-        return JsonResponse({"success": False, "message": str(e)})
-
-
-# ============================================================
-# ADMIN DASHBOARD
-# ============================================================
+# ─────────────────────────────────────────────────────────────
+# ADMIN
+# ─────────────────────────────────────────────────────────────
 
 @login_required
-@_admin_required
 def admin_dashboard(request):
-    total_users = User.objects.count()
-    total_categories = Category.objects.count()
-    total_products = Product.objects.count()
-    total_orders = Order.objects.count()
-    pending_orders = Order.objects.filter(status="Pending").count()
-    completed_orders = Order.objects.filter(status="Delivered").count()
-    total_revenue = (
-        Order.objects.filter(status="Delivered")
-        .aggregate(t=Sum("total_amount"))["t"] or 0
-    )
-    recent_orders = Order.objects.select_related("user").order_by("-id")[:5]
-
+    if g := _admin_guard(request): return g
+    total_revenue = Order.objects.filter(status="Delivered").aggregate(t=Sum("total_amount"))["t"] or 0
     return render(request, "web/admin/dashboard.html", {
-        "total_users": total_users,
-        "total_categories": total_categories,
-        "total_products": total_products,
-        "total_orders": total_orders,
-        "pending_orders": pending_orders,
-        "completed_orders": completed_orders,
-        "total_revenue": total_revenue,
-        "recent_orders": recent_orders,
+        "total_users":      User.objects.count(),
+        "total_categories": Category.objects.count(),
+        "total_products":   Product.objects.count(),
+        "total_orders":     Order.objects.count(),
+        "pending_orders":   Order.objects.filter(status="Pending").count(),
+        "completed_orders": Order.objects.filter(status="Delivered").count(),
+        "total_revenue":    total_revenue,
+        "recent_orders":    Order.objects.select_related("user").order_by("-id")[:5],
     })
 
 
-# --- USERS ---
-
 @login_required
-@_admin_required
 def users_list(request):
-    users = User.objects.select_related("profile").all().order_by("-date_joined")
+    if g := _admin_guard(request): return g
+    users = User.objects.select_related("userprofile").order_by("-date_joined")
     return render(request, "web/admin/users.html", {"users": users})
 
 
-# --- CATEGORIES ---
-
 @login_required
-@_admin_required
 def category_list(request):
-    categories = Category.objects.all().order_by("-id")
-    return render(request, "web/admin/categories.html", {"categories": categories})
+    if g := _admin_guard(request): return g
+    return render(request, "web/admin/categories.html", {"categories": Category.objects.all().order_by("-id")})
 
 
 @login_required
-@_admin_required
 def add_category(request):
+    if g := _admin_guard(request): return g
     if request.method == "POST":
         name = request.POST.get("name", "").strip()
-        description = request.POST.get("description", "")
-        image = request.FILES.get("image")
-
         if Category.objects.filter(name__iexact=name).exists():
-            messages.error(request, "Category already exists")
+            messages.error(request, "Category already exists.")
         else:
-            Category.objects.create(
-                name=name,
-                slug=slugify(name),
-                description=description,
-                image=image,
-            )
-            messages.success(request, "Category added successfully")
-
+            Category.objects.create(name=name, slug=slugify(name), description=request.POST.get("description",""), image=request.FILES.get("image"))
+            messages.success(request, f"Category '{name}' added.")
     return redirect("category_list")
 
 
 @login_required
-@_admin_required
 def edit_category(request, id):
-    category = get_object_or_404(Category, id=id)
+    if g := _admin_guard(request): return g
+    cat = get_object_or_404(Category, id=id)
     if request.method == "POST":
-        category.name = request.POST.get("name", category.name).strip()
-        category.slug = slugify(category.name)
-        category.description = request.POST.get("description", category.description)
-        if request.FILES.get("image"):
-            category.image = request.FILES["image"]
-        category.save()
-        messages.success(request, "Category updated")
+        cat.name = request.POST.get("name", cat.name).strip(); cat.slug = slugify(cat.name)
+        cat.description = request.POST.get("description", cat.description)
+        if request.FILES.get("image"): cat.image = request.FILES["image"]
+        cat.save(); messages.success(request, "Category updated.")
     return redirect("category_list")
 
 
 @login_required
-@_admin_required
 def toggle_category(request, id):
-    category = get_object_or_404(Category, id=id)
-    category.is_active = not category.is_active
-    category.save()
+    if g := _admin_guard(request): return g
+    cat = get_object_or_404(Category, id=id); cat.is_active = not cat.is_active; cat.save()
     return redirect("category_list")
 
 
 @login_required
-@_admin_required
 def delete_category(request, id):
-    Category.objects.filter(id=id).delete()
-    messages.success(request, "Category deleted")
+    if g := _admin_guard(request): return g
+    Category.objects.filter(id=id).delete(); messages.success(request, "Category deleted.")
     return redirect("category_list")
 
 
-# --- PRODUCTS ---
-
 @login_required
-@_admin_required
 def product_list(request):
-    products = Product.objects.select_related("category").all().order_by("-id")
-    categories = Category.objects.filter(is_active=True)
+    if g := _admin_guard(request): return g
     return render(request, "web/admin/products.html", {
-        "products": products,
-        "categories": categories,
+        "products":   Product.objects.select_related("category").order_by("-id"),
+        "categories": Category.objects.filter(is_active=True),
     })
 
 
 @login_required
-@_admin_required
 def add_product(request):
+    if g := _admin_guard(request): return g
     if request.method == "POST":
-        category = get_object_or_404(Category, id=request.POST.get("category"))
-        name = request.POST.get("name", "").strip()
-        offer_price = request.POST.get("offer_price") or None
-
-        Product.objects.create(
-            category=category,
-            name=name,
-            slug=slugify(name),
-            price=request.POST.get("price"),
-            offer_price=offer_price,
-            stock=request.POST.get("stock", 0),
-            description=request.POST.get("description", ""),
-            care_guide=request.POST.get("care_guide", ""),
-            image=request.FILES.get("image"),
-        )
-        messages.success(request, f"Product '{name}' added")
+        cat  = get_object_or_404(Category, id=request.POST.get("category"))
+        name = request.POST.get("name","").strip()
+        Product.objects.create(category=cat, name=name, slug=slugify(name),
+            price=request.POST.get("price"), offer_price=request.POST.get("offer_price") or None,
+            stock=request.POST.get("stock",0), description=request.POST.get("description",""),
+            care_guide=request.POST.get("care_guide",""), image=request.FILES.get("image"))
+        messages.success(request, f"Product '{name}' added.")
     return redirect("product_list")
 
 
 @login_required
-@_admin_required
 def edit_product(request, id):
-    product = get_object_or_404(Product, id=id)
+    if g := _admin_guard(request): return g
+    p = get_object_or_404(Product, id=id)
     if request.method == "POST":
-        product.category = get_object_or_404(Category, id=request.POST.get("category"))
-        product.name = request.POST.get("name", product.name).strip()
-        product.slug = slugify(product.name)
-        product.price = request.POST.get("price", product.price)
-        product.offer_price = request.POST.get("offer_price") or None
-        product.stock = request.POST.get("stock", product.stock)
-        product.description = request.POST.get("description", product.description)
-        product.care_guide = request.POST.get("care_guide", product.care_guide)
-        if request.FILES.get("image"):
-            product.image = request.FILES["image"]
-        product.save()
-        messages.success(request, "Product updated")
+        p.category = get_object_or_404(Category, id=request.POST.get("category"))
+        p.name = request.POST.get("name", p.name).strip(); p.slug = slugify(p.name)
+        p.price = request.POST.get("price", p.price); p.offer_price = request.POST.get("offer_price") or None
+        p.stock = request.POST.get("stock", p.stock); p.description = request.POST.get("description", p.description)
+        p.care_guide = request.POST.get("care_guide", p.care_guide)
+        if request.FILES.get("image"): p.image = request.FILES["image"]
+        p.save(); messages.success(request, "Product updated.")
     return redirect("product_list")
 
 
 @login_required
-@_admin_required
 def toggle_product(request, id):
-    product = get_object_or_404(Product, id=id)
-    product.is_active = not product.is_active
-    product.save()
+    if g := _admin_guard(request): return g
+    p = get_object_or_404(Product, id=id); p.is_active = not p.is_active; p.save()
     return redirect("product_list")
 
 
 @login_required
-@_admin_required
 def delete_product(request, id):
-    Product.objects.filter(id=id).delete()
-    messages.success(request, "Product deleted")
+    if g := _admin_guard(request): return g
+    Product.objects.filter(id=id).delete(); messages.success(request, "Product deleted.")
     return redirect("product_list")
 
 
-# --- ORDERS ---
-
 @login_required
-@_admin_required
 def order_list(request):
-    orders = Order.objects.select_related("user").all().order_by("-created_at")
-    statuses = ["Pending", "Confirmed", "Packed", "Shipped", "Delivered", "Cancelled"]
-    return render(request, "web/admin/orders.html", {
-        "orders": orders,
-        "statuses": statuses,
-    })
+    if g := _admin_guard(request): return g
+    return render(request, "web/admin/orders.html", {"orders": Order.objects.select_related("user").order_by("-id")})
 
 
 @login_required
-@_admin_required
 def update_order_status(request, order_id):
-    order = get_object_or_404(Order, id=order_id)
-    order.status = request.POST.get("status", order.status)
-    order.save()
+    if g := _admin_guard(request): return g
+    order = get_object_or_404(Order, id=order_id); order.status = request.POST.get("status", order.status); order.save()
     return redirect("order_list")
 
 
-# --- COUPONS ---
-
 @login_required
-@_admin_required
 def coupon_list(request):
-    coupons = Coupon.objects.all().order_by("-id")
-    return render(request, "web/admin/coupons.html", {"coupons": coupons})
+    if g := _admin_guard(request): return g
+    return render(request, "web/admin/coupons.html", {"coupons": Coupon.objects.order_by("-id")})
 
 
 @login_required
-@_admin_required
 def add_coupon(request):
+    if g := _admin_guard(request): return g
     if request.method == "POST":
-        Coupon.objects.create(
-            code=request.POST.get("code", "").upper(),
-            discount_type=request.POST.get("discount_type"),
-            discount_value=request.POST.get("discount_value"),
-            minimum_order_amount=request.POST.get("minimum_order_amount"),
-            maximum_discount=request.POST.get("maximum_discount"),
-            expiry_date=request.POST.get("expiry_date"),
-        )
-        messages.success(request, "Coupon created")
+        Coupon.objects.create(code=request.POST.get("code","").upper(), discount_type=request.POST.get("discount_type"),
+            discount_value=request.POST.get("discount_value"), minimum_order_amount=request.POST.get("minimum_order_amount") or 0,
+            maximum_discount=request.POST.get("maximum_discount") or None, expiry_date=request.POST.get("expiry_date") or None)
+        messages.success(request, "Coupon created.")
     return redirect("coupon_list")
 
 
 @login_required
-@_admin_required
 def delete_coupon(request, id):
-    Coupon.objects.filter(id=id).delete()
-    messages.success(request, "Coupon deleted")
-    return redirect("coupon_list")
+    if g := _admin_guard(request): return g
+    Coupon.objects.filter(id=id).delete(); return redirect("coupon_list")
 
-
-# --- REVIEWS ---
 
 @login_required
-@_admin_required
 def reviews_list(request):
-    reviews = Review.objects.select_related("user", "product").all().order_by("-id")
-    return render(request, "web/admin/reviews.html", {"reviews": reviews})
+    if g := _admin_guard(request): return g
+    return render(request, "web/admin/reviews.html", {"reviews": Review.objects.select_related("user","product").order_by("-id")})
 
 
 @login_required
-@_admin_required
 def approve_review(request, id):
-    review = get_object_or_404(Review, id=id)
-    review.is_approved = True
-    review.save()
-    return redirect("reviews_list")
+    if g := _admin_guard(request): return g
+    r = get_object_or_404(Review, id=id); r.is_approved = True; r.save(); return redirect("reviews_list")
 
 
 @login_required
-@_admin_required
 def delete_review(request, id):
-    Review.objects.filter(id=id).delete()
-    return redirect("reviews_list")
+    if g := _admin_guard(request): return g
+    Review.objects.filter(id=id).delete(); return redirect("reviews_list")
 
-
-# --- BANNERS ---
 
 @login_required
-@_admin_required
 def banners_list(request):
-    banners = Banner.objects.all().order_by("-id")
-    return render(request, "web/admin/banners.html", {"banners": banners})
+    if g := _admin_guard(request): return g
+    return render(request, "web/admin/banners.html", {"banners": Banner.objects.order_by("sort_order","-created_at")})
 
 
 @login_required
-@_admin_required
 def add_banner(request):
+    if g := _admin_guard(request): return g
     if request.method == "POST":
         Banner.objects.create(
-            title=request.POST.get("title"),
-            banner_type=request.POST.get("banner_type"),
             image=request.FILES.get("image"),
+            tag_text=request.POST.get("tag_text",""),
+            heading=request.POST.get("heading",""),
+            subheading=request.POST.get("subheading",""),
+            description=request.POST.get("description",""),
+            button_text=request.POST.get("button_text",""),
+            button_url=request.POST.get("button_url",""),
+            button_style=request.POST.get("button_style","primary"),
+            banner_type=request.POST.get("banner_type","hero"),
+            sort_order=request.POST.get("sort_order",0) or 0,
         )
-        messages.success(request, "Banner added")
+        messages.success(request, "Banner added.")
     return redirect("banners_list")
 
 
 @login_required
-@_admin_required
-def delete_banner(request, id):
-    Banner.objects.filter(id=id).delete()
-    return redirect("banners_list")
-
-
-# --- NOTIFICATIONS ---
-
-@login_required
-@_admin_required
-def notifications_list(request):
-    notifications = Notification.objects.all().order_by("-id")
-    return render(request, "web/admin/notifications.html", {"notifications": notifications})
-
-
-@login_required
-@_admin_required
-def add_notification(request):
+def edit_banner(request, id):
+    if g := _admin_guard(request): return g
+    b = get_object_or_404(Banner, id=id)
     if request.method == "POST":
-        Notification.objects.create(
-            title=request.POST.get("title"),
-            is_active=True,
-        )
-        messages.success(request, "Notification added")
+        b.tag_text=request.POST.get("tag_text",b.tag_text); b.heading=request.POST.get("heading",b.heading)
+        b.subheading=request.POST.get("subheading",b.subheading); b.description=request.POST.get("description",b.description)
+        b.button_text=request.POST.get("button_text",b.button_text); b.button_url=request.POST.get("button_url",b.button_url)
+        b.button_style=request.POST.get("button_style",b.button_style); b.banner_type=request.POST.get("banner_type",b.banner_type)
+        b.sort_order=request.POST.get("sort_order",b.sort_order) or 0
+        if request.FILES.get("image"): b.image=request.FILES["image"]
+        b.save(); messages.success(request,"Banner updated.")
+    return redirect("banners_list")
+
+
+@login_required
+def toggle_banner(request, id):
+    if g := _admin_guard(request): return g
+    b = get_object_or_404(Banner, id=id); b.is_active = not b.is_active; b.save()
+    return redirect("banners_list")
+
+
+@login_required
+def delete_banner(request, id):
+    if g := _admin_guard(request): return g
+    Banner.objects.filter(id=id).delete(); return redirect("banners_list")
+
+
+@login_required
+def notifications_list(request):
+    if g := _admin_guard(request): return g
+    return render(request, "web/admin/notifications.html", {"notifications": Notification.objects.order_by("-id")})
+
+
+@login_required
+def add_notification(request):
+    if g := _admin_guard(request): return g
+    if request.method == "POST":
+        Notification.objects.create(title=request.POST.get("title",""), is_active=True)
+        messages.success(request, "Notification added.")
     return redirect("notifications_list")
 
 
 @login_required
-@_admin_required
 def delete_notification(request, id):
-    Notification.objects.filter(id=id).delete()
-    return redirect("notifications_list")
+    if g := _admin_guard(request): return g
+    Notification.objects.filter(id=id).delete(); return redirect("notifications_list")
 
-
-# --- ANALYTICS ---
 
 @login_required
-@_admin_required
 def analytics(request):
-    total_users = User.objects.count()
-    total_products = Product.objects.count()
-    total_orders = Order.objects.count()
-    total_revenue = (
-        Order.objects.filter(status="Delivered")
-        .aggregate(t=Sum("total_amount"))["t"] or 0
-    )
-
-    # Monthly revenue for chart
-    monthly = (
-        Order.objects
-        .filter(status="Delivered")
-        .annotate(month=TruncMonth("created_at"))
-        .values("month")
-        .annotate(revenue=Sum("total_amount"))
-        .order_by("month")
-    )
-    chart_labels = [m["month"].strftime("%b %Y") for m in monthly if m["month"]]
-    chart_revenue = [float(m["revenue"]) for m in monthly]
-
+    if g := _admin_guard(request): return g
+    total_revenue = Order.objects.filter(status="Delivered").aggregate(t=Sum("total_amount"))["t"] or 0
+    monthly = (Order.objects.filter(status="Delivered")
+        .annotate(month=TruncMonth("created_at")).values("month")
+        .annotate(revenue=Sum("total_amount")).order_by("month"))
     return render(request, "web/admin/analytics.html", {
-        "total_users": total_users,
-        "total_products": total_products,
-        "total_orders": total_orders,
-        "total_revenue": total_revenue,
-        "chart_labels": json.dumps(chart_labels),
-        "chart_revenue": json.dumps(chart_revenue),
+        "total_users":    User.objects.count(),
+        "total_products": Product.objects.count(),
+        "total_orders":   Order.objects.count(),
+        "total_revenue":  total_revenue,
+        "chart_labels":   json.dumps([m["month"].strftime("%b %Y") for m in monthly if m["month"]]),
+        "chart_revenue":  json.dumps([float(m["revenue"]) for m in monthly]),
     })

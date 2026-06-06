@@ -1,0 +1,67 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>My Wishlist | SSD Nursery</title>
+<link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body data-auth="1">
+<script>window.__WISHLIST_IDS__ = [{% for w in items %}{{ w.product.id }}{% if not forloop.last %},{% endif %}{% endfor %}];</script>
+{% with active_nav="" nav_solid=True %}{% include "web/_navbar.html" %}{% endwith %}
+<div class="wishlist-page">
+  <h1>My Wishlist <span style="font-size:1.2rem;color:var(--text-light);font-family:'Cormorant Garamond',serif;">({{ items.count }} item{{ items.count|pluralize }})</span></h1>
+  {% if items %}
+  <div class="wishlist-grid">
+    {% for w in items %}
+    <a href="{% url 'product_detail' w.product.slug %}" class="product-card" style="text-decoration:none;">
+      <div class="img-container">
+        {% if w.product.offer_price %}<span class="badge badge-sale">SALE</span>{% endif %}
+        {% if w.product.stock == 0 %}<span class="badge badge-oos">Sold Out</span>{% endif %}
+        {% if w.product.image %}<img src="{{ w.product.image.url }}" alt="{{ w.product.name }}" loading="lazy">
+        {% else %}<div class="img-placeholder"><i class="fas fa-seedling"></i></div>{% endif %}
+        <div class="card-actions">
+          <button class="action-btn wishlist-btn wishlisted" data-product="{{ w.product.id }}" onclick="event.preventDefault();handleWishlistRemove({{ w.product.id }},this);" title="Remove from Wishlist">
+            <i class="fas fa-heart"></i>
+          </button>
+          <button class="action-btn" data-product="{{ w.product.id }}" onclick="event.preventDefault();addToCart({{ w.product.id }},1);" title="Add to cart">
+            <i class="fas fa-shopping-bag"></i>
+          </button>
+        </div>
+      </div>
+      <div class="product-info">
+        <h3>{{ w.product.name }}</h3>
+        <div class="price-row">
+          <p class="price">{% if w.product.offer_price %}₹{{ w.product.offer_price }}<span class="old-price">₹{{ w.product.price }}</span>{% else %}₹{{ w.product.price }}{% endif %}</p>
+          <span class="stock-tag {% if w.product.stock < 5 and w.product.stock > 0 %}low{% endif %}">{% if w.product.stock == 0 %}Out of stock{% elif w.product.stock < 5 %}{{ w.product.stock }} left{% else %}In Stock{% endif %}</span>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="cart-empty-page">
+    <i class="fas fa-heart" style="color:var(--sage)"></i>
+    <h2>Your wishlist is empty</h2>
+    <p>Save plants you love by clicking the heart icon.</p>
+    <a href="{% url 'shop' %}" class="btn-shop-now">Browse Plants <i class="fas fa-arrow-right"></i></a>
+  </div>
+  {% endif %}
+</div>
+{% csrf_token %}
+<script src="{% static 'js/site.js' %}"></script>
+<script>
+async function handleWishlistRemove(pid, btn) {
+  await toggleWishlist(pid);
+  btn.closest('.product-card')?.remove();
+  const h1 = document.querySelector('.wishlist-page h1');
+  const remaining = document.querySelectorAll('.wishlist-grid .product-card').length;
+  if (remaining === 0) location.reload();
+}
+</script>
+</body>
+</html>

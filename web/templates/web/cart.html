@@ -1,0 +1,143 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>My Cart | SSD Nursery</title>
+<link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body data-auth="{% if request.user.is_authenticated %}1{% else %}0{% endif %}">
+{% with active_nav="cart" nav_solid=True %}{% include "web/_navbar.html" %}{% endwith %}
+
+<div class="cart-page">
+  <h1 class="cart-page-title">Shopping Cart</h1>
+
+  {% if items %}
+  <div class="cart-layout">
+    <!-- ITEMS -->
+    <div>
+      <div class="cart-items-card">
+        <div class="cart-items-header">
+          <span>{{ items.count }} item{{ items.count|pluralize }} in your cart</span>
+          <button onclick="clearCart()" style="font-family:'Cormorant Garamond',serif;font-size:.88rem;color:var(--terracotta);background:none;border:none;cursor:pointer;">Clear all</button>
+        </div>
+        {% for item in items %}
+        <div class="cart-item-row" id="cart-row-{{ item.product.id }}">
+          {% if item.product.image %}
+          <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="cart-item-thumb">
+          {% else %}
+          <div class="cart-item-thumb" style="display:flex;align-items:center;justify-content:center;color:var(--sage);font-size:1.8rem;"><i class="fas fa-seedling"></i></div>
+          {% endif %}
+          <div class="cart-item-details">
+            <h4>{{ item.product.name }}</h4>
+            <span class="cat-tag">{{ item.product.category.name }}</span>
+            <div class="item-price">
+              {% if item.product.offer_price %}₹{{ item.product.offer_price }}{% else %}₹{{ item.product.price }}{% endif %}
+            </div>
+            <div class="qty-ctrl">
+              <button class="qc-btn" onclick="updateQty({{ item.product.id }}, {{ item.quantity|add:'-1' }})">−</button>
+              <span class="qc-num" id="qty-{{ item.product.id }}">{{ item.quantity }}</span>
+              <button class="qc-btn" onclick="updateQty({{ item.product.id }}, {{ item.quantity|add:'1' }})">+</button>
+              <button class="remove-btn" onclick="removeItem({{ item.product.id }})" title="Remove"><i class="fas fa-trash-alt"></i></button>
+            </div>
+          </div>
+          <div class="item-subtotal" id="sub-{{ item.product.id }}">₹{{ item.subtotal|floatformat:0 }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <a href="{% url 'shop' %}" style="display:inline-flex;align-items:center;gap:8px;color:var(--forest);font-family:'Cormorant Garamond',serif;font-size:.95rem;margin-top:18px;">
+        <i class="fas fa-arrow-left"></i> Continue Shopping
+      </a>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="cart-summary">
+      <h3>Order Summary</h3>
+      <div class="summary-row">Subtotal <span id="cart-subtotal">₹{{ subtotal|floatformat:0 }}</span></div>
+      <div class="summary-row">Delivery <span id="cart-delivery">{% if delivery == 0 %}Free{% else %}₹{{ delivery|floatformat:0 }}{% endif %}</span></div>
+      <div class="summary-row" id="discount-row" style="{% if not request.session.applied_discount %}display:none{% endif %}">
+        Discount <span class="discount" id="cart-discount">-₹0</span>
+      </div>
+      <div class="coupon-row">
+        <input type="text" class="coupon-input" id="couponCode" placeholder="Coupon code">
+        <button class="btn-apply-coupon" onclick="applyCoupon()">Apply</button>
+      </div>
+      <div class="summary-row" style="font-weight:700;font-size:1.1rem;border-top:2px solid var(--ivory-dark);padding-top:14px;margin-top:4px;">
+        Total <strong id="cart-total">₹{{ total|floatformat:0 }}</strong>
+      </div>
+      <a href="{% url 'checkout' %}" class="btn-checkout-big">Proceed to Checkout <i class="fas fa-arrow-right"></i></a>
+      <div style="text-align:center;margin-top:14px;font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--text-light);">
+        <i class="fas fa-lock" style="margin-right:4px;"></i> Secure encrypted checkout
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="cart-empty-page">
+    <i class="fas fa-shopping-bag"></i>
+    <h2>Your cart is empty</h2>
+    <p>Looks like you haven't added any plants yet.</p>
+    <a href="{% url 'shop' %}" class="btn-shop-now">Shop Plants <i class="fas fa-arrow-right"></i></a>
+  </div>
+  {% endif %}
+</div>
+
+{% csrf_token %}
+<script src="{% static 'js/site.js' %}"></script>
+<script>
+const CSRF = () => document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+async function api(url, body) {
+  const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':CSRF()}, body:JSON.stringify(body) });
+  return r.json();
+}
+async function updateQty(pid, qty) {
+  const data = await api('/cart/update/', { product_id: pid, qty });
+  if (data.success) {
+    if (qty <= 0) { document.getElementById('cart-row-'+pid)?.remove(); }
+    else {
+      const qEl = document.getElementById('qty-'+pid);
+      const sEl = document.getElementById('sub-'+pid);
+      if (qEl) qEl.textContent = qty;
+      const item = data.cart.find(i => i.id === pid);
+      if (sEl && item) sEl.textContent = '₹' + Math.round(item.subtotal);
+    }
+    refreshTotals(data);
+    if (!data.count) location.reload();
+  } else { window.showToast && showToast(data.message || 'Error', 'error'); }
+}
+async function removeItem(pid) {
+  const data = await api('/cart/remove/', { product_id: pid });
+  if (data.success) { document.getElementById('cart-row-'+pid)?.remove(); refreshTotals(data); if (!data.count) location.reload(); }
+}
+async function clearCart() {
+  if (!confirm('Remove all items from cart?')) return;
+  await api('/cart/clear/', {});
+  location.reload();
+}
+function refreshTotals(data) {
+  const sub = data.subtotal;
+  const del = sub >= 999 ? 0 : 49;
+  document.getElementById('cart-subtotal').textContent = '₹' + Math.round(sub);
+  document.getElementById('cart-delivery').textContent = del ? '₹' + del : 'Free';
+  document.getElementById('cart-total').textContent = '₹' + Math.round(sub + del);
+  document.querySelectorAll('.cart-count,#cartNavCount').forEach(el => el.textContent = data.count);
+}
+async function applyCoupon() {
+  const code = document.getElementById('couponCode').value.trim();
+  if (!code) return;
+  const sub = parseFloat(document.getElementById('cart-subtotal').textContent.replace('₹',''));
+  const data = await api('/coupon/apply/', { code, subtotal: sub });
+  if (data.success) {
+    document.getElementById('discount-row').style.display = 'flex';
+    document.getElementById('cart-discount').textContent = '-₹' + Math.round(data.discount);
+    document.getElementById('cart-total').textContent = '₹' + Math.round(data.total);
+    window.showToast && showToast(data.message);
+    sessionStorage.setItem('coupon_code', code);
+  } else { window.showToast && showToast(data.message || 'Invalid coupon', 'error'); }
+}
+</script>
+</body>
+</html>

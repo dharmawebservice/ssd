@@ -1,0 +1,69 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Order Confirmed | SSD Nursery</title>
+<link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body data-auth="1">
+{% with nav_solid=True %}{% include "web/_navbar.html" %}{% endwith %}
+
+<div class="success-page">
+  <div class="success-icon"><i class="fas fa-check"></i></div>
+  <h1>Order Confirmed!</h1>
+  <p class="order-id">Order #{{ order.id }} &nbsp;·&nbsp;
+    {% if order.payment_method == 'razorpay' %}Paid via Razorpay{% else %}Cash on Delivery{% endif %}
+  </p>
+
+  <!-- Items -->
+  <div class="success-card">
+    <h3>Your Plants</h3>
+    {% for item in items %}
+    <div class="order-item-mini">
+      {% if item.product.image %}
+      <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+      {% else %}
+      <div style="width:52px;height:52px;border-radius:8px;background:var(--ivory);display:flex;align-items:center;justify-content:center;color:var(--sage);flex-shrink:0;"><i class="fas fa-seedling"></i></div>
+      {% endif %}
+      <div class="order-item-mini-info">
+        <h4>{{ item.product.name }}</h4>
+        <span>Qty: {{ item.quantity }}</span>
+      </div>
+      <div class="order-item-mini-price">₹{{ item.subtotal|floatformat:0 }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Summary -->
+  <div class="success-card">
+    <h3>Order Details</h3>
+    <div class="summary-row">Status <span><span style="background:var(--forest);color:white;padding:3px 12px;border-radius:20px;font-size:.8rem;font-weight:700;">{{ order.status }}</span></span></div>
+    <div class="summary-row">Total Paid <strong>₹{{ order.total_amount|floatformat:0 }}</strong></div>
+    {% if order.discount_amount > 0 %}<div class="summary-row">Discount Saved <span style="color:#22C55E;">₹{{ order.discount_amount|floatformat:0 }}</span></div>{% endif %}
+    {% if order.address %}<div class="summary-row" style="flex-direction:column;align-items:flex-start;gap:4px;">
+      <span style="font-size:.78rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-light);">Delivering to</span>
+      <span style="font-size:.97rem;color:var(--text-dark);">{{ order.address }}</span>
+    </div>{% endif %}
+  </div>
+
+  <!-- COD notice -->
+  {% if order.payment_method == 'cod' %}
+  <div style="background:rgba(200,169,110,0.12);border:1px solid rgba(200,169,110,0.3);border-radius:14px;padding:18px 22px;font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--text-mid);margin-bottom:22px;text-align:left;">
+    <i class="fas fa-info-circle" style="color:var(--gold);margin-right:8px;"></i>
+    Please keep <strong>₹{{ order.total_amount|floatformat:0 }}</strong> ready when your plants are delivered.
+  </div>
+  {% endif %}
+
+  <div class="success-actions">
+    <a href="{% url 'profile' %}" class="btn-success-primary"><i class="fas fa-box"></i> Track Orders</a>
+    <a href="{% url 'shop' %}" class="btn-success-outline"><i class="fas fa-leaf"></i> Shop More Plants</a>
+  </div>
+</div>
+
+<script src="{% static 'js/site.js' %}"></script>
+</body>
+</html>

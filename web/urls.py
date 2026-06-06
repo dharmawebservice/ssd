@@ -8,28 +8,24 @@ urlpatterns = [
     # =========================
 
     path("", views.home, name="home"),
+    path("shop/", views.shop, name="shop"),
+    path("collections/", views.collections, name="collections"),
+
+    path(
+        "product/<slug:slug>/",
+        views.product_detail,
+        name="product_detail"
+    ),
+
+    # =========================
+    # Authentication
+    # =========================
 
     path(
         "auth/",
         views.auth_page,
         name="auth"
     ),
-
-    path(
-        "profile/",
-        views.profile,
-        name="profile"
-    ),
-
-    path(
-        "logout/",
-        views.logout_user,
-        name="logout_user"
-    ),
-
-    # =========================
-    # Authentication
-    # =========================
 
     path(
         "send-otp/",
@@ -61,6 +57,154 @@ urlpatterns = [
         name="save_details"
     ),
 
+    path(
+        "logout/",
+        views.logout_user,
+        name="logout_user"
+    ),
+
+    # =========================
+    # Profile
+    # =========================
+
+    path(
+        "profile/",
+        views.profile,
+        name="profile"
+    ),
+
+    # =========================
+    # Reviews
+    # =========================
+
+    path(
+        "review/<int:product_id>/",
+        views.submit_review,
+        name="submit_review"
+    ),
+
+    path(
+        "review/<int:product_id>/submit/",
+        views.submit_review,
+        name="submit_review"
+    ),
+
+    # =========================
+    # Search API
+    # =========================
+
+    path(
+        "api/search/",
+        views.search_suggestions,
+        name="search_suggestions"
+    ),
+
+    # =========================
+    # Cart
+    # =========================
+
+    path(
+        "cart/",
+        views.cart_page,
+        name="cart_page"
+    ),
+
+    path(
+        "cart/add/",
+        views.cart_add,
+        name="cart_add"
+    ),
+
+    path(
+        "cart/update/",
+        views.cart_update,
+        name="cart_update"
+    ),
+
+    path(
+        "cart/remove/",
+        views.cart_remove,
+        name="cart_remove"
+    ),
+
+    path(
+        "cart/data/",
+        views.cart_data,
+        name="cart_data"
+    ),
+
+    path(
+        "cart/clear/",
+        views.cart_clear,
+        name="cart_clear"
+    ),
+
+    # =========================
+    # Wishlist
+    # =========================
+
+    path(
+        "wishlist/",
+        views.wishlist_page,
+        name="wishlist_page"
+    ),
+
+    path(
+        "wishlist/toggle/",
+        views.wishlist_toggle,
+        name="wishlist_toggle"
+    ),
+
+    path(
+        "wishlist/data/",
+        views.wishlist_data,
+        name="wishlist_data"
+    ),
+
+    # =========================
+    # Coupons
+    # =========================
+
+    path(
+        "coupon/apply/",
+        views.apply_coupon,
+        name="apply_coupon"
+    ),
+
+    # =========================
+    # Checkout & Razorpay
+    # =========================
+
+    path(
+        "checkout/",
+        views.checkout,
+        name="checkout"
+    ),
+
+    path(
+        "checkout/create-order/",
+        views.create_razorpay_order,
+        name="create_razorpay_order"
+    ),
+
+    path(
+        "checkout/verify-payment/",
+        views.verify_razorpay_payment,
+        name="verify_razorpay_payment"
+    ),
+
+    path(
+        "checkout/cod/",
+        views.place_cod_order,
+        name="place_cod_order"
+    ),
+
+    path(
+        "order/success/<int:order_id>/",
+        views.order_success,
+        name="order_success"
+    ),
+
     # =========================
     # Location API
     # =========================
@@ -81,7 +225,15 @@ urlpatterns = [
         name="admin_dashboard"
     ),
 
+    path(
+        "dashboard/analytics/",
+        views.analytics,
+        name="analytics"
+    ),
+
+    # =========================
     # Users
+    # =========================
 
     path(
         "dashboard/users/",
@@ -89,71 +241,77 @@ urlpatterns = [
         name="users_list"
     ),
 
+    # =========================
     # Categories
+    # =========================
 
     path(
-    "dashboard/categories/",
-    views.category_list,
-    name="category_list"
-),
+        "dashboard/categories/",
+        views.category_list,
+        name="category_list"
+    ),
 
-path(
-    "dashboard/categories/add/",
-    views.add_category,
-    name="add_category"
-),
+    path(
+        "dashboard/categories/add/",
+        views.add_category,
+        name="add_category"
+    ),
 
-path(
-    "dashboard/categories/delete/<int:id>/",
-    views.delete_category,
-    name="delete_category"
-),
+    path(
+        "dashboard/categories/edit/<int:id>/",
+        views.edit_category,
+        name="edit_category"
+    ),
 
-path(
-    "dashboard/categories/toggle/<int:id>/",
-    views.toggle_category,
-    name="toggle_category"
-),
+    path(
+        "dashboard/categories/toggle/<int:id>/",
+        views.toggle_category,
+        name="toggle_category"
+    ),
 
-path(
-    "dashboard/categories/edit/<int:id>/",
-    views.edit_category,
-    name="edit_category"
-),
+    path(
+        "dashboard/categories/delete/<int:id>/",
+        views.delete_category,
+        name="delete_category"
+    ),
 
+    # =========================
     # Products
+    # =========================
 
     path(
-    "dashboard/products/",
-    views.product_list,
-    name="product_list"
-),
+        "dashboard/products/",
+        views.product_list,
+        name="product_list"
+    ),
 
-path(
-    "dashboard/products/add/",
-    views.add_product,
-    name="add_product"
-),
+    path(
+        "dashboard/products/add/",
+        views.add_product,
+        name="add_product"
+    ),
 
-path(
-    "dashboard/products/edit/<int:id>/",
-    views.edit_product,
-    name="edit_product"
-),
+    path(
+        "dashboard/products/edit/<int:id>/",
+        views.edit_product,
+        name="edit_product"
+    ),
 
-path(
-    "dashboard/products/toggle/<int:id>/",
-    views.toggle_product,
-    name="toggle_product"
-),
+    path(
+        "dashboard/products/toggle/<int:id>/",
+        views.toggle_product,
+        name="toggle_product"
+    ),
 
-path(
-    "dashboard/products/delete/<int:id>/",
-    views.delete_product,
-    name="delete_product"
-),
+    path(
+        "dashboard/products/delete/<int:id>/",
+        views.delete_product,
+        name="delete_product"
+    ),
 
+    # =========================
     # Orders
+    # =========================
 
     path(
         "dashboard/orders/",
@@ -167,7 +325,9 @@ path(
         name="update_order_status"
     ),
 
-    # Coupons
+    # =========================
+    # Coupons Admin
+    # =========================
 
     path(
         "dashboard/coupons/",
@@ -187,7 +347,9 @@ path(
         name="delete_coupon"
     ),
 
-    # Reviews
+    # =========================
+    # Reviews Admin
+    # =========================
 
     path(
         "dashboard/reviews/",
@@ -207,7 +369,9 @@ path(
         name="delete_review"
     ),
 
+    # =========================
     # Banners
+    # =========================
 
     path(
         "dashboard/banners/",
@@ -222,55 +386,48 @@ path(
     ),
 
     path(
+        "dashboard/banners/edit/<int:id>/",
+        views.edit_banner,
+        name="edit_banner"
+    ),
+
+    path(
+        "dashboard/banners/toggle/<int:id>/",
+        views.toggle_banner,
+        name="toggle_banner"
+    ),
+
+    path(
         "dashboard/banners/delete/<int:id>/",
         views.delete_banner,
         name="delete_banner"
     ),
 
-    # Analytics
+    # =========================
+    # Notifications
+    # =========================
 
     path(
-        "dashboard/analytics/",
-        views.analytics,
-        name="analytics"
+        "dashboard/notifications/",
+        views.notifications_list,
+        name="notifications_list"
     ),
 
-    # Notifications
+    path(
+        "dashboard/notifications/add/",
+        views.add_notification,
+        name="add_notification"
+    ),
 
-path(
-    "dashboard/notifications/",
-    views.notifications_list,
-    name="notifications_list"
-),
+    path(
+        "dashboard/notifications/delete/<int:id>/",
+        views.delete_notification,
+        name="delete_notification"
+    ),
 
-path(
-    "dashboard/notifications/add/",
-    views.add_notification,
-    name="add_notification"
-),
-
-path(
-    "dashboard/notifications/delete/<int:id>/",
-    views.delete_notification,
-    name="delete_notification"
-),
-
-path(
-    "shop/",
-    views.shop,
-    name="shop"
-),
-
-path(
-    "product/<slug:slug>/",
-    views.product_detail,
-    name="product_detail"
-),
-
-path(
-    "review/<int:product_id>/",
-    views.submit_review,
-    name="submit_review"
-),
-
+    path(
+        "review/<int:product_id>/submit/",
+        views.submit_review,
+        name="submit_review"
+    )
 ]

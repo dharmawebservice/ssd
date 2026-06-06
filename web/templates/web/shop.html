@@ -2,389 +2,220 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>{% if active_category %}{{ active_category.name }} — {% endif %}Shop | SSD Nursery</title>
-    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}?v=1">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <style>
-        /* ── Shop-specific styles ── */
-        .shop-layout { display: flex; gap: 36px; padding: 120px 5% 80px; min-height: 100vh; align-items: flex-start; }
-
-        /* Sidebar */
-        .filter-sidebar {
-            width: 280px;
-            flex-shrink: 0;
-            position: sticky;
-            top: 100px;
-            background: var(--white);
-            border-radius: 20px;
-            padding: 28px 24px;
-            box-shadow: var(--shadow-card);
-            border: 1px solid var(--ivory-dark);
-        }
-        .filter-sidebar h3 { font-family: 'DM Serif Display', serif; font-size: 1.15rem; color: var(--forest); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .filter-clear { font-family: 'Cormorant Garamond', serif; font-size: 0.85rem; color: var(--terracotta); font-weight: 500; cursor: pointer; transition: var(--transition); }
-        .filter-clear:hover { text-decoration: underline; }
-
-        .filter-section { margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid var(--ivory-dark); }
-        .filter-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-        .filter-label { font-size: 0.78rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--terracotta); margin-bottom: 14px; font-family: 'Cormorant Garamond', serif; }
-
-        .category-list { display: flex; flex-direction: column; gap: 4px; }
-        .cat-link {
-            display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px;
-            font-family: 'Cormorant Garamond', serif; font-size: 0.97rem; color: var(--text-mid);
-            transition: var(--transition); cursor: pointer; text-decoration: none;
-        }
-        .cat-link:hover { background: var(--ivory); color: var(--forest); }
-        .cat-link.active { background: var(--forest); color: white; }
-        .cat-link .cat-count { margin-left: auto; font-size: 0.78rem; opacity: 0.6; }
-
-        /* Price range */
-        .price-inputs { display: flex; gap: 10px; align-items: center; }
-        .price-input { flex: 1; padding: 9px 12px; border: 1.5px solid var(--ivory-dark); border-radius: 10px; font-family: 'Cormorant Garamond', serif; font-size: 0.95rem; color: var(--forest); background: var(--ivory); outline: none; transition: border-color 0.2s; }
-        .price-input:focus { border-color: var(--forest); }
-        .price-sep { color: var(--text-light); font-size: 0.85rem; }
-        .price-range-slider { width: 100%; margin-top: 14px; accent-color: var(--forest); }
-
-        /* Checkboxes */
-        .filter-check { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer; font-family: 'Cormorant Garamond', serif; font-size: 0.97rem; color: var(--text-mid); }
-        .filter-check input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--forest); cursor: pointer; }
-
-        .btn-apply-filter { width: 100%; background: var(--forest); color: white; border: none; padding: 12px; border-radius: 12px; font-family: 'DM Serif Display', serif; font-size: 1rem; cursor: pointer; transition: var(--transition); margin-top: 4px; }
-        .btn-apply-filter:hover { background: var(--forest-mid); }
-
-        /* Main area */
-        .shop-main { flex: 1; min-width: 0; }
-
-        .shop-topbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 28px; }
-        .shop-count { font-family: 'Cormorant Garamond', serif; font-size: 1rem; color: var(--text-mid); }
-        .shop-count strong { color: var(--forest); font-size: 1.1rem; }
-
-        .sort-select { padding: 10px 36px 10px 14px; border: 1.5px solid var(--ivory-dark); border-radius: 30px; font-family: 'Cormorant Garamond', serif; font-size: 0.95rem; color: var(--forest); background: white; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231C3A2B' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; cursor: pointer; outline: none; transition: border-color 0.2s; }
-        .sort-select:focus { border-color: var(--forest); }
-
-        /* Mobile filter button */
-        .mobile-filter-btn { display: none; align-items: center; gap: 8px; background: var(--forest); color: white; padding: 11px 20px; border-radius: 30px; border: none; font-family: 'Cormorant Garamond', serif; font-size: 0.95rem; cursor: pointer; }
-
-        /* Active filter tags */
-        .active-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-        .filter-tag { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-light, var(--ivory-dark)); color: var(--forest); padding: 5px 12px; border-radius: 20px; font-family: 'Cormorant Garamond', serif; font-size: 0.85rem; font-weight: 500; }
-        .filter-tag a { color: var(--terracotta); margin-left: 2px; text-decoration: none; font-size: 0.9rem; }
-
-        /* Product grid in shop */
-        .shop-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-
-        /* Pagination */
-        .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 48px; flex-wrap: wrap; }
-        .page-btn { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 1rem; color: var(--text-mid); border: 1.5px solid var(--ivory-dark); text-decoration: none; transition: var(--transition); background: white; }
-        .page-btn:hover, .page-btn.active { background: var(--forest); color: white; border-color: var(--forest); }
-        .page-btn.disabled { opacity: 0.3; pointer-events: none; }
-
-        /* Mobile filter drawer */
-        .filter-drawer-overlay { position: fixed; inset: 0; background: rgba(28,58,43,0.4); z-index: 500; opacity: 0; visibility: hidden; transition: all 0.3s; backdrop-filter: blur(4px); }
-        .filter-drawer-overlay.active { opacity: 1; visibility: visible; }
-        .filter-drawer { position: fixed; left: 0; top: 0; height: 100vh; width: 300px; max-width: 90vw; background: white; z-index: 501; transform: translateX(-100%); transition: transform 0.4s cubic-bezier(0.4,0,0.2,1); overflow-y: auto; padding: 24px; }
-        .filter-drawer.active { transform: translateX(0); }
-        .drawer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-        .drawer-header h3 { font-family: 'DM Serif Display', serif; font-size: 1.2rem; color: var(--forest); }
-        .drawer-close { background: none; border: none; font-size: 1.1rem; color: var(--text-light); cursor: pointer; padding: 4px; }
-
-        @media (max-width: 1100px) { .shop-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 900px) {
-            .filter-sidebar { display: none; }
-            .mobile-filter-btn { display: flex; }
-            .shop-layout { padding: 100px 4% 60px; gap: 0; }
-        }
-        @media (max-width: 600px) {
-            .shop-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
-            .img-container { height: 200px; }
-        }
-        @media (max-width: 400px) { .shop-grid { grid-template-columns: 1fr; } }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>{% if active_category %}{{ active_category.name }} — {% endif %}Shop | SSD Nursery</title>
+<link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
-<body>
+<body data-auth="{% if request.user.is_authenticated %}1{% else %}0{% endif %}">
+<script>window.__WISHLIST_IDS__ = {{ wishlist_ids|safe }};</script>
+{% with active_nav="shop" nav_solid=True %}{% include "web/_navbar.html" %}{% endwith %}
 
-    <!-- NAVBAR (same as home) -->
-    <nav class="navbar scrolled" id="navbar">
-        <div class="logo">
-            <a href="{% url 'home' %}"><img src="{% static 'images/logo.png' %}" alt="SSD Nursery" class="brand-logo"></a>
-        </div>
-        <ul class="nav-links" id="nav-links">
-            <li><a href="{% url 'home' %}">Home</a></li>
-            <li><a href="{% url 'shop' %}" class="active">Shop</a></li>
-            <li><a href="{% url 'home' %}#categories">Collections</a></li>
-            <li><a href="{% url 'home' %}#reviews">Reviews</a></li>
-        </ul>
-        <div class="nav-actions">
-            <button class="icon-btn cart-btn"><i class="fas fa-shopping-bag"></i><span class="cart-count">0</span></button>
-            <div class="profile-dropdown">
-                <button class="icon-btn" id="profileToggle"><i class="far fa-user"></i></button>
-                <div class="dropdown-menu" id="profileMenu">
-                    {% if request.user.is_authenticated %}
-                        {% if request.user.is_superuser %}
-                            <a href="{% url 'admin_dashboard' %}"><i class="fas fa-chart-line"></i> Dashboard</a>
-                            <a href="{% url 'logout_user' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
-                        {% else %}
-                            <div class="user-info">Welcome, <strong>{{ request.user.first_name|default:request.user.username }}</strong></div>
-                            <a href="{% url 'profile' %}"><i class="fas fa-user-circle"></i> My Profile</a>
-                            <a href="{% url 'logout_user' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
-                        {% endif %}
-                    {% else %}
-                        <a href="{% url 'auth' %}?tab=login"><i class="fas fa-sign-in-alt"></i> Login</a>
-                        <a href="{% url 'auth' %}?tab=signup"><i class="fas fa-user-plus"></i> Sign Up</a>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="menu-toggle" id="mobile-menu"><i class="fas fa-bars"></i></div>
-        </div>
-    </nav>
+<!-- Mobile filter drawer -->
+<div class="filter-drawer-overlay" id="drawerOverlay"></div>
+<div class="filter-drawer" id="filterDrawer">
+  <div class="drawer-header">
+    <h3>Filters</h3>
+    <button class="drawer-close" id="drawerClose"><i class="fas fa-times"></i></button>
+  </div>
+  <form method="GET" action="{% url 'shop' %}">
+    <div class="filter-section">
+      <span class="filter-lbl">Category</span>
+      <div class="cat-filter-list">
+        <a href="{% url 'shop' %}{% if query %}?q={{ query }}{% endif %}" class="cat-filter-link {% if not active_category %}active{% endif %}"><i class="fas fa-leaf" style="font-size:.75rem;"></i> All Plants</a>
+        {% for c in categories %}<a href="?category={{ c.slug }}{% if query %}&q={{ query }}{% endif %}" class="cat-filter-link {% if active_category.id == c.id %}active{% endif %}"><i class="fas fa-circle" style="font-size:.35rem;"></i> {{ c.name }}</a>{% endfor %}
+      </div>
+      {% if active_category %}<input type="hidden" name="category" value="{{ active_category.slug }}">{% endif %}
+    </div>
+    <div class="filter-section">
+      <span class="filter-lbl">Price Range</span>
+      <div class="price-inputs">
+        <input type="number" name="min_price" class="price-input" value="{{ min_price }}" placeholder="Min">
+        <span class="price-sep">—</span>
+        <input type="number" name="max_price" class="price-input" value="{{ max_price }}" placeholder="Max">
+      </div>
+    </div>
+    <div class="filter-section">
+      <span class="filter-lbl">Filter By</span>
+      <label class="filter-check"><input type="checkbox" name="sale" value="1" {% if sale_only == '1' %}checked{% endif %}> On Sale only</label>
+      <label class="filter-check"><input type="checkbox" name="in_stock" value="1" {% if stock_only == '1' %}checked{% endif %}> In Stock only</label>
+    </div>
+    <div class="filter-section">
+      <span class="filter-lbl">Sort By</span>
+      <select name="sort" class="sort-sel">
+        <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest First</option>
+        <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
+        <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
+        <option value="name_asc" {% if sort == 'name_asc' %}selected{% endif %}>Name A–Z</option>
+      </select>
+    </div>
+    <button type="submit" class="btn-apply">Apply Filters</button>
+  </form>
+</div>
 
-    <!-- FILTER DRAWER OVERLAY (mobile) -->
-    <div class="filter-drawer-overlay" id="drawerOverlay"></div>
-    <div class="filter-drawer" id="filterDrawer">
-        <div class="drawer-header">
-            <h3>Filters</h3>
-            <button class="drawer-close" id="drawerClose"><i class="fas fa-times"></i></button>
+<div class="shop-layout">
+  <!-- DESKTOP SIDEBAR -->
+  <aside class="shop-sidebar">
+    <h3>Filters <a href="{% url 'shop' %}" class="filter-clear">Clear all</a></h3>
+    <form method="GET" action="{% url 'shop' %}" id="filterForm">
+      <div class="filter-section">
+        <span class="filter-lbl">Category</span>
+        <div class="cat-filter-list">
+          <a href="{% url 'shop' %}{% if query %}?q={{ query }}{% endif %}" class="cat-filter-link {% if not active_category %}active{% endif %}"><i class="fas fa-leaf" style="font-size:.75rem;"></i> All Plants</a>
+          {% for c in categories %}<a href="?category={{ c.slug }}{% if query %}&q={{ query }}{% endif %}" class="cat-filter-link {% if active_category.id == c.id %}active{% endif %}"><i class="fas fa-circle" style="font-size:.35rem;"></i> {{ c.name }}</a>{% endfor %}
         </div>
-        <!-- drawer form injected by JS -->
+        {% if active_category %}<input type="hidden" name="category" value="{{ active_category.slug }}">{% endif %}
+      </div>
+      <div class="filter-section">
+        <span class="filter-lbl">Price Range</span>
+        <div class="price-inputs">
+          <input type="number" name="min_price" class="price-input" value="{{ min_price }}" placeholder="Min ₹">
+          <span class="price-sep">—</span>
+          <input type="number" name="max_price" class="price-input" value="{{ max_price }}" placeholder="Max ₹">
+        </div>
+        <small style="color:var(--text-light);font-size:.78rem;margin-top:6px;display:block;">₹{{ global_min }} — ₹{{ global_max }}</small>
+      </div>
+      <div class="filter-section">
+        <span class="filter-lbl">Filter By</span>
+        <label class="filter-check"><input type="checkbox" name="sale" value="1" {% if sale_only == '1' %}checked{% endif %}> On Sale only</label>
+        <label class="filter-check"><input type="checkbox" name="in_stock" value="1" {% if stock_only == '1' %}checked{% endif %}> In Stock only</label>
+      </div>
+      <div class="filter-section">
+        <span class="filter-lbl">Sort By</span>
+        <select name="sort" class="sort-sel">
+          <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest First</option>
+          <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price: Low → High</option>
+          <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price: High → Low</option>
+          <option value="name_asc" {% if sort == 'name_asc' %}selected{% endif %}>Name A–Z</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-apply">Apply Filters</button>
+    </form>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="shop-main">
+    <div class="shop-topbar">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <button class="mobile-filter-btn" id="openFilterDrawer"><i class="fas fa-sliders"></i> Filters</button>
+        <div>
+          <div class="shop-title">{% if active_category %}{{ active_category.name }}{% elif query %}"{{ query }}"{% else %}All Plants{% endif %}</div>
+          <div class="shop-count"><strong>{{ total_count }}</strong> plants found</div>
+        </div>
+      </div>
+      <form method="GET" action="{% url 'shop' %}" id="sortForm">
+        {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+        {% if active_category %}<input type="hidden" name="category" value="{{ active_category.slug }}">{% endif %}
+        {% if min_price %}<input type="hidden" name="min_price" value="{{ min_price }}">{% endif %}
+        {% if max_price %}<input type="hidden" name="max_price" value="{{ max_price }}">{% endif %}
+        {% if sale_only == '1' %}<input type="hidden" name="sale" value="1">{% endif %}
+        {% if stock_only == '1' %}<input type="hidden" name="in_stock" value="1">{% endif %}
+        <select name="sort" class="sort-sel" onchange="this.form.submit()">
+          <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest</option>
+          <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price ↑</option>
+          <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price ↓</option>
+          <option value="name_asc" {% if sort == 'name_asc' %}selected{% endif %}>A–Z</option>
+        </select>
+      </form>
     </div>
 
-    <div class="shop-layout">
-
-        <!-- ── DESKTOP SIDEBAR ── -->
-        <aside class="filter-sidebar">
-            <h3>Filters <a href="{% url 'shop' %}" class="filter-clear">Clear all</a></h3>
-
-            <form method="GET" action="{% url 'shop' %}" id="filterForm">
-                <!-- Search -->
-                <div class="filter-section">
-                    <div class="filter-label">Search</div>
-                    <div style="position:relative;">
-                        <input type="text" name="q" value="{{ query }}" placeholder="Search plants…"
-                               style="width:100%;padding:10px 36px 10px 14px;border:1.5px solid var(--ivory-dark);border-radius:12px;font-family:'Cormorant Garamond',serif;font-size:0.95rem;background:var(--ivory);outline:none;color:var(--forest);">
-                        <i class="fas fa-search" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-light);font-size:0.85rem;"></i>
-                    </div>
-                </div>
-
-                <!-- Categories -->
-                <div class="filter-section">
-                    <div class="filter-label">Category</div>
-                    <div class="category-list">
-                        <a href="{% url 'shop' %}{% if query %}?q={{ query }}{% endif %}" class="cat-link {% if not active_category %}active{% endif %}">
-                            <i class="fas fa-leaf" style="font-size:0.8rem;"></i> All Plants
-                        </a>
-                        {% for cat in categories %}
-                        <a href="?category={{ cat.slug }}{% if query %}&q={{ query }}{% endif %}" class="cat-link {% if active_category.id == cat.id %}active{% endif %}">
-                            <i class="fas fa-circle" style="font-size:0.4rem;"></i>
-                            {{ cat.name }}
-                        </a>
-                        {% endfor %}
-                    </div>
-                    {% if active_category %}
-                        <input type="hidden" name="category" value="{{ active_category.slug }}">
-                    {% endif %}
-                </div>
-
-                <!-- Price -->
-                <div class="filter-section">
-                    <div class="filter-label">Price Range</div>
-                    <div class="price-inputs">
-                        <input type="number" name="min_price" value="{{ min_price }}" min="{{ global_min }}" max="{{ global_max }}" class="price-input" placeholder="Min">
-                        <span class="price-sep">—</span>
-                        <input type="number" name="max_price" value="{{ max_price }}" min="{{ global_min }}" max="{{ global_max }}" class="price-input" placeholder="Max">
-                    </div>
-                    <small style="color:var(--text-light);font-family:'Cormorant Garamond',serif;font-size:0.85rem;">₹{{ global_min }} — ₹{{ global_max }}</small>
-                </div>
-
-                <!-- Toggles -->
-                <div class="filter-section">
-                    <div class="filter-label">Filter By</div>
-                    <label class="filter-check">
-                        <input type="checkbox" name="sale" value="1" {% if sale_only == '1' %}checked{% endif %}> On Sale only
-                    </label>
-                    <label class="filter-check">
-                        <input type="checkbox" name="in_stock" value="1" {% if stock_only == '1' %}checked{% endif %}> In Stock only
-                    </label>
-                </div>
-
-                <!-- Sort -->
-                <div class="filter-section">
-                    <div class="filter-label">Sort By</div>
-                    <select name="sort" class="sort-select" style="width:100%;">
-                        <option value="newest"     {% if sort == 'newest' %}selected{% endif %}>Newest First</option>
-                        <option value="price_asc"  {% if sort == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
-                        <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
-                        <option value="name_asc"   {% if sort == 'name_asc' %}selected{% endif %}>Name A–Z</option>
-                    </select>
-                </div>
-
-                <button type="submit" class="btn-apply-filter">Apply Filters</button>
-            </form>
-        </aside>
-
-        <!-- ── MAIN CONTENT ── -->
-        <div class="shop-main">
-
-            <!-- Top bar -->
-            <div class="shop-topbar">
-                <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-                    <button class="mobile-filter-btn" id="openFilterDrawer">
-                        <i class="fas fa-sliders"></i> Filters
-                    </button>
-                    <div>
-                        <div style="font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--forest);">
-                            {% if active_category %}{{ active_category.name }}
-                            {% elif query %}"{{ query }}"
-                            {% else %}All Plants{% endif %}
-                        </div>
-                        <div class="shop-count"><strong>{{ total_count }}</strong> plants found</div>
-                    </div>
-                </div>
-                <!-- Desktop sort -->
-                <form method="GET" action="{% url 'shop' %}" id="sortForm">
-                    {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
-                    {% if active_category %}<input type="hidden" name="category" value="{{ active_category.slug }}">{% endif %}
-                    {% if min_price %}<input type="hidden" name="min_price" value="{{ min_price }}">{% endif %}
-                    {% if max_price %}<input type="hidden" name="max_price" value="{{ max_price }}">{% endif %}
-                    {% if sale_only == '1' %}<input type="hidden" name="sale" value="1">{% endif %}
-                    {% if stock_only == '1' %}<input type="hidden" name="in_stock" value="1">{% endif %}
-                    <select name="sort" class="sort-select" onchange="this.form.submit()">
-                        <option value="newest"     {% if sort == 'newest' %}selected{% endif %}>Newest</option>
-                        <option value="price_asc"  {% if sort == 'price_asc' %}selected{% endif %}>Price ↑</option>
-                        <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price ↓</option>
-                        <option value="name_asc"   {% if sort == 'name_asc' %}selected{% endif %}>Name A–Z</option>
-                    </select>
-                </form>
-            </div>
-
-            <!-- Active filter tags -->
-            {% if active_category or query or sale_only or stock_only %}
-            <div class="active-filters">
-                {% if active_category %}
-                <span class="filter-tag"><i class="fas fa-list" style="font-size:0.7rem;"></i> {{ active_category.name }} <a href="?{% if query %}q={{ query }}&{% endif %}sort={{ sort }}">×</a></span>
-                {% endif %}
-                {% if query %}
-                <span class="filter-tag"><i class="fas fa-search" style="font-size:0.7rem;"></i> "{{ query }}" <a href="?{% if active_category %}category={{ active_category.slug }}&{% endif %}sort={{ sort }}">×</a></span>
-                {% endif %}
-                {% if sale_only == '1' %}<span class="filter-tag">On Sale <a href="?{{ filter_string|cut:'&sale=1'|cut:'sale=1' }}">×</a></span>{% endif %}
-                {% if stock_only == '1' %}<span class="filter-tag">In Stock <a href="?{{ filter_string|cut:'&in_stock=1'|cut:'in_stock=1' }}">×</a></span>{% endif %}
-            </div>
-            {% endif %}
-
-            <!-- Product grid -->
-            <div class="shop-grid">
-                {% for product in page_obj %}
-                <a href="{% url 'product_detail' product.slug %}" class="product-card reveal-child" style="text-decoration:none;"
-                   data-has-offer="{% if product.offer_price %}true{% else %}false{% endif %}"
-                   data-in-stock="{% if product.stock > 0 %}true{% else %}false{% endif %}">
-                    <div class="img-container">
-                        {% if product.offer_price %}<span class="badge badge-sale">SALE</span>{% endif %}
-                        {% if product.stock == 0 %}<span class="badge badge-oos">Sold Out</span>{% endif %}
-                        {% if product.image %}
-                        <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
-                        {% else %}
-                        <div class="img-placeholder"><i class="fas fa-seedling"></i></div>
-                        {% endif %}
-                        <div class="card-actions">
-                            <button class="action-btn wishlist-btn" onclick="event.preventDefault();" title="Wishlist"><i class="far fa-heart"></i></button>
-                            <button class="action-btn quick-add" data-product="{{ product.id }}" onclick="event.preventDefault();" title="Add to cart"><i class="fas fa-shopping-bag"></i></button>
-                        </div>
-                    </div>
-                    <div class="product-info">
-                        <h3>{{ product.name }}</h3>
-                        <div class="price-row">
-                            <p class="price">
-                                {% if product.offer_price %}₹{{ product.offer_price }}<span class="old-price">₹{{ product.price }}</span>
-                                {% else %}₹{{ product.price }}{% endif %}
-                            </p>
-                            <span class="stock-tag {% if product.stock < 5 and product.stock > 0 %}low{% endif %}">
-                                {% if product.stock == 0 %}Out of stock{% elif product.stock < 5 %}{{ product.stock }} left{% else %}In Stock{% endif %}
-                            </span>
-                        </div>
-                    </div>
-                </a>
-                {% empty %}
-                <div style="grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--text-light);">
-                    <i class="fas fa-seedling" style="font-size:3rem;color:var(--sage);display:block;margin-bottom:16px;"></i>
-                    <p style="font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--forest);margin-bottom:8px;">No plants found</p>
-                    <p>Try adjusting your filters or <a href="{% url 'shop' %}" style="color:var(--terracotta);">browse all plants</a>.</p>
-                </div>
-                {% endfor %}
-            </div>
-
-            <!-- Pagination -->
-            {% if page_obj.paginator.num_pages > 1 %}
-            <div class="pagination">
-                {% if page_obj.has_previous %}
-                <a href="?{{ filter_string }}&page={{ page_obj.previous_page_number }}" class="page-btn"><i class="fas fa-chevron-left"></i></a>
-                {% else %}
-                <span class="page-btn disabled"><i class="fas fa-chevron-left"></i></span>
-                {% endif %}
-
-                {% for num in page_obj.paginator.page_range %}
-                    {% if num == page_obj.number %}
-                    <span class="page-btn active">{{ num }}</span>
-                    {% elif num|add:"-2" <= page_obj.number and page_obj.number <= num|add:"2" %}
-                    <a href="?{{ filter_string }}&page={{ num }}" class="page-btn">{{ num }}</a>
-                    {% endif %}
-                {% endfor %}
-
-                {% if page_obj.has_next %}
-                <a href="?{{ filter_string }}&page={{ page_obj.next_page_number }}" class="page-btn"><i class="fas fa-chevron-right"></i></a>
-                {% else %}
-                <span class="page-btn disabled"><i class="fas fa-chevron-right"></i></span>
-                {% endif %}
-            </div>
-            {% endif %}
-
-        </div>
+    <!-- SEARCH BAR -->
+    <div class="shop-search-wrap">
+      <div class="shop-search-inner">
+        <i class="fas fa-search"></i>
+        <input type="text" id="shopSearchInput" class="shop-search-input" placeholder="Search plants, categories…" value="{{ query }}" autocomplete="off">
+        <button class="shop-search-btn" onclick="submitShopSearch()">Search</button>
+      </div>
+      <div class="shop-sugg-drop" id="shopSuggDrop"></div>
     </div>
 
-    <!-- Cart sidebar & toast reused from home -->
-    <div class="cart-overlay" id="cartOverlay"></div>
-    <div class="cart-sidebar" id="cartSidebar">
-        <div class="cart-header">
-            <h3>Your Basket <span class="cart-item-label">(<span id="cartItemCount">0</span> items)</span></h3>
-            <button class="cart-close" id="cartClose"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="cart-body" id="cartBody">
-            <div class="cart-empty"><i class="fas fa-seedling"></i><p>Your basket is empty</p><a href="#" class="btn-hero-sm">Shop Plants</a></div>
-        </div>
-        <div class="cart-footer" id="cartFooter" style="display:none;">
-            <div class="cart-total">Total: <strong id="cartTotal">₹0</strong></div>
-            <button class="btn-checkout">Checkout <i class="fas fa-arrow-right"></i></button>
-        </div>
+    <!-- ACTIVE FILTER TAGS -->
+    {% if active_category or query or sale_only or stock_only %}
+    <div class="active-filters">
+      {% if active_category %}<span class="filter-tag"><i class="fas fa-list" style="font-size:.68rem;"></i> {{ active_category.name }} <a href="?{% if query %}q={{ query }}&{% endif %}sort={{ sort }}">×</a></span>{% endif %}
+      {% if query %}<span class="filter-tag"><i class="fas fa-search" style="font-size:.68rem;"></i> "{{ query }}" <a href="?{% if active_category %}category={{ active_category.slug }}&{% endif %}sort={{ sort }}">×</a></span>{% endif %}
+      {% if sale_only == '1' %}<span class="filter-tag">On Sale <a href="?{{ filter_string|cut:'sale=1'|cut:'&sale=1' }}">×</a></span>{% endif %}
+      {% if stock_only == '1' %}<span class="filter-tag">In Stock <a href="?{{ filter_string|cut:'in_stock=1'|cut:'&in_stock=1' }}">×</a></span>{% endif %}
     </div>
-    <div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg">Added!</span></div>
+    {% endif %}
 
-    <script src="{% static 'js/script.js' %}"></script>
-    <script>
-    // Mobile filter drawer
-    const drawerOverlay = document.getElementById('drawerOverlay');
-    const filterDrawer  = document.getElementById('filterDrawer');
-    const openBtn       = document.getElementById('openFilterDrawer');
-    const closeBtn      = document.getElementById('drawerClose');
+    <!-- PRODUCT GRID -->
+    <div class="product-grid">
+      {% for p in page_obj %}
+      <a href="{% url 'product_detail' p.slug %}" class="product-card reveal-child"
+         data-has-offer="{% if p.offer_price %}true{% else %}false{% endif %}"
+         data-in-stock="{% if p.stock > 0 %}true{% else %}false{% endif %}">
+        <div class="img-container">
+          {% if p.offer_price %}<span class="badge badge-sale">SALE</span>{% endif %}
+          {% if p.stock == 0 %}<span class="badge badge-oos">Sold Out</span>{% endif %}
+          {% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
+          {% else %}<div class="img-placeholder"><i class="fas fa-seedling"></i></div>{% endif %}
+          <div class="card-actions">
+            <button class="action-btn wishlist-btn {% if p.id in wishlist_ids %}wishlisted{% endif %}" data-product="{{ p.id }}" onclick="event.preventDefault();toggleWishlist({{ p.id }});" title="Wishlist">
+              <i class="{% if p.id in wishlist_ids %}fas{% else %}far{% endif %} fa-heart"></i>
+            </button>
+            <button class="action-btn quick-add" data-product="{{ p.id }}" onclick="event.preventDefault();addToCart({{ p.id }},1);" title="Add to cart">
+              <i class="fas fa-shopping-bag"></i>
+            </button>
+          </div>
+        </div>
+        <div class="product-info">
+          <h3>{{ p.name }}</h3>
+          <div class="price-row">
+            <p class="price">{% if p.offer_price %}₹{{ p.offer_price }}<span class="old-price">₹{{ p.price }}</span>{% else %}₹{{ p.price }}{% endif %}</p>
+            <span class="stock-tag {% if p.stock < 5 and p.stock > 0 %}low{% endif %}">{% if p.stock == 0 %}Out of stock{% elif p.stock < 5 %}{{ p.stock }} left{% else %}In Stock{% endif %}</span>
+          </div>
+        </div>
+      </a>
+      {% empty %}
+      <div style="grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--text-light);">
+        <i class="fas fa-seedling" style="font-size:3rem;color:var(--sage);display:block;margin-bottom:16px;"></i>
+        <p style="font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--forest);margin-bottom:8px;">No plants found</p>
+        <a href="{% url 'shop' %}" style="color:var(--terracotta);">Browse all plants</a>
+      </div>
+      {% endfor %}
+    </div>
 
-    function openDrawer() { filterDrawer.classList.add('active'); drawerOverlay.classList.add('active'); document.body.style.overflow='hidden'; }
-    function closeDrawer(){ filterDrawer.classList.remove('active'); drawerOverlay.classList.remove('active'); document.body.style.overflow=''; }
+    <!-- PAGINATION -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="pagination">
+      {% if page_obj.has_previous %}<a href="?{{ filter_string }}&page={{ page_obj.previous_page_number }}" class="page-btn"><i class="fas fa-chevron-left"></i></a>{% else %}<span class="page-btn disabled"><i class="fas fa-chevron-left"></i></span>{% endif %}
+      {% for num in page_obj.paginator.page_range %}
+        {% if num == page_obj.number %}<span class="page-btn active">{{ num }}</span>
+        {% elif num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}<a href="?{{ filter_string }}&page={{ num }}" class="page-btn">{{ num }}</a>{% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}<a href="?{{ filter_string }}&page={{ page_obj.next_page_number }}" class="page-btn"><i class="fas fa-chevron-right"></i></a>{% else %}<span class="page-btn disabled"><i class="fas fa-chevron-right"></i></span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
 
-    openBtn   && openBtn.addEventListener('click', openDrawer);
-    closeBtn  && closeBtn.addEventListener('click', closeDrawer);
-    drawerOverlay && drawerOverlay.addEventListener('click', closeDrawer);
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-top">
+    <div class="footer-brand"><img src="{% static 'images/logo.png' %}" alt="SSD Nursery" class="footer-logo"><p>Bringing nature into your home since 2018.</p><div class="social-links"><a href="#"><i class="fab fa-instagram"></i></a><a href="#"><i class="fab fa-facebook-f"></i></a><a href="#"><i class="fab fa-whatsapp"></i></a></div></div>
+    <div class="footer-links"><h4>Shop</h4><a href="{% url 'shop' %}">All Plants</a><a href="{% url 'shop' %}?sale=1">On Sale</a><a href="{% url 'collections' %}">Collections</a></div>
+    <div class="footer-links"><h4>Help</h4><a href="#">Delivery Info</a><a href="#">Returns</a><a href="#">Contact Us</a></div>
+    <div class="footer-newsletter"><h4>Newsletter</h4><p>Get offers & tips.</p><div class="newsletter-form"><input type="email" placeholder="your@email.com"><button><i class="fas fa-arrow-right"></i></button></div></div>
+  </div>
+  <div class="footer-bottom"><span>© 2025 SSD Nursery. All rights reserved.</span><span>Made with 🌱 in India</span></div>
+</footer>
 
-    // Clone desktop form into drawer for mobile
-    const desktopForm = document.getElementById('filterForm');
-    if (desktopForm && filterDrawer) {
-        const clone = desktopForm.cloneNode(true);
-        clone.id = 'filterFormMobile';
-        filterDrawer.appendChild(clone);
-    }
-    </script>
+{% csrf_token %}
+<script src="{% static 'js/site.js' %}"></script>
+<script>
+function submitShopSearch(){
+  const q=document.getElementById('shopSearchInput')?.value?.trim();
+  const url=new URL(window.location.href);
+  if(q)url.searchParams.set('q',q); else url.searchParams.delete('q');
+  url.searchParams.delete('page');
+  window.location.href=url.toString();
+}
+</script>
 </body>
 </html>

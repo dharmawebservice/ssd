@@ -1,0 +1,54 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Collections | SSD Nursery</title>
+<link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body data-auth="{% if request.user.is_authenticated %}1{% else %}0{% endif %}">
+{% with active_nav="collections" nav_solid=True %}{% include "web/_navbar.html" %}{% endwith %}
+
+<div class="collections-page">
+  <div class="collections-hero reveal-section">
+    <div class="section-label">Browse by type</div>
+    <h1>Our Plant <em>Collections</em></h1>
+    <p>Every collection is hand-curated for a specific lifestyle, space and care level. Find your perfect match.</p>
+  </div>
+
+  <div class="collections-grid">
+    {% for cat in categories %}
+    <a href="{% url 'shop' %}?category={{ cat.slug }}" class="collection-card reveal-child">
+      <div class="collection-img">
+        {% if cat.image %}<img src="{{ cat.image.url }}" alt="{{ cat.name }}" loading="lazy">
+        {% else %}<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:4rem;color:var(--sage);background:var(--forest-mid);"><i class="fas fa-leaf"></i></div>{% endif %}
+        <span class="collection-count">{{ cat.product_count }} plant{{ cat.product_count|pluralize }}</span>
+      </div>
+      <div class="collection-info">
+        <h3>{{ cat.name }}</h3>
+        <p>{{ cat.description|truncatechars:80 }}</p>
+        <div class="collection-cta">Explore Collection <i class="fas fa-arrow-right"></i></div>
+      </div>
+    </a>
+    {% empty %}
+    <div style="grid-column:1/-1;text-align:center;padding:80px;color:var(--text-light);">
+      <i class="fas fa-leaf" style="font-size:3rem;color:var(--sage);display:block;margin-bottom:16px;"></i>
+      <p style="font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--forest);">No collections yet</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<footer class="site-footer" style="margin-top:60px;">
+  <div class="footer-bottom" style="border-top:1px solid rgba(255,255,255,.08);padding-top:22px;">
+    <span>© 2025 SSD Nursery. All rights reserved.</span>
+    <span>Made with 🌱 in India</span>
+  </div>
+</footer>
+
+<script src="{% static 'js/site.js' %}"></script>
+</body>
+</html>

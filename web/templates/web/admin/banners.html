@@ -2,84 +2,371 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Banners | SSD Nursery</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
-    <style>.banner-thumb{width:100px;height:56px;border-radius:8px;object-fit:cover;border:1px solid var(--border);background:#F0F0F0;}</style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Banners | SSD Nursery Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+<style>
+.banner-preview{width:120px;height:68px;object-fit:cover;border-radius:8px;border:1px solid var(--border);background:#F0F0F0;}
+.char-counter{font-size:.75rem;color:var(--text-secondary);text-align:right;margin-top:3px;}
+.char-counter.warn{color:var(--warn);}
+.char-counter.error{color:var(--danger);}
+.url-preset{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.url-tag{padding:4px 10px;background:var(--bg-body);border:1px solid var(--border);border-radius:6px;font-size:.78rem;cursor:pointer;transition:all .2s;}
+.url-tag:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
+.preview-slide{background:var(--forest,#1C3A2B);border-radius:12px;overflow:hidden;position:relative;height:320px;margin-top:16px;}
+.preview-slide img{width:100%;height:100%;object-fit:cover;opacity:.45;}
+.preview-slide-content{position:absolute;inset:0;padding:24px 28px;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(135deg,rgba(28,58,43,.85) 0%,transparent 100%);}
+.preview-tag{display:inline-block;background:rgba(255,255,255,.15);color:rgba(255,255,255,.85);font-size:.72rem;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:20px;margin-bottom:10px;width:fit-content;}
+.preview-heading{font-size:2.2rem;color:white;font-weight:700;line-height:1.2;margin-bottom:4px;}
+.preview-sub{font-size:1rem;color:#C8A96E;font-weight:400;}
+.preview-desc{font-size:.82rem;color:rgba(255,255,255,.65);margin-top:6px;max-width:300px;}
+.preview-btn{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:8px 18px;border-radius:30px;font-size:.82rem;font-weight:600;width:fit-content;}
+.preview-btn.primary{background:#C9694A;color:white;}
+.preview-btn.secondary{background:transparent;border:2px solid rgba(255,255,255,.6);color:white;}
+.preview-btn.accent{background:#C8A96E;color:#1C3A2B;}
+</style>
 </head>
 <body>
+{% for message in messages %}<div class="django-message" data-level="{% if message.tags == 'error' %}error{% else %}success{% endif %}" style="display:none;">{{ message }}</div>{% endfor %}
+
 <div class="admin-layout">
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    {% include "web/admin/_sidebar.html" %}
-    <main class="main-content">
-        <header class="top-header">
-            <div class="header-left">
-                <button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button>
-                <div><h1 class="page-title">Banners</h1><p class="page-subtitle">Hero slider images</p></div>
-            </div>
-            <button class="btn-primary" data-modal-open="addBannerModal"><i class="fa-solid fa-plus"></i> Add Banner</button>
-        </header>
-        <div class="data-card">
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr><th>#</th><th>Preview</th><th>Title</th><th>Type</th><th>Status</th><th style="text-align:right">Action</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for b in banners %}
-                        <tr>
-                            <td style="color:var(--text-secondary);">{{ b.id }}</td>
-                            <td>{% if b.image %}<img src="{{ b.image.url }}" class="banner-thumb" alt="{{ b.title }}">{% else %}<div class="thumb-placeholder"><i class="fa-solid fa-image"></i></div>{% endif %}</td>
-                            <td style="font-weight:600;">{{ b.title|default:"—" }}</td>
-                            <td style="color:var(--text-secondary);">{{ b.banner_type|default:"—" }}</td>
-                            <td>{% if b.is_active %}<span class="badge badge-active"><i class="fa-solid fa-circle"></i>Active</span>{% else %}<span class="badge badge-disabled">Hidden</span>{% endif %}</td>
-                            <td>
-                                <div class="action-group">
-                                    <a href="{% url 'delete_banner' b.id %}" class="btn-icon btn-icon-danger" data-confirm="Delete this banner?"><i class="fa-solid fa-trash"></i></a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr class="empty-row"><td colspan="6"><i class="fa-solid fa-images"></i><br>No banners yet</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  {% include "web/admin/_sidebar.html" %}
+
+  <main class="main-content">
+    <header class="top-header">
+      <div class="header-left">
+        <button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button>
+        <div>
+          <h1 class="page-title">Banners</h1>
+          <p class="page-subtitle">Hero slider — manage images, text & CTA buttons</p>
         </div>
-    </main>
-</div>
-<div class="modal-overlay" id="addBannerModal">
-    <div class="modal-card">
-        <div class="modal-header"><h2>Add Banner</h2><button class="close-modal"><i class="fa-solid fa-xmark"></i></button></div>
-        <form method="POST" action="{% url 'add_banner' %}" enctype="multipart/form-data">
-            {% csrf_token %}
-            <div class="modal-body">
-                <div class="form-group"><label>Title</label><input type="text" name="title" class="form-control" placeholder="e.g. Summer Sale"></div>
-                <div class="form-group"><label>Banner Type</label>
-                    <select name="banner_type" class="form-control">
-                        <option value="hero">Hero Slide</option>
-                        <option value="promo">Promotional</option>
-                        <option value="sale">Sale</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Banner Image *</label>
-                    <div class="file-drop-area">
-                        <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <div class="file-name">Click to upload (recommended: 1920×800px)</div>
-                        <div class="file-hint">PNG, JPG or WEBP (max 5MB)</div>
-                        <input type="file" name="image" accept="image/*" required>
-                    </div>
-                </div>
+      </div>
+      <button class="btn-primary" data-modal-open="addBannerModal"><i class="fa-solid fa-plus"></i> Add Banner</button>
+    </header>
+
+    <!-- BANNER CARDS -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:22px;">
+      {% for b in banners %}
+      <div class="data-card" style="overflow:visible;">
+        <!-- Mini preview -->
+        <div style="background:#1C3A2B;border-radius:16px 16px 0 0;height:160px;position:relative;overflow:hidden;">
+          {% if b.image %}
+          <img src="{{ b.image.url }}" alt="" style="width:100%;height:100%;object-fit:cover;opacity:.4;">
+          {% endif %}
+          <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(28,58,43,.85) 0%,transparent 100%);padding:18px 20px;display:flex;flex-direction:column;justify-content:flex-end;">
+            {% if b.tag_text %}<span style="display:inline-block;background:rgba(255,255,255,.15);color:rgba(255,255,255,.85);font-size:.65rem;letter-spacing:2px;text-transform:uppercase;padding:3px 10px;border-radius:20px;margin-bottom:6px;width:fit-content;">{{ b.tag_text }}</span>{% endif %}
+            <div style="color:white;font-size:1.05rem;font-weight:700;line-height:1.2;">
+              {{ b.heading|default:"No heading" }}
+              {% if b.subheading %}<div style="color:#C8A96E;font-weight:400;font-size:.9rem;">{{ b.subheading }}</div>{% endif %}
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel">Cancel</button>
-                <button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Upload</button>
-            </div>
-        </form>
+            {% if b.button_text %}<div style="margin-top:8px;"><span style="background:#C9694A;color:white;padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:600;">{{ b.button_text }}</span></div>{% endif %}
+          </div>
+          <!-- Status pill -->
+          <div style="position:absolute;top:10px;right:10px;">
+            {% if b.is_active %}<span class="badge badge-active">Active</span>{% else %}<span class="badge badge-disabled">Hidden</span>{% endif %}
+          </div>
+        </div>
+        <div style="padding:16px 20px;">
+          <div style="font-size:.8rem;color:var(--text-secondary);margin-bottom:10px;display:flex;gap:12px;flex-wrap:wrap;">
+            <span><i class="fas fa-sort-numeric-up" style="margin-right:4px;"></i>Order: {{ b.sort_order }}</span>
+            <span><i class="fas fa-tag" style="margin-right:4px;"></i>{{ b.banner_type }}</span>
+            {% if b.button_url %}<span><i class="fas fa-link" style="margin-right:4px;"></i>→ {{ b.button_url|truncatechars:25 }}</span>{% endif %}
+          </div>
+          <div class="action-group">
+            <button class="btn-icon btn-icon-edit" title="Edit"
+              onclick="openEditBanner({
+                id:'{{ b.id }}',
+                tag_text:'{{ b.tag_text|escapejs }}',
+                heading:'{{ b.heading|escapejs }}',
+                subheading:'{{ b.subheading|escapejs }}',
+                description:'{{ b.description|escapejs }}',
+                button_text:'{{ b.button_text|escapejs }}',
+                button_url:'{{ b.button_url|escapejs }}',
+                button_style:'{{ b.button_style }}',
+                banner_type:'{{ b.banner_type }}',
+                sort_order:'{{ b.sort_order }}'
+              })">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <a href="{% url 'toggle_banner' b.id %}" class="btn-icon btn-icon-toggle" title="Toggle active">
+              <i class="fa-solid fa-{% if b.is_active %}eye-slash{% else %}eye{% endif %}"></i>
+            </a>
+            <a href="{% url 'delete_banner' b.id %}" class="btn-icon btn-icon-danger" title="Delete" data-confirm="Delete this banner?">
+              <i class="fa-solid fa-trash"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-secondary);">
+        <i class="fa-solid fa-images" style="font-size:2.5rem;margin-bottom:14px;display:block;opacity:.25;"></i>
+        <p>No banners yet. Add your first hero banner.</p>
+      </div>
+      {% endfor %}
     </div>
+  </main>
 </div>
+
+<!-- ── ADD BANNER MODAL ── -->
+<div class="modal-overlay" id="addBannerModal">
+  <div class="modal-card" style="max-width:680px;">
+    <div class="modal-header"><h2>Add Hero Banner</h2><button class="close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="POST" action="{% url 'add_banner' %}" enctype="multipart/form-data" id="addBannerForm">
+      {% csrf_token %}
+      <div class="modal-body">
+
+        <!-- Image upload -->
+        <div class="form-group">
+          <label>Banner Image * <span style="font-size:.75rem;color:var(--text-secondary);font-weight:400;">(Recommended: 1920 × 800 px , Ratio: 12:5 Format:JPG/PNG/WebP, max 5MB)</span></label>
+          <div class="file-drop-area" id="addImgDrop">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <div class="file-name" id="addImgName">Click or drag to upload banner image</div>
+            <div class="file-hint">Landscape orientation works best for the hero slider</div>
+            <input type="file" name="image" accept="image/*" required id="addImgInput">
+          </div>
+          <img id="addImgPreview" src="" alt="" style="display:none;width:100%;height:140px;object-fit:cover;border-radius:10px;margin-top:10px;border:1px solid var(--border);">
+        </div>
+
+        <div class="row-inputs">
+          <div class="form-group">
+            <label>Tag Text <span style="font-size:.72rem;color:var(--text-secondary);">(max 60)</span></label>
+            <input type="text" name="tag_text" class="form-control" placeholder="✦ New Arrivals 2025" maxlength="60" id="add_tag_text">
+            <div class="char-counter" id="add_tag_text_count">0 / 60</div>
+          </div>
+          <div class="form-group">
+            <label>Sort Order <span style="font-size:.72rem;color:var(--text-secondary);">(lower = first)</span></label>
+            <input type="number" name="sort_order" class="form-control" placeholder="0" min="0" value="0">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Main Heading * <span style="font-size:.72rem;color:var(--text-secondary);">(max 80)</span></label>
+          <input type="text" name="heading" class="form-control" placeholder="Cultivate Your" maxlength="80" required id="add_heading">
+          <div class="char-counter" id="add_heading_count">0 / 80</div>
+        </div>
+
+        <div class="form-group">
+          <label>Accent Subheading <span style="font-size:.72rem;color:var(--text-secondary);">(shown in gold italic, max 120)</span></label>
+          <input type="text" name="subheading" class="form-control" placeholder="Indoor Jungle." maxlength="120" id="add_subheading">
+          <div class="char-counter" id="add_subheading_count">0 / 120</div>
+        </div>
+
+        <div class="form-group">
+          <label>Description <span style="font-size:.72rem;color:var(--text-secondary);">(max 180)</span></label>
+          <input type="text" name="description" class="form-control" placeholder="Short description shown below heading" maxlength="180" id="add_description">
+          <div class="char-counter" id="add_description_count">0 / 180</div>
+        </div>
+
+        <div class="row-inputs">
+          <div class="form-group">
+            <label>Button Text <span style="font-size:.72rem;color:var(--text-secondary);">(max 40)</span></label>
+            <input type="text" name="button_text" class="form-control" placeholder="Shop Collection" maxlength="40" id="add_btn_text">
+            <div class="char-counter" id="add_btn_text_count">0 / 40</div>
+          </div>
+          <div class="form-group">
+            <label>Button Style</label>
+            <select name="button_style" class="form-control" id="add_btn_style">
+              <option value="primary">Primary (Terracotta)</option>
+              <option value="secondary">Secondary (Outlined)</option>
+              <option value="accent">Accent (Gold)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Button Link URL</label>
+          <input type="text" name="button_url" class="form-control" placeholder="/shop/" id="add_btn_url">
+          <div class="url-preset">
+            <span class="url-tag" onclick="setAddUrl('/shop/')">All Shop</span>
+            <span class="url-tag" onclick="setAddUrl('/shop/?sale=1')">Sale</span>
+            <span class="url-tag" onclick="setAddUrl('/shop/?sort=newest')">New Arrivals</span>
+            <span class="url-tag" onclick="setAddUrl('/collections/')">Collections</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Banner Type</label>
+          <select name="banner_type" class="form-control">
+            <option value="hero">Hero Slide</option>
+            <option value="promo">Promotional</option>
+            <option value="sale">Sale</option>
+          </select>
+        </div>
+
+        <!-- Live preview -->
+        <div id="addBannerPreview" class="preview-slide" style="display:none;">
+          <img id="prevImg" src="" alt="">
+          <div class="preview-slide-content">
+            <span class="preview-tag" id="prevTag"></span>
+            <div class="preview-heading" id="prevHeading"></div>
+            <div class="preview-sub" id="prevSub"></div>
+            <div class="preview-desc" id="prevDesc"></div>
+            <div class="preview-btn primary" id="prevBtn"></div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel">Cancel</button>
+        <button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Add Banner</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── EDIT BANNER MODAL ── -->
+<div class="modal-overlay" id="editBannerModal">
+  <div class="modal-card" style="max-width:680px;">
+    <div class="modal-header"><h2>Edit Banner</h2><button class="close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="POST" id="editBannerForm" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="form-group">
+          <label>New Image <span style="font-size:.72rem;color:var(--text-secondary);">(leave blank to keep current)</span></label>
+          <div class="file-drop-area">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <div class="file-name" id="editImgName">Click or drag to replace image</div>
+            <div class="file-hint">Recommended: 1920×800px</div>
+            <input type="file" name="image" accept="image/*" id="editImgInput">
+          </div>
+        </div>
+        <div class="row-inputs">
+          <div class="form-group">
+            <label>Tag Text <span style="font-size:.72rem;color:var(--text-secondary);">(max 60)</span></label>
+            <input type="text" name="tag_text" class="form-control" maxlength="60">
+          </div>
+          <div class="form-group">
+            <label>Sort Order</label>
+            <input type="number" name="sort_order" class="form-control" min="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Main Heading * <span style="font-size:.72rem;color:var(--text-secondary);">(max 80)</span></label>
+          <input type="text" name="heading" class="form-control" maxlength="80" required>
+        </div>
+        <div class="form-group">
+          <label>Accent Subheading <span style="font-size:.72rem;color:var(--text-secondary);">(max 120)</span></label>
+          <input type="text" name="subheading" class="form-control" maxlength="120">
+        </div>
+        <div class="form-group">
+          <label>Description <span style="font-size:.72rem;color:var(--text-secondary);">(max 180)</span></label>
+          <input type="text" name="description" class="form-control" maxlength="180">
+        </div>
+        <div class="row-inputs">
+          <div class="form-group">
+            <label>Button Text <span style="font-size:.72rem;color:var(--text-secondary);">(max 40)</span></label>
+            <input type="text" name="button_text" class="form-control" maxlength="40">
+          </div>
+          <div class="form-group">
+            <label>Button Style</label>
+            <select name="button_style" class="form-control" id="edit_btn_style">
+              <option value="primary">Primary (Terracotta)</option>
+              <option value="secondary">Secondary (Outlined)</option>
+              <option value="accent">Accent (Gold)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Button Link URL</label>
+          <input type="text" name="button_url" class="form-control">
+          <div class="url-preset">
+            <span class="url-tag" onclick="setEditUrl('/shop/')">All Shop</span>
+            <span class="url-tag" onclick="setEditUrl('/shop/?sale=1')">Sale</span>
+            <span class="url-tag" onclick="setEditUrl('/shop/?sort=newest')">New Arrivals</span>
+            <span class="url-tag" onclick="setEditUrl('/collections/')">Collections</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Banner Type</label>
+          <select name="banner_type" class="form-control" id="edit_banner_type">
+            <option value="hero">Hero Slide</option>
+            <option value="promo">Promotional</option>
+            <option value="sale">Sale</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel">Cancel</button>
+        <button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Update Banner</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script src="{% static 'js/admin.js' %}"></script>
+<script>
+// URL preset helpers
+function setAddUrl(url) { document.getElementById('add_btn_url').value = url; }
+function setEditUrl(url) { document.querySelector('#editBannerModal [name=button_url]').value = url; }
+
+// Character counters
+function initCounter(inputId, counterId, max) {
+  const inp = document.getElementById(inputId);
+  const cnt = document.getElementById(counterId);
+  if (!inp || !cnt) return;
+  function update() {
+    const len = inp.value.length;
+    cnt.textContent = len + ' / ' + max;
+    cnt.className = 'char-counter' + (len >= max ? ' error' : len >= max * .85 ? ' warn' : '');
+  }
+  inp.addEventListener('input', update);
+  update();
+}
+['tag_text','heading','subheading','description','btn_text'].forEach(f => initCounter('add_'+f, 'add_'+f+'_count', {tag_text:60,heading:80,subheading:120,description:180,btn_text:40}[f]));
+
+// Image preview for add form
+document.getElementById('addImgInput')?.addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  document.getElementById('addImgName').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('addImgPreview');
+    img.src = e.target.result;
+    img.style.display = 'block';
+    document.getElementById('prevImg').src = e.target.result;
+    document.getElementById('addBannerPreview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+});
+
+// Edit image filename
+document.getElementById('editImgInput')?.addEventListener('change', function() {
+  document.getElementById('editImgName').textContent = this.files[0]?.name || 'Click or drag to replace image';
+});
+
+// Live preview update
+['add_tag_text','add_heading','add_subheading','add_description','add_btn_text'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', updatePreview);
+});
+function updatePreview() {
+  document.getElementById('prevTag').textContent    = document.getElementById('add_tag_text')?.value || '';
+  document.getElementById('prevHeading').textContent = document.getElementById('add_heading')?.value || '';
+  document.getElementById('prevSub').textContent     = document.getElementById('add_subheading')?.value || '';
+  document.getElementById('prevDesc').textContent    = document.getElementById('add_description')?.value || '';
+  document.getElementById('prevBtn').textContent     = document.getElementById('add_btn_text')?.value || '';
+  const style = document.getElementById('add_btn_style')?.value || 'primary';
+  document.getElementById('prevBtn').className = 'preview-btn ' + style;
+}
+
+// Open edit modal with data
+function openEditBanner(d) {
+  const form = document.getElementById('editBannerForm');
+  form.action = '/dashboard/banners/edit/' + d.id + '/';
+  const set = (name, val) => { const el = form.querySelector('[name=' + name + ']'); if (el) el.value = val || ''; };
+  set('tag_text', d.tag_text); set('heading', d.heading); set('subheading', d.subheading);
+  set('description', d.description); set('button_text', d.button_text);
+  set('button_url', d.button_url); set('sort_order', d.sort_order);
+  const bsEl = document.getElementById('edit_btn_style');
+  if (bsEl) bsEl.value = d.button_style || 'primary';
+  const btEl = document.getElementById('edit_banner_type');
+  if (btEl) btEl.value = d.banner_type || 'hero';
+  document.getElementById('editBannerModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+</script>
 </body>
 </html>
