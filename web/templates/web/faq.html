@@ -262,15 +262,7 @@
 </div>
 
 <!-- FOOTER -->
-<footer class="site-footer">
-  <div class="footer-top">
-    <div class="footer-brand"><img src="{% static 'images/logo.png' %}" alt="SSD Nursery" class="footer-logo"><p>Bringing nature into your home since 2018.</p><div class="social-links"><a href="#"><i class="fab fa-instagram"></i></a><a href="#"><i class="fab fa-facebook-f"></i></a><a href="#"><i class="fab fa-whatsapp"></i></a></div></div>
-    <div class="footer-links"><h4>Shop</h4><a href="{% url 'shop' %}">All Plants</a><a href="{% url 'shop' %}?sale=1">On Sale</a><a href="{% url 'collections' %}">Collections</a></div>
-    <div class="footer-links"><h4>Company</h4><a href="{% url 'about' %}">About Us</a><a href="{% url 'contact' %}">Contact</a><a href="{% url 'faq' %}">FAQ</a></div>
-    <div class="footer-newsletter"><h4>Newsletter</h4><p>Tips, offers & new arrivals.</p><div class="newsletter-form"><input type="email" placeholder="your@email.com"><button><i class="fas fa-arrow-right"></i></button></div></div>
-  </div>
-  <div class="footer-bottom"><span>© 2025 SSD Nursery. All rights reserved.</span><span>Made with 🌱 in India</span></div>
-</footer>
+{% include "web/_footer.html" %}
 
 <script src="{% static 'js/site.js' %}"></script>
 <script>

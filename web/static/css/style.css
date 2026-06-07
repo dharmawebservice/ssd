@@ -188,7 +188,7 @@
     .navbar:not(.scrolled) .nav-links a,
     .navbar:not(.scrolled) .icon-btn { color: rgba(0, 0, 0, 0.92); }
 
-    .navbar:not(.scrolled) .menu-toggle { color: rgba(255, 255, 255, 0.9); }
+    .navbar:not(.scrolled) .menu-toggle { color: rgba(0, 0, 0, 0.9); }
 
     .nav-links a::after {
         content: '';
@@ -2165,3 +2165,387 @@
 
 /* ========================================== CART DRAWER PRODUCTS ========================================== */ 
 .cart-product-item{ display:flex; flex-direction:row; align-items:flex-start; gap:18px; padding:18px 0; border-bottom:1px solid var(--ivory-dark); } .cart-item-img{ flex-shrink:0; } .cart-item-details{ flex:1; min-width:0; } .cart-item-qty{ display:flex; align-items:center; gap:12px;}
+
+/* ============================================================
+   SSD NURSERY — Mobile Responsive Fixes (v2 — COMPLETE)
+   Add these rules at the very END of your style.css
+   ============================================================ */
+
+/* ── SHOP PAGE LAYOUT ────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /*
+    Navbar sits at: offer-strip (32px) + navbar min-height (~64px) = ~96px
+    Add comfortable breathing room → 110px top padding
+  */
+  .shop-layout {
+    padding: 110px 14px 60px;
+    flex-direction: column;
+    gap: 16px;
+    min-height: unset;
+  }
+
+  /* Sidebar hidden on mobile — already in base CSS, reinforce */
+  .shop-sidebar {
+    display: none !important;
+  }
+
+  /* ── TOPBAR: Filters button + "All Plants" title ── */
+  .shop-topbar {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .shop-topbar > div:first-child {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+  }
+
+  /* Force the mobile filter button visible */
+  .mobile-filter-btn {
+    display: flex !important;
+    align-items: center;
+    gap: 7px;
+    background: var(--forest);
+    color: white;
+    padding: 9px 20px;
+    border-radius: 24px;
+    border: none;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.88rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+    order: 2;          /* appears below the title */
+  }
+
+  /* Title + count block — centered */
+  .shop-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.5rem;
+    color: var(--forest);
+    text-align: center;
+    order: 0;
+  }
+
+  .shop-count {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.85rem;
+    color: var(--text-mid);
+    text-align: center;
+    order: 1;
+  }
+
+  .shop-count strong {
+    color: var(--forest);
+  }
+
+  /* Hide the sort form in topbar on mobile (sidebar handles it) */
+  .shop-topbar > form {
+    display: none;
+  }
+
+  /* ── SEARCH BAR ── */
+  .shop-search-wrap {
+    margin-bottom: 16px;
+  }
+
+  .shop-search-inner {
+    padding: 10px 14px;
+    gap: 8px;
+    border-radius: 50px;
+  }
+
+  .shop-search-input {
+    font-size: 0.93rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .shop-search-btn {
+    padding: 8px 16px;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+    border-radius: 30px;
+  }
+
+  /* ── PRODUCT GRID ── */
+  .shop-main {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .product-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px;
+  }
+
+  /* ── PRODUCT CARD ── */
+  .product-card {
+    padding: 7px;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(28,58,43,0.09);
+  }
+
+  .img-container {
+    height: 155px;
+    border-radius: 11px;
+  }
+
+  .img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* ── PRICE ROW: stack vertically so "In Stock" never overlaps ── */
+  .product-info {
+    padding: 10px 5px 5px;
+    gap: 5px;
+  }
+
+  .product-info h3 {
+    font-size: 0.9rem;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .price-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px;
+  }
+
+  .price {
+    font-size: 0.97rem;
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    flex-wrap: wrap;
+    line-height: 1.2;
+  }
+
+  .old-price {
+    font-size: 0.76rem;
+    margin-left: 0;
+  }
+
+  .stock-tag {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+    align-self: flex-start;
+    border-radius: 20px;
+  }
+
+  /* ── BADGES (SALE / Sold Out) ── */
+  .badge {
+    font-size: 0.6rem;
+    padding: 4px 9px;
+    top: 9px;
+    left: 9px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── ACTIVE FILTER TAGS ── */
+  .active-filters {
+    gap: 6px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .filter-tag {
+    font-size: 0.75rem;
+    padding: 3px 9px;
+  }
+
+  /* ── PAGINATION ── */
+  .pagination {
+    margin-top: 28px;
+    gap: 5px;
+  }
+
+  .page-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 0.86rem;
+  }
+
+  /* ── NAVBAR ── */
+  .navbar {
+    padding: 10px 4% !important;
+    min-height: 64px !important;
+    top: 32px;
+  }
+
+  .navbar.scrolled {
+    top: 0 !important;
+    padding: 10px 4% !important;
+    min-height: 64px !important;
+  }
+
+  .brand-logo {
+    height: 38px;
+  }
+
+  .nav-actions {
+    gap: 8px;
+  }
+
+  .icon-btn {
+    font-size: 16px;
+    padding: 3px;
+  }
+
+  /* ── OFFER STRIP ── */
+  .offer-strip {
+    height: 32px;
+  }
+
+  .strip-item {
+    font-size: 0.76rem;
+  }
+
+  /* ── HERO SLIDER (home page) ── */
+  .hero-slider {
+    margin-top: 96px;
+  }
+}
+
+/* ── VERY SMALL PHONES (≤ 390px) ────────────────────────── */
+@media (max-width: 390px) {
+
+  .shop-layout {
+    padding: 106px 10px 50px;
+  }
+
+  .product-grid {
+    gap: 9px;
+  }
+
+  .img-container {
+    height: 138px;
+  }
+
+  .product-info h3 {
+    font-size: 0.82rem;
+  }
+
+  .price {
+    font-size: 0.88rem;
+  }
+
+  .shop-search-btn {
+    padding: 7px 11px;
+    font-size: 0.76rem;
+  }
+
+  .mobile-filter-btn {
+    padding: 8px 13px;
+    font-size: 0.82rem;
+  }
+
+  .shop-title {
+    font-size: 1.1rem;
+  }
+
+  .brand-logo {
+    height: 34px;
+  }
+
+  .icon-btn {
+    font-size: 15px;
+  }
+
+  .offer-strip {
+    height: 28px;
+  }
+
+  .badge {
+    font-size: 0.56rem;
+    padding: 3px 7px;
+  }
+}
+
+/* ── TRUST BAR on mobile ─────────────────────────────────── */
+@media (max-width: 480px) {
+  .trust-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .trust-item {
+    gap: 10px;
+    padding: 13px 14px;
+    border-right: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .trust-item:nth-child(2),
+  .trust-item:nth-child(4) {
+    border-right: none;
+  }
+
+  .trust-item:nth-child(1),
+  .trust-item:nth-child(2) {
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .trust-item i {
+    font-size: 1.3rem;
+  }
+
+  .trust-item strong {
+    font-size: 0.82rem;
+  }
+
+  .trust-item span {
+    font-size: 0.72rem;
+  }
+}
+
+/* ── FILTER DRAWER (mobile) ──────────────────────────────── */
+@media (max-width: 768px) {
+  .filter-drawer {
+    width: 300px;
+    max-width: 88vw;
+    padding: 20px 18px;
+  }
+
+  .drawer-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .filter-lbl {
+    font-size: 0.72rem;
+  }
+
+  .filter-radio {
+    font-size: 0.9rem;
+    padding: 5px 2px;
+  }
+
+  .price-input {
+    font-size: 0.9rem;
+    padding: 7px 10px;
+  }
+
+  .sort-sel {
+    font-size: 0.9rem;
+    padding: 8px 11px;
+  }
+
+  .btn-apply {
+    padding: 10px;
+    font-size: 0.93rem;
+  }
+}

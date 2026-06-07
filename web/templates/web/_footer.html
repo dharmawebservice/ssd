@@ -1,0 +1,155 @@
+{% load static %}
+
+<link rel="stylesheet" href="{% static 'css/footer.css' %}">
+
+<footer class="site-footer" id="site-footer">
+
+  <!-- ── DECORATIVE TOP WAVE ─────────────────────────────── -->
+  <div class="footer-wave" aria-hidden="true">
+    <svg viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,30 C240,60 480,0 720,30 C960,60 1200,0 1440,30 L1440,0 L0,0 Z" fill="var(--ivory)"/>
+    </svg>
+  </div>
+
+  <!-- ── MAIN GRID ───────────────────────────────────────── -->
+  <div class="footer-top">
+
+    <!-- COL 1: Brand + About + Social -->
+    <div class="footer-brand">
+      <img src="{% static 'images/logo.png' %}" alt="SSD Nursery" class="footer-logo">
+      <p class="footer-tagline">Bringing nature into your home since 2018. Every plant hand-selected and shipped with care from the heart of India.</p>
+
+      <!-- Contact block -->
+      <div class="footer-contact-block">
+        <a href="mailto:ssdnurserygarden@gmail.com" class="footer-contact-item">
+          <span class="fci-icon"><i class="fas fa-envelope"></i></span>
+          <span>ssdnurserygarden@gmail.com</span>
+        </a>
+        <a href="tel:+919880303349" class="footer-contact-item">
+          <span class="fci-icon"><i class="fas fa-phone"></i></span>
+          <span>+91 98803 03349</span>
+        </a>
+        <div class="footer-contact-item">
+          <span class="fci-icon"><i class="fas fa-location-dot"></i></span>
+          <span>7XC7+RR8,Karenahalli <br>
+          Padignahalli, Kolar, Karnataka — 563157</span>
+        </div>
+      </div>
+
+      <!-- Social icons -->
+      <div class="social-links">
+        <a href="#" aria-label="Instagram" class="social-link">
+          <i class="fab fa-instagram"></i>
+        </a>
+        <a href="#" aria-label="Facebook" class="social-link">
+          <i class="fab fa-facebook-f"></i>
+        </a>
+        <a href="#" aria-label="WhatsApp" class="social-link">
+          <i class="fab fa-whatsapp"></i>
+        </a>
+        <a href="#" aria-label="YouTube" class="social-link">
+          <i class="fab fa-youtube"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- COL 2: Shop -->
+    <div class="footer-links">
+      <h4><span class="footer-col-dot"></span> Shop</h4>
+      <a href="{% url 'shop' %}"><i class="fas fa-leaf footer-link-icon"></i> All Plants</a>
+      <a href="{% url 'shop' %}?sort=newest"><i class="fas fa-star footer-link-icon"></i> New Arrivals</a>
+      <a href="{% url 'shop' %}?sale=1"><i class="fas fa-tag footer-link-icon"></i> On Sale</a>
+      <a href="{% url 'collections' %}"><i class="fas fa-layer-group footer-link-icon"></i> Collections</a>
+      <a href="{% url 'wishlist_page' %}"><i class="fas fa-heart footer-link-icon"></i> Wishlist</a>
+    </div>
+
+    <!-- COL 3: Help -->
+    <div class="footer-links">
+      <h4><span class="footer-col-dot"></span> Help</h4>
+      <a href="#"><i class="fas fa-book-open footer-link-icon"></i> Plant Care Guide</a>
+      <a href="#"><i class="fas fa-truck footer-link-icon"></i> Delivery Info</a>
+      <a href="#"><i class="fas fa-rotate-left footer-link-icon"></i> Returns Policy</a>
+      <a href="#"><i class="fas fa-headset footer-link-icon"></i> Contact Us</a>
+      <a href="#"><i class="fas fa-shield-halved footer-link-icon"></i> Privacy Policy</a>
+    </div>
+
+    <!-- COL 4: Newsletter + Trust badges -->
+    <div class="footer-newsletter">
+      <h4><span class="footer-col-dot"></span> Stay in the Loop</h4>
+      <p>Get care tips, new arrivals &amp; exclusive offers — straight to your inbox.</p>
+
+      <!-- Newsletter form -->
+      <div class="newsletter-form-wrap" id="footerNewsletterForm">
+        <div class="nl-input-row">
+          <div class="nl-input-box">
+            <i class="fas fa-envelope nl-icon"></i>
+            <input
+              type="email"
+              id="footerEmailInput"
+              placeholder="your@email.com"
+              autocomplete="email"
+              aria-label="Email address for newsletter">
+          </div>
+          <button type="button" id="footerNewsletterBtn" aria-label="Subscribe">
+            Subscribe <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+        <p class="footer-nl-feedback" id="footerNlFeedback"></p>
+      </div>
+
+      <!-- Trust badges -->
+      <div class="footer-trust-mini">
+        <div class="ftm-item">
+          <i class="fas fa-shield-halved"></i>
+          <span>Secure Checkout</span>
+        </div>
+        <div class="ftm-item">
+          <i class="fas fa-truck-fast"></i>
+          <span>Free Delivery ₹999+</span>
+        </div>
+        <div class="ftm-item">
+          <i class="fas fa-rotate-left"></i>
+          <span>7-Day Guarantee</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /footer-top -->
+
+  <!-- ── DIVIDER WITH LEAF ────────────────────────────────── -->
+  <div class="footer-divider" aria-hidden="true">
+    <span class="footer-divider-line"></span>
+    <span class="footer-divider-icon"><i class="fas fa-seedling"></i></span>
+    <span class="footer-divider-line"></span>
+  </div>
+
+  <!-- ── BOTTOM BAR ──────────────────────────────────────── -->
+  <div class="footer-bottom">
+
+    <div class="footer-bottom-left">
+      <span>© {% now "Y" %} SSD Nursery. All rights reserved.</span>
+      <span class="footer-sep">·</span>
+      <span>Made with 🌱 in India</span>
+    </div>
+
+    <div class="footer-bottom-center">
+      <a href="#" class="footer-legal-link">Privacy Policy</a>
+      <a href="#" class="footer-legal-link">Terms of Use</a>
+      <a href="#" class="footer-legal-link">Sitemap</a>
+    </div>
+
+    <!-- DWS Trademark -->
+    <div class="footer-bottom-right">
+      <a href="https://dws.monster" target="_blank" rel="noopener noreferrer" class="dws-badge" aria-label="Powered by DWS">
+        <span class="dws-badge-inner">
+          <span class="dws-bolt"><i class="fas fa-bolt"></i></span>
+          <span class="dws-text">Powered by <strong>DWS</strong></span>
+        </span>
+      </a>
+    </div>
+
+  </div><!-- /footer-bottom -->
+
+</footer>
+
+<script src="{% static 'js/footer.js' %}" defer></script>
