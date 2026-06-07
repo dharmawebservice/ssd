@@ -2,283 +2,165 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Account | SSD Nursery</title>
-    <meta name="csrf-token" content="{{ csrf_token }}">
-    <link rel="icon" href="{% static 'images/favicon.png' %}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        :root{--forest:#1C3A2B;--forest-mid:#2A5240;--forest-light:#3D7358;--terracotta:#C9694A;--ivory:#F7F3EE;--ivory-dark:#EDE7DE;--gold:#C8A96E;--text-dark:#1A1F1C;--text-mid:#4A5550;--text-light:#8A9A90;--r:16px;--t:0.3s cubic-bezier(0.4,0,0.2,1);}
-        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-        html,body{font-family:'Cormorant Garamond',Georgia,serif;height:100%;overflow:hidden;}
-        @media(max-width:768px){html,body{overflow:auto;}}
-        h1,h2,h3{font-family:'DM Serif Display',serif;color:var(--forest);}
-
-        /* Layout */
-        .auth-layout{display:flex;height:100vh;height:100dvh;}
-
-        /* Banner side */
-        .auth-banner{
-            flex:0 0 42%;
-            background:linear-gradient(160deg,var(--forest) 0%,#0E2A20 100%);
-            position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;
-        }
-        .auth-banner::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;border:1px solid rgba(255,255,255,0.05);top:-100px;right:-150px;}
-        .auth-banner::after{content:'';position:absolute;width:400px;height:400px;border-radius:50%;border:1px solid rgba(255,255,255,0.04);bottom:-80px;left:-100px;}
-        .banner-content{position:relative;z-index:2;padding:48px;text-align:center;color:white;}
-        .logo-wrapper img{height:72px;width:72px;object-fit:contain;border-radius:50%;border:3px solid rgba(255,255,255,0.15);margin:0 auto 28px;display:block;}
-        .banner-content h1{font-family:'DM Serif Display',serif;font-size:2.2rem;line-height:1.1;color:white;margin-bottom:16px;}
-        .banner-content p{color:rgba(255,255,255,0.6);font-size:1rem;line-height:1.7;max-width:320px;margin:0 auto;}
-        .banner-dots{display:flex;gap:8px;justify-content:center;margin-top:36px;}
-        .banner-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.25);}
-        .banner-dot.active{background:var(--gold);width:24px;border-radius:4px;}
-
-        /* Content side */
-        .auth-content{flex:1;overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;padding:40px 24px;background:var(--ivory);}
-        .form-wrapper{width:100%;max-width:420px;padding-top:24px;}
-
-        /* Tabs */
-        .auth-tabs{display:flex;background:white;border-radius:14px;padding:5px;gap:4px;margin-bottom:32px;box-shadow:0 2px 12px rgba(28,58,43,0.06);}
-        .tab-btn{flex:1;padding:12px;border-radius:10px;background:none;border:none;font-family:'DM Serif Display',serif;font-size:1rem;color:var(--text-mid);cursor:pointer;transition:all var(--t);}
-        .tab-btn.active{background:var(--forest);color:white;box-shadow:0 4px 12px rgba(28,58,43,0.25);}
-
-        /* Forms */
-        .forms-container{position:relative;}
-        .form-step{display:none;}
-        .form-step.active{display:block;}
-
-        .form-header{margin-bottom:28px;}
-        .form-header h2{font-size:1.7rem;margin-bottom:6px;letter-spacing:-0.3px;}
-        .form-header p{color:var(--text-mid);font-size:0.95rem;}
-        .center-header{text-align:center;}
-        .icon-circle{width:72px;height:72px;background:var(--forest);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1.6rem;margin:0 auto 20px;}
-
-        /* Input */
-        .input-group{margin-bottom:18px;}
-        .input-group label{display:block;font-size:0.82rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-mid);margin-bottom:8px;}
-        .input-with-icon{position:relative;display:flex;align-items:center;}
-        .input-with-icon>i:first-child{position:absolute;left:16px;color:var(--text-light);font-size:0.9rem;pointer-events:none;z-index:1;}
-        .input-with-icon input,.input-with-icon textarea{width:100%;padding:13px 16px 13px 44px;border:1.5px solid var(--ivory-dark);border-radius:12px;font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--text-dark);background:white;outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
-        .input-with-icon input:focus{border-color:var(--forest);box-shadow:0 0 0 3px rgba(28,58,43,0.08);}
-        .input-with-icon textarea{padding-left:44px;resize:vertical;min-height:80px;}
-        .password-toggle{position:absolute;right:14px;cursor:pointer;color:var(--text-light);font-size:0.9rem;transition:color 0.2s;}
-        .password-toggle:hover{color:var(--forest);}
-        .helper-text{font-size:0.8rem;color:var(--text-light);margin-bottom:14px;display:block;}
-        .read-only-style input{background:var(--ivory);color:var(--text-mid);}
-
-        /* Form actions */
-        .form-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;}
-        .checkbox-container{display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--text-mid);cursor:pointer;}
-        .checkbox-container input{width:16px;height:16px;accent-color:var(--forest);}
-        .forgot-link{font-size:0.9rem;color:var(--forest);font-weight:500;}
-        .center-actions{justify-content:center;}
-
-        /* Row */
-        .row-inputs{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-
-        /* Buttons */
-        .btn-primary{width:100%;background:var(--forest);color:white;padding:15px;border-radius:var(--r);font-family:'DM Serif Display',serif;font-size:1.1rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background 0.2s,transform 0.15s;}
-        .btn-primary:hover{background:var(--forest-mid);}
-        .btn-primary:active{transform:scale(0.98);}
-        .btn-primary:disabled{opacity:0.6;cursor:not-allowed;}
-        .hidden{display:none;}
-        .btn-location{width:100%;background:var(--ivory-dark);color:var(--forest);border:1.5px solid var(--ivory-dark);padding:12px;border-radius:12px;font-family:'Cormorant Garamond',serif;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.2s;}
-        .btn-location:hover{background:var(--forest);color:white;border-color:var(--forest);}
-
-        /* OTP */
-        .otp-container{display:flex;gap:10px;justify-content:center;margin:28px 0;}
-        .otp-input{width:50px;height:58px;text-align:center;border:1.5px solid var(--ivory-dark);border-radius:12px;font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--forest);outline:none;transition:border-color 0.2s,box-shadow 0.2s;background:white;}
-        .otp-input:focus{border-color:var(--forest);box-shadow:0 0 0 3px rgba(28,58,43,0.08);}
-        .otp-input.filled{border-color:var(--forest);background:rgba(28,58,43,0.04);}
-        .resend-text{font-size:0.9rem;color:var(--text-mid);}
-        .resend-text a{color:var(--terracotta);font-weight:600;}
-
-        /* Toast */
-        .toast-notification{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--text-dark);color:white;padding:14px 24px;border-radius:50px;display:flex;align-items:center;gap:10px;font-size:0.95rem;z-index:9999;opacity:0;transition:all 0.4s cubic-bezier(0.4,0,0.2,1);white-space:nowrap;max-width:90vw;}
-        .toast-notification.show{opacity:1;transform:translateX(-50%) translateY(0);}
-        .toast-notification.error{background:#DC2626;}
-        .toast-notification.success{background:var(--forest);}
-
-        /* Spinner input icon */
-        .input-action-icon{position:absolute;right:14px;color:var(--forest-light);}
-
-        /* Responsive */
-        @media(max-width:768px){
-            .auth-layout{flex-direction:column;height:auto;}
-            .auth-banner{flex:0 0 auto;padding:40px 24px;min-height:220px;}
-            .banner-content p{display:none;}
-            .auth-content{padding:28px 20px;}
-            .row-inputs{grid-template-columns:1fr;}
-            .otp-container{gap:8px;}
-            .otp-input{width:44px;height:52px;font-size:1.2rem;}
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Account | SSD Nursery</title>
+<meta name="csrf-token" content="{{ csrf_token }}">
+<link rel="icon" href="{% static 'images/favicon.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root{--forest:#1C3A2B;--forest-mid:#2A5240;--terracotta:#C9694A;--ivory:#F7F3EE;--ivory-dark:#EDE7DE;--gold:#C8A96E;--text-dark:#1A1F1C;--text-mid:#4A5550;--text-light:#8A9A90;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{font-family:'Cormorant Garamond',serif;height:100%;background:var(--ivory)}
+h1,h2,h3{font-family:'DM Serif Display',serif;color:var(--forest)}
+.auth-layout{display:flex;min-height:100vh}
+.auth-banner{flex:0 0 42%;background:linear-gradient(160deg,var(--forest) 0%,#0E2A20 100%);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.auth-banner::before{content:'';position:absolute;width:500px;height:500px;border-radius:50%;border:1px solid rgba(255,255,255,.05);top:-100px;right:-150px}
+.auth-banner::after{content:'';position:absolute;width:350px;height:350px;border-radius:50%;border:1px solid rgba(255,255,255,.04);bottom:-80px;left:-100px}
+.banner-content{position:relative;z-index:2;padding:48px;text-align:center;color:white}
+.logo-wrapper img{height:72px;width:72px;object-fit:contain;border-radius:50%;border:3px solid rgba(255,255,255,.15);margin:0 auto 28px;display:block}
+.banner-content h1{font-family:'DM Serif Display',serif;font-size:2.1rem;line-height:1.1;color:white;margin-bottom:14px}
+.banner-content p{color:rgba(255,255,255,.6);font-size:.97rem;line-height:1.7;max-width:300px;margin:0 auto}
+.auth-content{flex:1;overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;padding:40px 24px;background:var(--ivory)}
+.form-wrapper{width:100%;max-width:420px;padding-top:20px}
+.auth-tabs{display:flex;background:white;border-radius:14px;padding:5px;gap:4px;margin-bottom:28px;box-shadow:0 2px 12px rgba(28,58,43,.06)}
+.tab-btn{flex:1;padding:11px;border-radius:10px;background:none;border:none;font-family:'DM Serif Display',serif;font-size:1rem;color:var(--text-mid);cursor:pointer;transition:all .3s}
+.tab-btn.active{background:var(--forest);color:white;box-shadow:0 4px 12px rgba(28,58,43,.25)}
+.form-step{display:none}
+.form-step.active{display:block}
+.form-header{margin-bottom:24px}
+.form-header h2{font-size:1.65rem;margin-bottom:5px;letter-spacing:-.3px}
+.form-header p{color:var(--text-mid);font-size:.93rem}
+.center-header{text-align:center}
+.icon-circle{width:68px;height:68px;background:var(--forest);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1.5rem;margin:0 auto 18px}
+.input-group{margin-bottom:16px}
+.input-group label{display:block;font-size:.78rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-mid);margin-bottom:7px}
+.input-with-icon{position:relative;display:flex;align-items:center}
+.input-with-icon>i:first-child{position:absolute;left:15px;color:var(--text-light);font-size:.88rem;pointer-events:none;z-index:1}
+.input-with-icon input,.input-with-icon textarea{width:100%;padding:12px 15px 12px 42px;border:1.5px solid var(--ivory-dark);border-radius:12px;font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--text-dark);background:white;outline:none;transition:border-color .2s,box-shadow .2s}
+.input-with-icon input:focus{border-color:var(--forest);box-shadow:0 0 0 3px rgba(28,58,43,.08)}
+.input-with-icon textarea{padding-left:42px;resize:vertical;min-height:78px}
+.password-toggle{position:absolute;right:13px;cursor:pointer;color:var(--text-light);font-size:.88rem;transition:color .2s}
+.password-toggle:hover{color:var(--forest)}
+.helper-text{font-size:.78rem;color:var(--text-light);margin-bottom:12px;display:block}
+.read-only-style input{background:var(--ivory);color:var(--text-mid)}
+.form-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.checkbox-container{display:flex;align-items:center;gap:7px;font-size:.9rem;color:var(--text-mid);cursor:pointer}
+.checkbox-container input{width:15px;height:15px;accent-color:var(--forest)}
+.forgot-link{font-size:.9rem;color:var(--forest);font-weight:500}
+.center-actions{justify-content:center}
+.row-inputs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn-primary{width:100%;background:var(--forest);color:white;padding:14px;border-radius:14px;font-family:'DM Serif Display',serif;font-size:1.08rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:background .2s,transform .15s}
+.btn-primary:hover{background:var(--forest-mid)}
+.btn-primary:active{transform:scale(.98)}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed}
+.hidden{display:none}
+.btn-location{width:100%;background:var(--ivory-dark);color:var(--forest);border:1.5px solid var(--ivory-dark);padding:11px;border-radius:12px;font-family:'Cormorant Garamond',serif;font-size:.97rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:all .2s}
+.btn-location:hover{background:var(--forest);color:white;border-color:var(--forest)}
+.otp-container{display:flex;gap:9px;justify-content:center;margin:24px 0}
+.otp-input{width:48px;height:56px;text-align:center;border:1.5px solid var(--ivory-dark);border-radius:12px;font-family:'DM Serif Display',serif;font-size:1.35rem;color:var(--forest);outline:none;transition:border-color .2s,box-shadow .2s;background:white}
+.otp-input:focus{border-color:var(--forest);box-shadow:0 0 0 3px rgba(28,58,43,.08)}
+.otp-input.filled{border-color:var(--forest);background:rgba(28,58,43,.04)}
+.resend-text{font-size:.88rem;color:var(--text-mid)}
+.resend-text a{color:var(--terracotta);font-weight:600}
+.input-action-icon{position:absolute;right:13px;color:var(--forest-light)}
+.toast-notification{position:fixed;top:22px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--text-dark);color:white;padding:12px 22px;border-radius:50px;display:flex;align-items:center;gap:9px;font-size:.92rem;z-index:9999;opacity:0;transition:all .4s cubic-bezier(.4,0,.2,1);white-space:nowrap;max-width:90vw}
+.toast-notification.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast-notification.error{background:#DC2626}
+.toast-notification.success{background:var(--forest)}
+@media(max-width:768px){
+  .auth-layout{flex-direction:column}
+  .auth-banner{flex:0 0 auto;padding:36px 20px;min-height:200px}
+  .banner-content p,.banner-content h1{display:none}
+  .banner-content h1{display:block;font-size:1.6rem}
+  .auth-content{padding:24px 18px}
+  .row-inputs{grid-template-columns:1fr}
+  .otp-container{gap:7px}
+  .otp-input{width:42px;height:50px;font-size:1.2rem}
+}
+</style>
 </head>
 <body>
-
 <div id="custom-toast" class="toast-notification">
-    <i class="fas fa-exclamation-circle" id="toast-icon"></i>
-    <span id="toast-message">Message goes here</span>
+  <i class="fas fa-exclamation-circle" id="toast-icon"></i>
+  <span id="toast-message">Message</span>
 </div>
-
-<div class="auth-layout" id="auth-layout">
-    <div class="auth-banner">
-        <div class="banner-content">
-            <div class="logo-wrapper"><img src="{% static 'images/logo.png' %}" alt="SSD Nursery Logo"></div>
-            <h1>Welcome to<br>SSD Nursery</h1>
-            <p>Cultivate your space with our curated collection of healthy, beautiful plants delivered to your door.</p>
-            <div class="banner-dots"><div class="banner-dot active"></div><div class="banner-dot"></div><div class="banner-dot"></div></div>
-        </div>
+<div class="auth-layout">
+  <div class="auth-banner">
+    <div class="banner-content">
+      <div class="logo-wrapper"><img src="{% static 'images/logo.png' %}" alt="SSD Nursery"></div>
+      <h1>Welcome to<br>SSD Nursery</h1>
+      <p>Cultivate your space with our curated collection of healthy, beautiful plants delivered to your door.</p>
     </div>
+  </div>
+  <div class="auth-content">
+    <div class="form-wrapper">
+      <div class="auth-tabs" id="auth-tabs">
+        <button class="tab-btn active" data-target="login">Sign In</button>
+        <button class="tab-btn" data-target="signup">Create Account</button>
+      </div>
+      <div class="forms-container">
 
-    <div class="auth-content">
-        <div class="form-wrapper">
-            <div class="auth-tabs" id="auth-tabs">
-                <button class="tab-btn active" data-target="login">Sign In</button>
-                <button class="tab-btn" data-target="signup">Create Account</button>
-            </div>
+        <!-- LOGIN -->
+        <form id="login" class="form-step active" novalidate>{% csrf_token %}
+          <div class="form-header"><h2>Welcome Back</h2><p>Sign in to your account to continue.</p></div>
+          <div class="input-group"><label>Email</label><div class="input-with-icon"><i class="fas fa-envelope"></i><input type="email" name="email" placeholder="you@example.com" required></div></div>
+          <div class="input-group"><label>Password</label><div class="input-with-icon"><i class="fas fa-lock"></i><input type="password" name="password" placeholder="••••••••" required><i class="fas fa-eye password-toggle"></i></div></div>
+          <div class="form-actions"><label class="checkbox-container"><input type="checkbox"><span>Remember me</span></label><a href="#" class="forgot-link">Forgot password?</a></div>
+          <button type="submit" class="btn-primary" id="login-btn"><span class="btn-text">Sign In</span><i class="fas fa-spinner fa-spin hidden"></i></button>
+        </form>
 
-            <div class="forms-container">
+        <!-- SIGNUP -->
+        <form id="signup" class="form-step" novalidate>{% csrf_token %}
+          <div class="form-header"><h2>Create Account</h2><p>Join thousands of happy plant parents.</p></div>
+          <div class="input-group"><label>Full Name</label><div class="input-with-icon"><i class="fas fa-user"></i><input type="text" id="reg-fullname" name="fullname" placeholder="John Doe" minlength="3" maxlength="50" required></div></div>
+          <div class="input-group"><label>Email</label><div class="input-with-icon"><i class="fas fa-envelope"></i><input type="email" id="signup-email" name="email" placeholder="you@example.com" required></div></div>
+          <div class="input-group"><label>Phone</label><div class="input-with-icon"><i class="fas fa-phone"></i><input type="tel" id="phone" name="phone" placeholder="9876543210" maxlength="10" required></div></div>
+          <div class="input-group" style="margin-bottom:5px"><label>Password</label><div class="input-with-icon"><i class="fas fa-lock"></i><input type="password" id="reg-pass" name="password" placeholder="••••••••" minlength="8" required><i class="fas fa-eye password-toggle"></i></div></div>
+          <small class="helper-text">Min 8 chars · uppercase · lowercase · number · special char</small>
+          <div class="input-group"><label>Confirm Password</label><div class="input-with-icon"><i class="fas fa-check-circle"></i><input type="password" id="reg-confirm-pass" placeholder="••••••••" required><i class="fas fa-eye password-toggle"></i></div></div>
+          <button type="submit" class="btn-primary" id="signup-btn"><span class="btn-text">Create Account</span><i class="fas fa-spinner fa-spin hidden"></i></button>
+        </form>
 
-                <!-- LOGIN -->
-                <form id="login" class="form-step active" novalidate>
-                    {% csrf_token %}
-                    <div class="form-header">
-                        <h2>Welcome Back</h2>
-                        <p>Enter your details to access your account.</p>
-                    </div>
-                    <div class="input-group">
-                        <label>Email Address</label>
-                        <div class="input-with-icon"><i class="fas fa-envelope"></i><input type="email" name="email" placeholder="you@example.com" required></div>
-                    </div>
-                    <div class="input-group">
-                        <label>Password</label>
-                        <div class="input-with-icon"><i class="fas fa-lock"></i><input type="password" name="password" placeholder="••••••••" required><i class="fas fa-eye password-toggle"></i></div>
-                    </div>
-                    <div class="form-actions">
-                        <label class="checkbox-container"><input type="checkbox"><span>Remember me</span></label>
-                        <a href="#" class="forgot-link">Forgot password?</a>
-                    </div>
-                    <button type="submit" class="btn-primary" id="login-btn">
-                        <span class="btn-text">Sign In</span>
-                        <i class="fas fa-spinner fa-spin hidden"></i>
-                    </button>
-                </form>
+        <!-- VERIFY OTP -->
+        <form id="verify" class="form-step" novalidate>{% csrf_token %}
+          <div class="form-header center-header">
+            <div class="icon-circle"><i class="fas fa-envelope-open-text"></i></div>
+            <h2>Verify Your Email</h2>
+            <p>We sent a 6-digit code to<br><strong id="display-email">your email</strong>.</p>
+          </div>
+          <div class="otp-container">
+            <input type="text" class="otp-input" maxlength="1" inputmode="numeric" required>
+            <input type="text" class="otp-input" maxlength="1" inputmode="numeric" required>
+            <input type="text" class="otp-input" maxlength="1" inputmode="numeric" required>
+            <input type="text" class="otp-input" maxlength="1" inputmode="numeric" required>
+            <input type="text" class="otp-input" maxlength="1" inputmode="numeric" required>
+            <input type="text" class="otp-input" maxlength="1" inputmode="numeric" required>
+          </div>
+          <div class="form-actions center-actions"><p class="resend-text">Didn't get a code? <a href="#" id="resend-link">Resend</a></p></div>
+          <button type="submit" class="btn-primary" id="verify-btn"><span class="btn-text">Verify & Continue</span><i class="fas fa-spinner fa-spin hidden"></i></button>
+        </form>
 
-                <!-- SIGNUP -->
-                <form id="signup" class="form-step" novalidate>
-                    {% csrf_token %}
-                    <div class="form-header">
-                        <h2>Join the Community</h2>
-                        <p>Create an account to track orders and save favourites.</p>
-                    </div>
-                    <div class="input-group">
-                        <label>Full Name</label>
-                        <div class="input-with-icon"><i class="fas fa-user"></i><input type="text" id="reg-fullname" name="fullname" placeholder="John Doe" minlength="3" maxlength="50" required></div>
-                    </div>
-                    <div class="input-group">
-                        <label>Email Address</label>
-                        <div class="input-with-icon"><i class="fas fa-envelope"></i><input type="email" id="signup-email" name="email" placeholder="you@example.com" maxlength="100" required></div>
-                    </div>
-                    <div class="input-group">
-                        <label>Phone Number</label>
-                        <div class="input-with-icon"><i class="fas fa-phone"></i><input type="tel" id="phone" name="phone" placeholder="9876543210" maxlength="10" required></div>
-                    </div>
-                    <div class="input-group" style="margin-bottom:5px;">
-                        <label>Create Password</label>
-                        <div class="input-with-icon"><i class="fas fa-lock"></i><input type="password" id="reg-pass" name="password" placeholder="••••••••" minlength="8" maxlength="30" required><i class="fas fa-eye password-toggle"></i></div>
-                    </div>
-                    <small class="helper-text">Min 8 chars · uppercase · lowercase · number · special character</small>
-                    <div class="input-group">
-                        <label>Confirm Password</label>
-                        <div class="input-with-icon"><i class="fas fa-check-circle"></i><input type="password" id="reg-confirm-pass" name="confirm_password" placeholder="••••••••" required><i class="fas fa-eye password-toggle"></i></div>
-                    </div>
-                    <button type="submit" class="btn-primary" id="signup-btn">
-                        <span class="btn-text">Create Account</span>
-                        <i class="fas fa-spinner fa-spin hidden"></i>
-                    </button>
-                </form>
+        <!-- DELIVERY DETAILS -->
+        <form id="details" class="form-step" novalidate>{% csrf_token %}
+          <div class="form-header"><h2>Delivery Details</h2><p>Where should we deliver your plants?</p></div>
+          <div class="input-group"><button type="button" id="current-location-btn" class="btn-location"><i class="fas fa-location-arrow"></i> Use Current Location</button></div>
+          <div class="input-group"><label>Pincode</label><div class="input-with-icon"><i class="fas fa-map-pin"></i><input type="text" id="pincode" name="pincode" placeholder="6-digit pincode" maxlength="6" required><i class="fas fa-circle-notch fa-spin hidden input-action-icon" id="pincode-spinner"></i></div></div>
+          <div class="row-inputs">
+            <div class="input-group"><label>State</label><div class="input-with-icon read-only-style"><i class="fas fa-map"></i><input type="text" id="state" name="state" placeholder="Auto-filled" readonly></div></div>
+            <div class="input-group"><label>City</label><div class="input-with-icon read-only-style"><i class="fas fa-city"></i><input type="text" id="city" name="city" placeholder="Auto-filled" readonly></div></div>
+          </div>
+          <div class="input-group"><label>Area</label><div class="input-with-icon read-only-style"><i class="fas fa-map-signs"></i><input type="text" id="area" name="area" placeholder="Auto-filled" readonly></div></div>
+          <div class="input-group"><label>House No. & Street *</label><div class="input-with-icon"><i class="fas fa-home"></i><input type="text" id="address" name="address" placeholder="Flat, House no., Building, Street" minlength="10" maxlength="200" required></div></div>
+          <div class="input-group"><label>Delivery Instructions (Optional)</label><div class="input-with-icon"><i class="fas fa-comment-dots" style="top:14px;position:absolute;"></i><textarea id="instructions" name="instructions" placeholder="e.g. Leave with security guard…" maxlength="250"></textarea></div></div>
+          <button type="submit" class="btn-primary" id="details-btn"><span class="btn-text">Save & Finish</span><i class="fas fa-spinner fa-spin hidden"></i></button>
+        </form>
 
-                <!-- OTP VERIFY -->
-                <form id="verify" autocomplete="new-password" class="form-step" novalidate>
-                    {% csrf_token %}
-                    <div class="form-header center-header">
-                        <div class="icon-circle"><i class="fas fa-envelope-open-text"></i></div>
-                        <h2>Verify Your Email</h2>
-                        <p>We've sent a 6-digit code to<br><strong id="display-email">your email</strong>.</p>
-                    </div>
-                    <div class="otp-container">
-                        <input type="text" class="otp-input" autocomplete="one-time-code" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
-                        <input type="text" class="otp-input" autocomplete="one-time-code" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
-                        <input type="text" class="otp-input" autocomplete="one-time-code" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
-                        <input type="text" class="otp-input" autocomplete="one-time-code" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
-                        <input type="text" class="otp-input" autocomplete="one-time-code" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
-                        <input type="text" class="otp-input" autocomplete="one-time-code" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
-                    </div>
-                    <div class="form-actions center-actions">
-                        <p class="resend-text">Didn't receive a code? <a href="#" id="resend-link">Resend</a></p>
-                    </div>
-                    <button type="submit" class="btn-primary" id="verify-btn">
-                        <span class="btn-text">Verify & Continue</span>
-                        <i class="fas fa-spinner fa-spin hidden"></i>
-                    </button>
-                </form>
-
-                <!-- DELIVERY DETAILS -->
-                <form id="details" class="form-step" novalidate>
-                    {% csrf_token %}
-                    <div class="form-header">
-                        <h2>Delivery Details</h2>
-                        <p>Where should we deliver your plants?</p>
-                    </div>
-                    <div class="input-group">
-                        <button type="button" id="current-location-btn" class="btn-location"><i class="fas fa-location-arrow"></i> Use Current Location</button>
-                    </div>
-                    <div class="input-group">
-                        <label>Pincode</label>
-                        <div class="input-with-icon">
-                            <i class="fas fa-map-pin"></i>
-                            <input type="text" id="pincode" name="pincode" placeholder="6-digit pincode" maxlength="6" pattern="[0-9]{6}" required>
-                            <i class="fas fa-circle-notch fa-spin hidden input-action-icon" id="pincode-spinner"></i>
-                        </div>
-                    </div>
-                    <div class="row-inputs">
-                        <div class="input-group">
-                            <label>State</label>
-                            <div class="input-with-icon read-only-style"><i class="fas fa-map"></i><input type="text" id="state" name="state" placeholder="Auto-filled" readonly required></div>
-                        </div>
-                        <div class="input-group">
-                            <label>City</label>
-                            <div class="input-with-icon read-only-style"><i class="fas fa-city"></i><input type="text" id="city" name="city" placeholder="Auto-filled" readonly required></div>
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <label>Area</label>
-                        <div class="input-with-icon read-only-style"><i class="fas fa-map-signs"></i><input type="text" id="area" name="area" placeholder="Auto-filled via Pincode" readonly required></div>
-                    </div>
-                    <div class="input-group">
-                        <label>House No. & Street</label>
-                        <div class="input-with-icon"><i class="fas fa-home"></i><input type="text" id="address" name="address" placeholder="Flat, House no., Building" minlength="10" maxlength="200" required></div>
-                    </div>
-                    <div class="input-group">
-                        <label>Delivery Instructions (Optional)</label>
-                        <div class="input-with-icon"><i class="fas fa-comment-dots" style="top:16px;position:absolute;"></i><textarea id="instructions" name="instructions" placeholder="e.g. Leave with security guard…" maxlength="250"></textarea></div>
-                    </div>
-                    <button type="submit" class="btn-primary" id="details-btn">
-                        <span class="btn-text">Save & Finish</span>
-                        <i class="fas fa-spinner fa-spin hidden"></i>
-                    </button>
-                </form>
-
-            </div>
-        </div>
+      </div>
     </div>
+  </div>
 </div>
-
 <script src="{% static 'js/auth.js' %}"></script>
 </body>
 </html>

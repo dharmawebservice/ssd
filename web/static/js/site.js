@@ -179,33 +179,65 @@
     });
   }
   function renderShopSugg(data, q) {
+
     if (!shopSuggDrop) return;
-    if (!data.products.length && !data.categories.length) {
-      shopSuggDrop.innerHTML = `<div class="sugg-empty">No results for "${q}"</div>`;
-      shopSuggDrop.classList.add("open");
-      return;
+
+    if (!data.groups || !data.groups.length) {
+        shopSuggDrop.innerHTML =
+            `<div class="sugg-empty">No results for "${q}"</div>`;
+        shopSuggDrop.classList.add("open");
+        return;
     }
+
     let html = "";
-    if (data.categories.length) {
-      html += `<div class="sugg-group-label">Categories</div>`;
-      data.categories.forEach(c => {
-        html += `<a class="sugg-item" href="/shop/?category=${c.slug}">
-          <div class="sugg-icon"><i class="fas fa-leaf"></i></div>
-          <div><span class="sugg-name">${c.name}</span><span class="sugg-sub">Collection</span></div></a>`;
-      });
-    }
-    if (data.products.length) {
-      html += `<div class="sugg-group-label">Products</div>`;
-      data.products.forEach(p => {
-        const pr = p.offer_price ? `₹${p.offer_price}` : `₹${p.price}`;
-        html += `<a class="sugg-item" href="/product/${p.slug}/">
-          <div class="sugg-icon"><i class="fas fa-seedling"></i></div>
-          <div><span class="sugg-name">${p.name}</span><span class="sugg-sub">${pr}</span></div></a>`;
-      });
-    }
+
+    data.groups.forEach(group => {
+
+        html += `
+<a href="/shop/?category=${group.category.slug}"
+   class="sugg-category-link">
+
+    <img
+        src="${group.category.image || '/static/images/category-placeholder.jpg'}"
+        class="sugg-thumb"
+        alt="${group.category.name}"
+    >
+
+    <div class="sugg-info">
+        <div class="sugg-title">
+            ${group.category.name}
+        </div>
+
+        <div class="sugg-subtitle">
+            Collection
+        </div>
+    </div>
+
+</a>
+`;
+
+        group.products.forEach(product => {
+
+            html += `
+    <a href="/product/${product.slug}/"
+       class="sugg-product-link">
+
+        <img
+            src="${product.image || '/static/images/product-placeholder.jpg'}"
+            class="sugg-thumb"
+            alt="${product.name}"
+        >
+
+        <span>${product.name}</span>
+    </a>
+`;
+        });
+
+    });
+
     shopSuggDrop.innerHTML = html;
     shopSuggDrop.classList.add("open");
-  }
+}
 
   // ══════════════════════════════════════════════════════════
   // HERO SLIDER
@@ -347,13 +379,18 @@
   }
   window.addToCart = addToCart;
 
-  document.querySelectorAll(".quick-add, .action-btn[data-product]").forEach(btn => {
-    btn.addEventListener("click", e => {
-      e.preventDefault(); e.stopPropagation();
-      const pid = btn.dataset.product || btn.closest("[data-product]")?.dataset.product;
-      if (pid) addToCart(+pid, 1);
-    });
+  document.querySelectorAll(".quick-add").forEach(btn => {
+  btn.addEventListener("click", e => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const pid = btn.dataset.product;
+
+    if (pid) {
+      addToCart(+pid, 1);
+    }
   });
+});
 
   // ══════════════════════════════════════════════════════════
   // WISHLIST — server-side sync
@@ -399,13 +436,21 @@
   }
   window.toggleWishlist = toggleWishlist;
 
-  document.querySelectorAll(".wishlist-btn").forEach(btn => {
-    btn.addEventListener("click", e => {
-      e.preventDefault(); e.stopPropagation();
-      const pid = btn.dataset.product || btn.closest("[data-product]")?.dataset.product;
-      if (pid) toggleWishlist(+pid);
-    });
-  });
+  document.addEventListener("click", function(e){
+
+    const btn = e.target.closest(".wishlist-btn");
+
+    if(!btn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const pid = btn.dataset.product;
+
+    if(pid){
+        toggleWishlist(+pid);
+    }
+});
 
   async function fetchWishlist() {
     if (!IS_AUTH) return;

@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}"><link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
 </head>
 <body data-auth="{% if request.user.is_authenticated %}1{% else %}0{% endif %}">
 <script>window.__WISHLIST_IDS__ = {{ wishlist_ids|safe }};</script>
@@ -27,9 +27,34 @@
     <div class="filter-section">
       <span class="filter-lbl">Category</span>
       <div class="cat-filter-list">
-        <a href="{% url 'shop' %}{% if query %}?q={{ query }}{% endif %}" class="cat-filter-link {% if not active_category %}active{% endif %}"><i class="fas fa-leaf" style="font-size:.75rem;"></i> All Plants</a>
-        {% for c in categories %}<a href="?category={{ c.slug }}{% if query %}&q={{ query }}{% endif %}" class="cat-filter-link {% if active_category.id == c.id %}active{% endif %}"><i class="fas fa-circle" style="font-size:.35rem;"></i> {{ c.name }}</a>{% endfor %}
-      </div>
+
+    <label class="filter-radio">
+        <input
+            type="radio"
+            name="category"
+            value=""
+            {% if not active_category %}checked{% endif %}
+            onchange="this.form.submit()">
+
+        <span>All Plants</span>
+    </label>
+
+    {% for c in categories %}
+    <label class="filter-radio">
+
+        <input
+            type="radio"
+            name="category"
+            value="{{ c.slug }}"
+            {% if active_category.id == c.id %}checked{% endif %}
+            onchange="this.form.submit()">
+
+        <span>{{ c.name }}</span>
+
+    </label>
+    {% endfor %}
+
+</div>
       {% if active_category %}<input type="hidden" name="category" value="{{ active_category.slug }}">{% endif %}
     </div>
     <div class="filter-section">
@@ -115,12 +140,6 @@
         {% if max_price %}<input type="hidden" name="max_price" value="{{ max_price }}">{% endif %}
         {% if sale_only == '1' %}<input type="hidden" name="sale" value="1">{% endif %}
         {% if stock_only == '1' %}<input type="hidden" name="in_stock" value="1">{% endif %}
-        <select name="sort" class="sort-sel" onchange="this.form.submit()">
-          <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest</option>
-          <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price ↑</option>
-          <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price ↓</option>
-          <option value="name_asc" {% if sort == 'name_asc' %}selected{% endif %}>A–Z</option>
-        </select>
       </form>
     </div>
 
@@ -156,12 +175,20 @@
           {% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
           {% else %}<div class="img-placeholder"><i class="fas fa-seedling"></i></div>{% endif %}
           <div class="card-actions">
-            <button class="action-btn wishlist-btn {% if p.id in wishlist_ids %}wishlisted{% endif %}" data-product="{{ p.id }}" onclick="event.preventDefault();toggleWishlist({{ p.id }});" title="Wishlist">
+            <button
+              type="button"
+              class="action-btn wishlist-btn {% if p.id in wishlist_ids %}wishlisted{% endif %}"
+              data-product="{{ p.id }}"
+              onclick="event.preventDefault();event.stopPropagation();toggleWishlist({{ p.id }});">
               <i class="{% if p.id in wishlist_ids %}fas{% else %}far{% endif %} fa-heart"></i>
-            </button>
-            <button class="action-btn quick-add" data-product="{{ p.id }}" onclick="event.preventDefault();addToCart({{ p.id }},1);" title="Add to cart">
+          </button>
+          <button
+              type="button"
+              class="action-btn quick-add"
+              data-product="{{ p.id }}"
+              >
               <i class="fas fa-shopping-bag"></i>
-            </button>
+          </button>
           </div>
         </div>
         <div class="product-info">
@@ -215,6 +242,92 @@ function submitShopSearch(){
   if(q)url.searchParams.set('q',q); else url.searchParams.delete('q');
   url.searchParams.delete('page');
   window.location.href=url.toString();
+}
+
+const searchInput = document.getElementById("shopSearchInput");
+const suggestionBox = document.getElementById("shopSuggDrop");
+
+if(searchInput){
+
+    searchInput.addEventListener("input", async function(){
+
+        const q = this.value.trim();
+
+        if(q.length < 2){
+            suggestionBox.innerHTML = "";
+            suggestionBox.style.display = "none";
+            return;
+        }
+
+        try{
+
+            const response = await fetch(`/api/search/?q=${encodeURIComponent(q)}`);
+            const data = await response.json();
+
+            if(!data.groups || !data.groups.length){
+                suggestionBox.innerHTML = `
+                    <div class="sugg-empty">
+                        No results found
+                    </div>
+                `;
+                suggestionBox.style.display = "block";
+                return;
+            }
+
+            let html = "";
+
+            data.groups.forEach(group => {
+
+                html += `
+                    <div class="sugg-category">
+                        🌿 ${group.category.name}
+                    </div>
+                `;
+
+                group.products.forEach(product => {
+
+                    html += `
+                        <a href="/product/${product.slug}/"
+                           class="sugg-item">
+
+                            <img src="${product.image}"
+                                 alt="${product.name}">
+
+                            <div>
+                                <div class="sugg-name">
+                                    ${product.name}
+                                </div>
+
+                                <div class="sugg-price">
+                                    ₹${product.price}
+                                </div>
+                            </div>
+
+                        </a>
+                    `;
+                });
+
+            });
+
+            suggestionBox.innerHTML = html;
+            suggestionBox.style.display = "block";
+
+        }catch(err){
+            console.error(err);
+        }
+
+    });
+
+    document.addEventListener("click", function(e){
+
+        if(
+            !searchInput.contains(e.target) &&
+            !suggestionBox.contains(e.target)
+        ){
+            suggestionBox.style.display = "none";
+        }
+
+    });
 }
 </script>
 </body>

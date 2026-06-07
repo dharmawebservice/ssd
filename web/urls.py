@@ -358,16 +358,14 @@ urlpatterns = [
     ),
 
     path(
-        "dashboard/reviews/approve/<int:id>/",
-        views.approve_review,
-        name="approve_review"
-    ),
-
-    path(
         "dashboard/reviews/delete/<int:id>/",
         views.delete_review,
         name="delete_review"
     ),
+
+    path('about/', views.about, name='about'),
+    path('contact/', views.contact, name='contact'),
+    path('faq/', views.faq, name='faq'),
 
     # =========================
     # Banners

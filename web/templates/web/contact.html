@@ -1,0 +1,231 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Contact Us | SSD Nursery</title>
+<link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/style.css' %}"><link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
+<style>
+.contact-hero{background:linear-gradient(135deg,var(--forest) 0%,#0E2A20 100%);padding:140px 5% 90px;text-align:center;position:relative;overflow:hidden}
+.contact-hero::before{content:'';position:absolute;width:500px;height:500px;border-radius:50%;border:1px solid rgba(255,255,255,.05);top:-120px;right:-120px;pointer-events:none}
+.contact-hero .section-label{color:rgba(255,255,255,.6)}
+.contact-hero h1{font-family:'DM Serif Display',serif;font-size:clamp(2.6rem,5vw,4rem);color:white;line-height:1.1;margin-bottom:16px}
+.contact-hero h1 em{color:var(--gold)}
+.contact-hero p{font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:rgba(255,255,255,.65);max-width:500px;margin:0 auto;line-height:1.75}
+
+.contact-body{padding:90px 5%;display:grid;grid-template-columns:1fr 420px;gap:56px;align-items:flex-start;max-width:1200px;margin:0 auto}
+
+/* Info cards */
+.contact-info-col{display:flex;flex-direction:column;gap:22px}
+.contact-card{background:white;border-radius:22px;padding:30px;box-shadow:0 4px 24px rgba(28,58,43,.08);border:1px solid var(--ivory-dark);display:flex;align-items:flex-start;gap:18px;transition:.35s}
+.contact-card:hover{transform:translateY(-4px);box-shadow:0 14px 40px rgba(28,58,43,.12)}
+.contact-card-icon{width:54px;height:54px;background:linear-gradient(135deg,var(--forest-light),var(--forest));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;color:white;flex-shrink:0}
+.contact-card-info h3{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--forest);margin-bottom:6px}
+.contact-card-info p{font-family:'Cormorant Garamond',serif;font-size:.97rem;color:var(--text-mid);line-height:1.65}
+.contact-card-info a{color:var(--terracotta);font-weight:600;text-decoration:none}
+.contact-card-info a:hover{text-decoration:underline}
+.contact-hours{background:var(--ivory);border-radius:14px;padding:20px 22px;margin-top:4px;border:1px solid var(--ivory-dark)}
+.contact-hours h4{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--forest);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.hour-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--ivory-dark);font-family:'Cormorant Garamond',serif;font-size:.93rem;color:var(--text-mid)}
+.hour-row:last-child{border-bottom:none}
+.hour-row span:last-child{color:var(--forest);font-weight:600}
+
+/* Form */
+.contact-form-col{position:sticky;top:90px}
+.contact-form-card{background:white;border-radius:26px;padding:38px;box-shadow:0 8px 40px rgba(28,58,43,.1);border:1px solid var(--ivory-dark)}
+.contact-form-card h2{font-family:'DM Serif Display',serif;font-size:1.6rem;margin-bottom:6px;color:var(--forest)}
+.contact-form-card>p{font-family:'Cormorant Garamond',serif;font-size:.97rem;color:var(--text-mid);margin-bottom:26px}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:.76rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-mid);margin-bottom:7px;font-family:'Cormorant Garamond',serif}
+.form-input{width:100%;padding:13px 16px;border:1.5px solid var(--ivory-dark);border-radius:12px;font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--text-dark);background:var(--ivory);outline:none;transition:border-color .2s,box-shadow .2s,background .2s}
+.form-input:focus{border-color:var(--forest);background:white;box-shadow:0 0 0 3px rgba(28,58,43,.07)}
+.form-input::placeholder{color:var(--text-light)}
+textarea.form-input{resize:vertical;min-height:120px}
+.subject-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.subject-opt{position:relative}
+.subject-opt input[type=radio]{position:absolute;opacity:0;width:0;height:0}
+.subject-opt label{display:block;padding:10px 14px;border:1.5px solid var(--ivory-dark);border-radius:10px;font-family:'Cormorant Garamond',serif;font-size:.92rem;color:var(--text-mid);cursor:pointer;text-align:center;transition:.25s}
+.subject-opt input[type=radio]:checked + label{border-color:var(--forest);background:var(--forest);color:white}
+.subject-opt label:hover{border-color:var(--forest);color:var(--forest)}
+.btn-send{width:100%;background:var(--forest);color:white;padding:15px;border-radius:48px 12px 48px 12px;font-family:'DM Serif Display',serif;font-size:1.08rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:.35s;margin-top:6px}
+.btn-send:hover{background:var(--forest-mid);transform:translateY(-2px)}
+.btn-send:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.form-success{display:none;text-align:center;padding:32px 20px}
+.form-success .success-icon{width:72px;height:72px;background:linear-gradient(135deg,var(--forest-light),var(--forest));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:white;margin:0 auto 20px;animation:popIn .5s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes popIn{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+.form-success h3{font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--forest);margin-bottom:10px}
+.form-success p{font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--text-mid);line-height:1.65}
+
+/* Map section */
+.map-section{background:var(--ivory);padding:0 5% 80px}
+.map-wrap{border-radius:24px;overflow:hidden;box-shadow:0 8px 32px rgba(28,58,43,.1);height:360px;background:var(--forest-mid);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-family:'DM Serif Display',serif;font-size:1.2rem}
+
+/* FAQ link strip */
+.faq-strip{background:var(--forest);padding:36px 5%;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.faq-strip p{font-family:'Cormorant Garamond',serif;font-size:1.05rem;color:rgba(255,255,255,.75)}
+.faq-strip p strong{color:white}
+.btn-faq-link{display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.12);color:white;padding:12px 24px;border-radius:30px;font-family:'DM Serif Display',serif;font-size:.97rem;border:1px solid rgba(255,255,255,.2);transition:.3s;text-decoration:none}
+.btn-faq-link:hover{background:white;color:var(--forest)}
+
+@media(max-width:1000px){.contact-body{grid-template-columns:1fr;gap:36px}.contact-form-col{position:static}}
+@media(max-width:600px){.subject-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body data-auth="{% if request.user.is_authenticated %}1{% else %}0{% endif %}">
+<script>window.__WISHLIST_IDS__ = [];</script>
+{% with active_nav="contact" nav_solid=True %}{% include "web/_navbar.html" %}{% endwith %}
+
+<!-- HERO -->
+<section class="contact-hero">
+  <div class="section-label">Get in touch</div>
+  <h1>We'd Love to<br><em>Hear From You.</em></h1>
+  <p>Questions about plants, orders or care? Our team of botanists and plant experts is here to help.</p>
+</section>
+
+<!-- BODY -->
+<div class="contact-body">
+  <!-- INFO -->
+  <div class="contact-info-col">
+    <div class="contact-card reveal-child">
+      <div class="contact-card-icon"><i class="fas fa-location-dot"></i></div>
+      <div class="contact-card-info">
+        <h3>Visit Our Nursery</h3>
+        <p>Plot 42, Greenway Road, Jubilee Hills,<br>Hyderabad, Telangana — 500033</p>
+        <p style="margin-top:8px;"><a href="https://maps.google.com" target="_blank">Get directions →</a></p>
+      </div>
+    </div>
+    <div class="contact-card reveal-child">
+      <div class="contact-card-icon"><i class="fas fa-phone"></i></div>
+      <div class="contact-card-info">
+        <h3>Call / WhatsApp</h3>
+        <p><a href="tel:+918008001234">+91 8008 001 234</a></p>
+        <p style="margin-top:4px;font-size:.88rem;color:var(--text-light);">Mon–Sat · 9 AM to 7 PM IST</p>
+      </div>
+    </div>
+    <div class="contact-card reveal-child">
+      <div class="contact-card-icon"><i class="fas fa-envelope"></i></div>
+      <div class="contact-card-info">
+        <h3>Email Us</h3>
+        <p><a href="mailto:hello@ssdnursery.in">hello@ssdnursery.in</a></p>
+        <p style="margin-top:4px;font-size:.88rem;color:var(--text-light);">We reply within 24 hours</p>
+      </div>
+    </div>
+    <div class="contact-card reveal-child">
+      <div class="contact-card-icon"><i class="fab fa-whatsapp"></i></div>
+      <div class="contact-card-info">
+        <h3>WhatsApp Chat</h3>
+        <p>Quick responses for order queries,<br>plant care advice and more.</p>
+        <p style="margin-top:8px;"><a href="https://wa.me/918008001234" target="_blank">Chat now →</a></p>
+      </div>
+    </div>
+    <div class="contact-hours reveal-child">
+      <h4><i class="fas fa-clock" style="color:var(--terracotta);font-size:.9rem;"></i> Business Hours</h4>
+      <div class="hour-row"><span>Monday – Friday</span><span>9:00 AM – 7:00 PM</span></div>
+      <div class="hour-row"><span>Saturday</span><span>9:00 AM – 6:00 PM</span></div>
+      <div class="hour-row"><span>Sunday</span><span>10:00 AM – 4:00 PM</span></div>
+    </div>
+  </div>
+
+  <!-- FORM -->
+  <div class="contact-form-col">
+    <div class="contact-form-card">
+      <h2>Send Us a Message</h2>
+      <p>Fill in the form and we'll get back to you within 24 hours.</p>
+
+      <div id="contactForm">
+        <div class="form-group">
+          <label>Your Name *</label>
+          <input type="text" id="contactName" class="form-input" placeholder="John Doe" value="{% if request.user.is_authenticated %}{{ request.user.first_name }}{% endif %}">
+        </div>
+        <div class="form-group">
+          <label>Email Address *</label>
+          <input type="email" id="contactEmail" class="form-input" placeholder="you@example.com" value="{% if request.user.is_authenticated %}{{ request.user.email }}{% endif %}">
+        </div>
+        <div class="form-group">
+          <label>Phone (Optional)</label>
+          <input type="tel" id="contactPhone" class="form-input" placeholder="9876543210">
+        </div>
+        <div class="form-group">
+          <label>Subject *</label>
+          <div class="subject-grid">
+            <div class="subject-opt"><input type="radio" name="subject" id="s1" value="Plant Care" checked><label for="s1">🌱 Plant Care</label></div>
+            <div class="subject-opt"><input type="radio" name="subject" id="s2" value="Order Issue"><label for="s2">📦 Order Issue</label></div>
+            <div class="subject-opt"><input type="radio" name="subject" id="s3" value="Wholesale"><label for="s3">🏪 Wholesale</label></div>
+            <div class="subject-opt"><input type="radio" name="subject" id="s4" value="Other"><label for="s4">💬 Other</label></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Message *</label>
+          <textarea id="contactMessage" class="form-input" placeholder="Tell us how we can help…"></textarea>
+        </div>
+        <button class="btn-send" id="sendBtn" onclick="submitContactForm()">
+          <span id="sendBtnText"><i class="fas fa-paper-plane"></i> Send Message</span>
+          <span id="sendBtnSpinner" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Sending…</span>
+        </button>
+      </div>
+
+      <div class="form-success" id="formSuccess">
+        <div class="success-icon"><i class="fas fa-check"></i></div>
+        <h3>Message Sent!</h3>
+        <p>Thank you for reaching out. Our team will get back to you within 24 hours at your email address.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAP PLACEHOLDER -->
+<div class="map-section">
+  <div class="map-wrap">
+    <div style="text-align:center;">
+      <i class="fas fa-map-marked-alt" style="font-size:3rem;display:block;margin-bottom:14px;opacity:.35;"></i>
+      <span>Nursery Location — Hyderabad, Telangana</span><br>
+      <a href="https://maps.google.com" target="_blank" style="color:var(--gold);font-family:'DM Serif Display',serif;font-size:1rem;margin-top:10px;display:inline-block;">Open in Google Maps →</a>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ STRIP -->
+<div class="faq-strip">
+  <p><strong>Have a quick question?</strong> Check our FAQ for instant answers on orders, delivery, plant care and returns.</p>
+  <a href="{% url 'faq' %}" class="btn-faq-link"><i class="fas fa-circle-question"></i> Browse FAQ</a>
+</div>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-top">
+    <div class="footer-brand"><img src="{% static 'images/logo.png' %}" alt="SSD Nursery" class="footer-logo"><p>Bringing nature into your home since 2018.</p><div class="social-links"><a href="#"><i class="fab fa-instagram"></i></a><a href="#"><i class="fab fa-facebook-f"></i></a><a href="#"><i class="fab fa-whatsapp"></i></a></div></div>
+    <div class="footer-links"><h4>Shop</h4><a href="{% url 'shop' %}">All Plants</a><a href="{% url 'shop' %}?sale=1">On Sale</a><a href="{% url 'collections' %}">Collections</a></div>
+    <div class="footer-links"><h4>Company</h4><a href="{% url 'about' %}">About Us</a><a href="{% url 'contact' %}">Contact</a><a href="{% url 'faq' %}">FAQ</a></div>
+    <div class="footer-newsletter"><h4>Newsletter</h4><p>Get care tips & offers.</p><div class="newsletter-form"><input type="email" placeholder="your@email.com"><button><i class="fas fa-arrow-right"></i></button></div></div>
+  </div>
+  <div class="footer-bottom"><span>© 2025 SSD Nursery. All rights reserved.</span><span>Made with 🌱 in India</span></div>
+</footer>
+
+<script src="{% static 'js/site.js' %}"></script>
+<script>
+function submitContactForm(){
+  const name=document.getElementById('contactName').value.trim();
+  const email=document.getElementById('contactEmail').value.trim();
+  const msg=document.getElementById('contactMessage').value.trim();
+  const subject=document.querySelector('input[name=subject]:checked')?.value||'Other';
+  if(!name)return showToast&&showToast('Please enter your name','error');
+  if(!email||!email.includes('@'))return showToast&&showToast('Please enter a valid email','error');
+  if(!msg||msg.length<10)return showToast&&showToast('Message must be at least 10 characters','error');
+  const btn=document.getElementById('sendBtn');
+  const txt=document.getElementById('sendBtnText');
+  const spin=document.getElementById('sendBtnSpinner');
+  btn.disabled=true;txt.style.display='none';spin.style.display='flex';
+  // Simulate send (replace with real API call if needed)
+  setTimeout(()=>{
+    document.getElementById('contactForm').style.display='none';
+    document.getElementById('formSuccess').style.display='block';
+    showToast&&showToast('Message sent successfully!','success');
+  },1400);
+}
+</script>
+</body>
+</html>

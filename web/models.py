@@ -180,6 +180,14 @@ class Review(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["product", "user"],
+                name="unique_product_review"
+            )
+        ]
+
+    class Meta:
         unique_together = ("product", "user")
         ordering = ["-created_at"]
 

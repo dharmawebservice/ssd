@@ -1,88 +1,35 @@
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coupons | SSD Nursery</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
-    <style>.coupon-code{font-family:monospace;font-size:0.9rem;font-weight:700;background:var(--accent-light);color:var(--accent);padding:4px 10px;border-radius:6px;letter-spacing:1px;}</style>
-</head>
-<body>
-<div class="admin-layout">
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    {% include "web/admin/_sidebar.html" %}
-    <main class="main-content">
-        <header class="top-header">
-            <div class="header-left">
-                <button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button>
-                <div><h1 class="page-title">Coupons</h1><p class="page-subtitle">{{ coupons.count }} active coupons</p></div>
-            </div>
-            <button class="btn-primary" data-modal-open="addCouponModal"><i class="fa-solid fa-plus"></i> New Coupon</button>
-        </header>
-        <div class="data-card">
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>#</th><th>Code</th><th>Type</th><th>Value</th><th>Min Order</th><th>Max Discount</th><th>Expiry</th><th style="text-align:right">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for c in coupons %}
-                        <tr>
-                            <td style="color:var(--text-secondary);">{{ c.id }}</td>
-                            <td><span class="coupon-code">{{ c.code }}</span></td>
-                            <td>{{ c.discount_type }}</td>
-                            <td style="font-weight:700;color:var(--accent);">{% if c.discount_type == 'percentage' %}{{ c.discount_value }}%{% else %}₹{{ c.discount_value }}{% endif %}</td>
-                            <td>₹{{ c.minimum_order_amount|default:"—" }}</td>
-                            <td>{% if c.maximum_discount %}₹{{ c.maximum_discount }}{% else %}—{% endif %}</td>
-                            <td style="color:var(--text-secondary);">{{ c.expiry_date|date:"M d, Y"|default:"—" }}</td>
-                            <td>
-                                <div class="action-group">
-                                    <a href="{% url 'delete_coupon' c.id %}" class="btn-icon btn-icon-danger" data-confirm="Delete coupon '{{ c.code }}'?"><i class="fa-solid fa-trash"></i></a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr class="empty-row"><td colspan="8"><i class="fa-solid fa-tags"></i><br>No coupons yet</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </main>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Coupons | Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/admin.css' %}"></head><body>
+<div class="admin-layout"><div class="sidebar-overlay" id="sidebarOverlay"></div>{% include "web/admin/_sidebar.html" %}
+<main class="main-content">
+<header class="top-header"><div class="header-left"><button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button><div><h1 class="page-title">Coupons</h1></div></div><button class="btn-primary" data-modal-open="addCouponModal"><i class="fa-solid fa-plus"></i> New Coupon</button></header>
+<div class="data-card"><div class="table-responsive"><table><thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Min Order</th><th>Max Discount</th><th>Expiry</th><th style="text-align:right">Action</th></tr></thead><tbody>
+{% for c in coupons %}
+<tr><td><span style="font-family:monospace;font-weight:700;background:var(--accent-light);color:var(--accent);padding:4px 10px;border-radius:6px;letter-spacing:1px;font-size:.88rem;">{{ c.code }}</span></td>
+<td>{{ c.discount_type }}</td>
+<td style="font-weight:700;color:var(--accent)">{% if c.discount_type == 'percentage' %}{{ c.discount_value }}%{% else %}₹{{ c.discount_value }}{% endif %}</td>
+<td>₹{{ c.minimum_order_amount|default:"—" }}</td>
+<td>{% if c.maximum_discount %}₹{{ c.maximum_discount }}{% else %}—{% endif %}</td>
+<td style="color:var(--text-secondary)">{{ c.expiry_date|date:"M d, Y"|default:"—" }}</td>
+<td><div class="action-group"><a href="{% url 'delete_coupon' c.id %}" class="btn-icon btn-icon-danger" data-confirm="Delete coupon '{{ c.code }}'?"><i class="fa-solid fa-trash"></i></a></div></td>
+</tr>{% empty %}<tr class="empty-row"><td colspan="7"><i class="fa-solid fa-tags"></i><br>No coupons yet</td></tr>{% endfor %}
+</tbody></table></div></div>
+</main></div>
+<div class="modal-overlay" id="addCouponModal"><div class="modal-card"><div class="modal-header"><h2>Create Coupon</h2><button class="close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+<form method="POST" action="{% url 'add_coupon' %}">{% csrf_token %}<div class="modal-body">
+<div class="form-group"><label>Code *</label><input type="text" name="code" class="form-control" required placeholder="e.g. SAVE20" style="text-transform:uppercase"></div>
+<div class="row-inputs">
+<div class="form-group"><label>Type *</label><select name="discount_type" class="form-control" required><option value="percentage">Percentage (%)</option><option value="flat">Flat (₹)</option></select></div>
+<div class="form-group"><label>Value *</label><input type="number" name="discount_value" class="form-control" required min="1" placeholder="20"></div>
 </div>
-<div class="modal-overlay" id="addCouponModal">
-    <div class="modal-card">
-        <div class="modal-header"><h2>Create Coupon</h2><button class="close-modal"><i class="fa-solid fa-xmark"></i></button></div>
-        <form method="POST" action="{% url 'add_coupon' %}">
-            {% csrf_token %}
-            <div class="modal-body">
-                <div class="form-group"><label>Coupon Code *</label><input type="text" name="code" class="form-control" placeholder="e.g. SAVE20" required style="text-transform:uppercase;"></div>
-                <div class="row-inputs">
-                    <div class="form-group"><label>Discount Type *</label>
-                        <select name="discount_type" class="form-control" required>
-                            <option value="percentage">Percentage (%)</option>
-                            <option value="flat">Flat (₹)</option>
-                        </select>
-                    </div>
-                    <div class="form-group"><label>Discount Value *</label><input type="number" name="discount_value" class="form-control" placeholder="e.g. 20" min="1" required></div>
-                </div>
-                <div class="row-inputs">
-                    <div class="form-group"><label>Min Order Amount</label><input type="number" name="minimum_order_amount" class="form-control" placeholder="0" min="0"></div>
-                    <div class="form-group"><label>Max Discount (₹)</label><input type="number" name="maximum_discount" class="form-control" placeholder="Leave blank for unlimited" min="0"></div>
-                </div>
-                <div class="form-group"><label>Expiry Date</label><input type="date" name="expiry_date" class="form-control"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel">Cancel</button>
-                <button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Create Coupon</button>
-            </div>
-        </form>
-    </div>
+<div class="row-inputs">
+<div class="form-group"><label>Min Order</label><input type="number" name="minimum_order_amount" class="form-control" min="0" placeholder="0"></div>
+<div class="form-group"><label>Max Discount</label><input type="number" name="maximum_discount" class="form-control" min="0" placeholder="Unlimited"></div>
 </div>
-<script src="{% static 'js/admin.js' %}"></script>
-</body>
-</html>
+<div class="form-group"><label>Expiry Date</label><input type="date" name="expiry_date" class="form-control"></div>
+</div><div class="modal-footer"><button type="button" class="btn-cancel">Cancel</button><button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Create</button></div>
+</form></div></div>
+<script src="{% static 'js/admin.js' %}"></script></body></html>

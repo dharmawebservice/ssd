@@ -1,97 +1,276 @@
 {% load static %}
+<style>
+  .has-drop {
+    position: relative;
+}
+
+.mega-drop {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 220px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.12);
+    padding: 10px 0;
+    display: none;
+    z-index: 9999;
+}
+
+.has-drop:hover .mega-drop {
+    display: block;
+}
+
+.mega-drop a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    text-decoration: none;
+    color: #222;
+    transition: background .3s;
+}
+
+.mega-drop a:hover {
+    background: #f5f5f5;
+}
+
+@media (max-width:768px){
+
+    .mega-drop{
+        display:none;
+        position:static;
+        box-shadow:none;
+        margin-top:10px;
+    }
+
+    .mega-drop.show{
+        display:block;
+    }
+}
+</style>
 {% if notifications %}
+
 <div class="offer-strip">
-  <div class="strip-track">
-    {% for n in notifications %}<span class="strip-item"><i class="fas fa-seedling"></i> {{ n.title }}</span>{% endfor %}
-    {% for n in notifications %}<span class="strip-item"><i class="fas fa-seedling"></i> {{ n.title }}</span>{% endfor %}
-  </div>
+    <div class="strip-track">
+        {% for n in notifications %}
+        <span class="strip-item">
+            <i class="fas fa-seedling"></i> {{ n.title }}
+        </span>
+        {% endfor %}
+
+    {% for n in notifications %}
+    <span class="strip-item">
+        <i class="fas fa-seedling"></i> {{ n.title }}
+    </span>
+    {% endfor %}
+</div>
+
 </div>
 {% endif %}
 
 <nav class="navbar{% if nav_solid %} scrolled{% endif %}" id="navbar">
-  <div class="logo">
-    <a href="{% url 'home' %}"><img src="{% static 'images/logo.png' %}" alt="SSD Nursery" class="brand-logo"></a>
-  </div>
 
-  <ul class="nav-links" id="nav-links">
-    <li><a href="{% url 'home' %}"        {% if active_nav == 'home' %}class="active"{% endif %}>Home</a></li>
-    <li><a href="{% url 'shop' %}"        {% if active_nav == 'shop' %}class="active"{% endif %}>Shop</a></li>
-    <li><a href="{% url 'collections' %}" {% if active_nav == 'collections' %}class="active"{% endif %}>Collections</a></li>
-    <li class="has-drop">
-      <a href="#">More <i class="fas fa-chevron-down" style="font-size:0.65rem;"></i></a>
-      <div class="mega-drop">
-        <a href="{% url 'shop' %}?sale=1"><i class="fas fa-tag"></i> Sale</a>
-        <a href="{% url 'shop' %}?sort=newest"><i class="fas fa-star"></i> New Arrivals</a>
-        <a href="{% url 'shop' %}?in_stock=1"><i class="fas fa-check-circle"></i> In Stock</a>
-        {% if request.user.is_authenticated %}
-        <a href="{% url 'wishlist_page' %}"><i class="fas fa-heart"></i> My Wishlist</a>
-        {% endif %}
-      </div>
+<!-- Logo -->
+<div class="logo">
+    <a href="{% url 'home' %}">
+        <img src="{% static 'images/logo.png' %}" alt="SSD Nursery" class="brand-logo">
+    </a>
+</div>
+
+<!-- Navigation -->
+<ul class="nav-links" id="nav-links">
+    <li>
+        <a href="{% url 'home' %}" {% if active_nav == 'home' %}class="active"{% endif %}>
+            Home
+        </a>
     </li>
-  </ul>
 
-  <div class="nav-actions">
-    <button class="icon-btn hide-mobile search-trigger" id="searchTrigger" title="Search"><i class="fas fa-search"></i></button>
+    <li>
+        <a href="{% url 'shop' %}" {% if active_nav == 'shop' %}class="active"{% endif %}>
+            Shop
+        </a>
+    </li>
 
-    <a href="{% url 'wishlist_page' %}" class="icon-btn wishlist-nav-btn" title="Wishlist" style="position:relative;display:flex;align-items:center;">
-      <i class="far fa-heart"></i>
-      <span class="wishlist-nav-count" id="wishlistNavCount" style="display:none;position:absolute;top:-7px;right:-9px;background:#e74c3c;color:white;font-size:9px;font-weight:700;width:17px;height:17px;border-radius:50%;display:flex;justify-content:center;align-items:center;">0</span>
+    <li>
+        <a href="{% url 'collections' %}" {% if active_nav == 'collections' %}class="active"{% endif %}>
+            Collections
+        </a>
+    </li>
+
+    <li class="has-drop">
+        <a href="#">
+            More
+            <i class="fas fa-chevron-down" style="font-size:0.65rem;"></i>
+        </a>
+
+        <div class="mega-drop">
+
+    <a href="{% url 'about' %}">
+        <i class="fas fa-leaf"></i>
+        About Us
     </a>
 
+    <a href="{% url 'contact' %}">
+        <i class="fas fa-envelope"></i>
+        Contact Us
+    </a>
+
+    <a href="{% url 'faq' %}">
+        <i class="fas fa-circle-question"></i>
+        FAQ
+    </a>
+
+</div>
+    </li>
+</ul>
+
+<!-- Right Actions -->
+<div class="nav-actions">
+
+    <!-- Wishlist -->
+    {% if request.user.is_authenticated %}
+    <a href="{% url 'wishlist_page' %}"
+       class="icon-btn wishlist-nav-btn"
+       title="Wishlist">
+        <i class="far fa-heart"></i>
+    </a>
+    {% endif %}
+
+    <!-- Cart -->
     <button class="icon-btn cart-btn" id="cartNavBtn" title="Cart">
-      <i class="fas fa-shopping-bag"></i>
-      <span class="cart-count" id="cartNavCount">0</span>
+        <i class="fas fa-shopping-bag"></i>
+        <span class="cart-count" id="cartNavCount">0</span>
     </button>
 
+    <!-- Profile -->
     <div class="profile-dropdown">
-      <button class="icon-btn" id="profileToggle"><i class="far fa-user"></i></button>
-      <div class="dropdown-menu" id="profileMenu">
-        {% if request.user.is_authenticated %}
-          {% if request.user.is_superuser %}
-            <a href="{% url 'admin_dashboard' %}"><i class="fas fa-chart-line"></i> Dashboard</a>
-          {% else %}
-            <div class="user-info">Hi, <strong>{{ request.user.first_name|default:request.user.username }}</strong></div>
-            <a href="{% url 'profile' %}"><i class="fas fa-user-circle"></i> My Profile</a>
-            <a href="{% url 'cart_page' %}"><i class="fas fa-shopping-bag"></i> My Cart</a>
-            <a href="{% url 'wishlist_page' %}"><i class="fas fa-heart"></i> Wishlist</a>
-          {% endif %}
-          <a href="{% url 'logout_user' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
-        {% else %}
-          <a href="{% url 'auth' %}?tab=login"><i class="fas fa-sign-in-alt"></i> Login</a>
-          <a href="{% url 'auth' %}?tab=signup"><i class="fas fa-user-plus"></i> Sign Up</a>
-        {% endif %}
-      </div>
+
+        <button class="icon-btn" id="profileToggle">
+            <i class="far fa-user"></i>
+        </button>
+
+        <div class="dropdown-menu" id="profileMenu">
+
+            {% if request.user.is_authenticated %}
+
+                {% if request.user.is_superuser %}
+                    <a href="{% url 'admin_dashboard' %}">
+                        <i class="fas fa-chart-line"></i>
+                        Dashboard
+                    </a>
+                {% else %}
+                    <div class="user-info">
+                        Hi,
+                        <strong>
+                            {{ request.user.first_name|default:request.user.username }}
+                        </strong>
+                    </div>
+
+                    <a href="{% url 'profile' %}">
+                        <i class="fas fa-user-circle"></i>
+                        My Profile
+                    </a>
+                {% endif %}
+
+                <a href="{% url 'logout_user' %}">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+
+            {% else %}
+
+                <a href="{% url 'auth' %}?tab=login">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Login
+                </a>
+
+                <a href="{% url 'auth' %}?tab=signup">
+                    <i class="fas fa-user-plus"></i>
+                    Sign Up
+                </a>
+
+            {% endif %}
+        </div>
     </div>
-    <div class="menu-toggle" id="mobile-menu"><i class="fas fa-bars"></i></div>
-  </div>
+
+    <!-- Mobile Menu -->
+    <div class="menu-toggle" id="mobile-menu">
+        <i class="fas fa-bars"></i>
+    </div>
+
+</div>
+
 </nav>
 
-<!-- SEARCH OVERLAY -->
-<div class="search-overlay" id="searchOverlay">
-  <div class="search-overlay-inner">
-    <div class="search-box-wrap">
-      <i class="fas fa-search"></i>
-      <input type="text" id="searchInput" placeholder="Search plants, categories…" autocomplete="off">
-      <button class="search-close" id="searchClose"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="search-suggestions" id="searchSuggestions"></div>
-  </div>
+<!-- Cart Drawer -->
+
+<div class="cart-overlay" id="cartOverlay"></div>
+
+<div class="cart-sidebar" id="cartSidebar">
+
+<div class="cart-header">
+    <h3>
+        Your Basket
+        <span class="cart-item-label">
+            (<span id="cartItemCount">0</span>)
+        </span>
+    </h3>
+
+    <button class="cart-close" id="cartClose">
+        <i class="fas fa-times"></i>
+    </button>
 </div>
 
-<!-- CART DRAWER -->
-<div class="cart-overlay" id="cartOverlay"></div>
-<div class="cart-sidebar" id="cartSidebar">
-  <div class="cart-header">
-    <h3>Your Basket <span class="cart-item-label">(<span id="cartItemCount">0</span>)</span></h3>
-    <button class="cart-close" id="cartClose"><i class="fas fa-times"></i></button>
-  </div>
-  <div class="cart-body" id="cartBody">
-    <div class="cart-empty"><i class="fas fa-seedling"></i><p>Basket is empty</p><a href="{% url 'shop' %}" class="btn-hero-sm">Shop Plants</a></div>
-  </div>
-  <div class="cart-footer" id="cartFooter" style="display:none;">
-    <div class="cart-total">Subtotal: <strong id="cartTotal">₹0</strong></div>
-    <a href="{% url 'cart_page' %}" class="btn-view-cart">View Cart</a>
-    <a href="{% url 'checkout' %}" class="btn-checkout-now">Checkout <i class="fas fa-arrow-right"></i></a>
-  </div>
+<div class="cart-body" id="cartBody">
+    <div class="cart-empty">
+        <i class="fas fa-seedling"></i>
+        <p>Basket is empty</p>
+
+        <a href="{% url 'shop' %}" class="btn-hero-sm">
+            Shop Plants
+        </a>
+    </div>
 </div>
-<div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg">Done!</span></div>
+
+<div class="cart-footer" id="cartFooter" style="display:none;">
+    <div class="cart-total">
+        Subtotal:
+        <strong id="cartTotal">₹0</strong>
+    </div>
+
+    <a href="{% url 'cart_page' %}" class="btn-view-cart">
+        View Cart
+    </a>
+
+    <a href="{% url 'checkout' %}" class="btn-checkout-now">
+        Checkout
+        <i class="fas fa-arrow-right"></i>
+    </a>
+</div>
+
+</div>
+
+<!-- Toast -->
+
+<div class="toast" id="toast">
+    <i class="fas fa-check-circle"></i>
+    <span id="toastMsg">Done!</span>
+</div>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+
+    const moreMenu = document.querySelector(".has-drop > a");
+    const dropdown = document.querySelector(".mega-drop");
+
+    if (moreMenu && dropdown) {
+        moreMenu.addEventListener("click", (e) => {
+            if (window.innerWidth <= 768) {
+                e.preventDefault();
+                dropdown.classList.toggle("show");
+            }
+        });
+    }
+
+});
+</script>

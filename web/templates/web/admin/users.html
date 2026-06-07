@@ -1,72 +1,21 @@
-
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Users | SSD Nursery</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
-    <style>.avatar-sm{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1F5132,#3D7358);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.9rem;font-weight:700;flex-shrink:0;}</style>
-</head>
-<body>
-<div class="admin-layout">
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    {% include "web/admin/_sidebar.html" %}
-    <main class="main-content">
-        <header class="top-header">
-            <div class="header-left">
-                <button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button>
-                <div>
-                    <h1 class="page-title">Users</h1>
-                    <p class="page-subtitle">{{ users.count }} registered users</p>
-                </div>
-            </div>
-        </header>
-        <div class="data-card">
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>User</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>City</th>
-                            <th>Joined</th>
-                            <th>Role</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for user in users %}
-                        <tr>
-                            <td style="color:var(--text-secondary);">{{ user.id }}</td>
-                            <td>
-                                <div style="display:flex;align-items:center;gap:12px;">
-                                    <div class="avatar-sm">{{ user.first_name|slice:":1"|upper|default:user.username|slice:":1"|upper }}</div>
-                                    <span style="font-weight:600;">{{ user.first_name|default:user.username }}</span>
-                                </div>
-                            </td>
-                            <td style="color:var(--text-secondary);">{{ user.email }}</td>
-                            <td style="color:var(--text-secondary);">{{ user.profile.phone|default:"—" }}</td>
-                            <td style="color:var(--text-secondary);">{{ user.profile.city|default:"—" }}</td>
-                            <td style="color:var(--text-secondary);">{{ user.date_joined|date:"M d, Y" }}</td>
-                            <td>
-                                {% if user.is_superuser %}<span class="badge badge-sale">Admin</span>
-                                {% else %}<span class="badge badge-active">Customer</span>{% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr class="empty-row"><td colspan="7"><i class="fa-solid fa-users"></i><br>No users yet</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </main>
-</div>
-<script src="{% static 'js/admin.js' %}"></script>
-</body>
-</html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Users | Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/admin.css' %}"></head><body>
+<div class="admin-layout"><div class="sidebar-overlay" id="sidebarOverlay"></div>{% include "web/admin/_sidebar.html" %}
+<main class="main-content">
+<header class="top-header"><div class="header-left"><button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button><div><h1 class="page-title">Users</h1><p class="page-subtitle">{{ users.count }} registered</p></div></div></header>
+<div class="data-card"><div class="table-responsive"><table><thead><tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>City</th><th>Joined</th><th>Role</th></tr></thead><tbody>
+{% for u in users %}
+<tr><td style="color:var(--text-secondary)">{{ u.id }}</td>
+<td><div style="display:flex;align-items:center;gap:11px;"><div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1C3A2B,#3D7358);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0;">{{ u.first_name|slice:":1"|upper|default:u.username|slice:":1"|upper }}</div><span style="font-weight:600;">{{ u.first_name|default:u.username }}</span></div></td>
+<td style="color:var(--text-secondary)">{{ u.email }}</td>
+<td style="color:var(--text-secondary)">{{ u.profile.phone|default:"—" }}</td>
+<td style="color:var(--text-secondary)">{{ u.profile.city|default:"—" }}</td>
+<td style="color:var(--text-secondary)">{{ u.date_joined|date:"M d, Y" }}</td>
+<td>{% if u.is_superuser %}<span class="badge badge-sale">Admin</span>{% else %}<span class="badge badge-active">Customer</span>{% endif %}</td>
+</tr>{% empty %}<tr class="empty-row"><td colspan="7"><i class="fa-solid fa-users"></i><br>No users yet</td></tr>{% endfor %}
+</tbody></table></div></div>
+</main></div>
+<script src="{% static 'js/admin.js' %}"></script></body></html>

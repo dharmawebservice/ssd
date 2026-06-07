@@ -1,65 +1,18 @@
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reviews | SSD Nursery</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
-    <style>.stars{color:#F59E0B;font-size:0.8rem;letter-spacing:1px;}</style>
-</head>
-<body>
-<div class="admin-layout">
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    {% include "web/admin/_sidebar.html" %}
-    <main class="main-content">
-        <header class="top-header">
-            <div class="header-left">
-                <button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button>
-                <div><h1 class="page-title">Reviews</h1><p class="page-subtitle">{{ reviews.count }} total reviews</p></div>
-            </div>
-        </header>
-        <div class="data-card">
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr><th>#</th><th>Customer</th><th>Product</th><th>Rating</th><th>Review</th><th>Status</th><th style="text-align:right">Actions</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for r in reviews %}
-                        <tr>
-                            <td style="color:var(--text-secondary);">{{ r.id }}</td>
-                            <td style="font-weight:600;">{{ r.user.first_name|default:r.user.username }}</td>
-                            <td style="color:var(--text-secondary);">{{ r.product.name|truncatechars:30 }}</td>
-                            <td>
-                                <div class="stars">
-                                    {% for i in "12345" %}{% if forloop.counter <= r.rating %}★{% else %}☆{% endif %}{% endfor %}
-                                </div>
-                            </td>
-                            <td><div class="truncate">{{ r.review }}</div></td>
-                            <td>
-                                {% if r.is_approved %}<span class="badge badge-active"><i class="fa-solid fa-circle"></i>Approved</span>
-                                {% else %}<span class="badge badge-pending"><i class="fa-solid fa-circle"></i>Pending</span>{% endif %}
-                            </td>
-                            <td>
-                                <div class="action-group">
-                                    {% if not r.is_approved %}
-                                    <a href="{% url 'approve_review' r.id %}" class="btn-icon btn-icon-toggle" title="Approve"><i class="fa-solid fa-check"></i></a>
-                                    {% endif %}
-                                    <a href="{% url 'delete_review' r.id %}" class="btn-icon btn-icon-danger" title="Delete" data-confirm="Delete this review?"><i class="fa-solid fa-trash"></i></a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr class="empty-row"><td colspan="7"><i class="fa-solid fa-star"></i><br>No reviews yet</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </main>
-</div>
-<script src="{% static 'js/admin.js' %}"></script>
-</body>
-</html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Reviews | Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/admin.css' %}"></head><body>
+<div class="admin-layout"><div class="sidebar-overlay" id="sidebarOverlay"></div>{% include "web/admin/_sidebar.html" %}
+<main class="main-content">
+<header class="top-header"><div class="header-left"><button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button><div><h1 class="page-title">Reviews</h1><p class="page-subtitle">{{ reviews.count }} total</p></div></div></header>
+<div class="data-card"><div class="table-responsive"><table><thead><tr><th>Customer</th><th>Product</th><th>Rating</th><th>Review</th></tr></thead><tbody>
+{% for r in reviews %}
+<tr><td style="font-weight:600">{{ r.user.first_name|default:r.user.username }}</td>
+<td style="color:var(--text-secondary)">{{ r.product.name|truncatechars:28 }}</td>
+<td><span style="color:#F59E0B;letter-spacing:2px;">{% for i in "12345" %}{% if forloop.counter <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span></td>
+<td><div class="truncate">{{ r.review }}</div></td>
+</tr>{% empty %}<tr class="empty-row"><td colspan="4"><i class="fa-solid fa-star"></i><br>No reviews yet</td></tr>{% endfor %}
+</tbody></table></div></div>
+</main></div>
+<script src="{% static 'js/admin.js' %}"></script></body></html>

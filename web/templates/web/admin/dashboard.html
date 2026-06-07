@@ -2,130 +2,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | SSD Nursery</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
-    <style>
-        .recent-orders-card { background:var(--bg-surface); border-radius:var(--r-lg); box-shadow:var(--shadow); border:1px solid var(--border); overflow:hidden; animation:fadeUp 0.55s var(--t) 0.2s forwards; opacity:0; transform:translateY(20px); }
-        .card-header { padding:20px 24px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
-        .card-title { font-size:1rem; font-weight:700; color:var(--text-primary); }
-        .card-link { font-size:0.85rem; color:var(--accent); font-weight:500; }
-        .card-link:hover { text-decoration:underline; }
-        .summary-row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
-        .summary-item { background:var(--bg-body); border-radius:12px; padding:16px 18px; }
-        .summary-item .label { font-size:0.8rem; color:var(--text-secondary); font-weight:500; margin-bottom:4px; }
-        .summary-item .val { font-size:1.5rem; font-weight:800; color:var(--text-primary); letter-spacing:-0.5px; }
-        .summary-item .val.green { color:var(--accent); }
-        .summary-item .val.orange { color:var(--warn); }
-        .summary-item .val.red { color:var(--danger); }
-    </style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dashboard | SSD Nursery Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
 </head>
 <body>
-{% for message in messages %}
-    <div class="django-message" data-level="{% if message.tags == 'error' %}error{% else %}success{% endif %}" style="display:none;">{{ message }}</div>
-{% endfor %}
-
+{% for m in messages %}<div class="django-message" data-level="{% if m.tags == 'error' %}error{% else %}success{% endif %}" style="display:none;">{{ m }}</div>{% endfor %}
 <div class="admin-layout">
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    {% include "web/admin/_sidebar.html" %}
-
-    <main class="main-content">
-        <header class="top-header">
-            <div class="header-left">
-                <button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button>
-                <div>
-                    <h1 class="page-title">Overview</h1>
-                    <p class="page-subtitle">Welcome back, {{ request.user.first_name }}</p>
-                </div>
-            </div>
-            <a href="{% url 'home' %}" class="btn-accent" target="_blank">
-                <i class="fa-solid fa-arrow-up-right-from-square"></i> View Store
-            </a>
-        </header>
-
-        <section class="metrics-grid">
-            <div class="metric-card">
-                <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-users"></i></div>Total Users</div>
-                <div class="metric-value">{{ total_users }}</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-seedling"></i></div>Products</div>
-                <div class="metric-value">{{ total_products }}</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-box"></i></div>Total Orders</div>
-                <div class="metric-value">{{ total_orders }}</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-clock"></i></div>Pending</div>
-                <div class="metric-value" style="color:var(--warn);">{{ pending_orders }}</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-check-circle"></i></div>Delivered</div>
-                <div class="metric-value" style="color:var(--success);">{{ completed_orders }}</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-indian-rupee-sign"></i></div>Revenue</div>
-                <div class="metric-value">₹{{ total_revenue|floatformat:0 }}</div>
-            </div>
-        </section>
-
-        <div class="summary-row" style="animation:fadeUp 0.55s var(--t) 0.15s forwards; opacity:0; transform:translateY(20px);">
-            <div class="summary-item">
-                <div class="label">Categories</div>
-                <div class="val green">{{ total_categories }}</div>
-            </div>
-            <div class="summary-item">
-                <div class="label">Pending Orders</div>
-                <div class="val orange">{{ pending_orders }}</div>
-            </div>
-            <div class="summary-item">
-                <div class="label">Revenue (Delivered)</div>
-                <div class="val">₹{{ total_revenue|floatformat:0 }}</div>
-            </div>
-        </div>
-
-        <div class="recent-orders-card">
-            <div class="card-header">
-                <span class="card-title">Recent Orders</span>
-                <a href="{% url 'order_list' %}" class="card-link">View all →</a>
-            </div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Order</th>
-                            <th>Customer</th>
-                            <th>Amount</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in recent_orders %}
-                        <tr>
-                            <td style="color:var(--text-secondary);font-weight:500;">#{{ order.id }}</td>
-                            <td style="font-weight:600;">{{ order.user.first_name|default:"Guest" }}</td>
-                            <td style="font-weight:700;color:var(--accent);">₹{{ order.total_amount }}</td>
-                            <td style="color:var(--text-secondary);">{{ order.created_at|date:"M d, Y" }}</td>
-                            <td>
-                                {% if order.status == 'Pending' %}<span class="badge badge-pending"><i class="fa-solid fa-circle"></i>{{ order.status }}</span>
-                                {% elif order.status == 'Delivered' %}<span class="badge badge-delivered"><i class="fa-solid fa-circle"></i>{{ order.status }}</span>
-                                {% elif order.status == 'Cancelled' %}<span class="badge badge-cancelled"><i class="fa-solid fa-circle"></i>{{ order.status }}</span>
-                                {% else %}<span class="badge badge-confirmed"><i class="fa-solid fa-circle"></i>{{ order.status }}</span>{% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr class="empty-row"><td colspan="5"><i class="fa-solid fa-box-open"></i><br>No recent orders</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </main>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  {% include "web/admin/_sidebar.html" %}
+  <main class="main-content">
+    <header class="top-header">
+      <div class="header-left">
+        <button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button>
+        <div><h1 class="page-title">Overview</h1><p class="page-subtitle">Welcome back, {{ request.user.first_name }}</p></div>
+      </div>
+      <a href="{% url 'shop' %}" class="btn-accent" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> View Store</a>
+    </header>
+    <section class="metrics-grid">
+      <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-users"></i></div>Users</div><div class="metric-value">{{ total_users }}</div></div>
+      <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-seedling"></i></div>Products</div><div class="metric-value">{{ total_products }}</div></div>
+      <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-box"></i></div>Orders</div><div class="metric-value">{{ total_orders }}</div></div>
+      <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-clock"></i></div>Pending</div><div class="metric-value" style="color:var(--warn)">{{ pending_orders }}</div></div>
+      <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-check-circle"></i></div>Delivered</div><div class="metric-value" style="color:var(--success)">{{ completed_orders }}</div></div>
+      <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-indian-rupee-sign"></i></div>Revenue</div><div class="metric-value">₹{{ total_revenue|floatformat:0 }}</div></div>
+    </section>
+    <div class="data-card">
+      <div style="padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:1rem;font-weight:700;">Recent Orders</span>
+        <a href="{% url 'order_list' %}" style="font-size:.85rem;color:var(--accent);font-weight:500;">View all →</a>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead><tr><th>Order</th><th>Customer</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for o in recent_orders %}
+            <tr>
+              <td style="color:var(--text-secondary);font-weight:500;">#{{ o.id }}</td>
+              <td style="font-weight:600;">{{ o.user.first_name|default:"Guest" }}</td>
+              <td style="font-weight:700;color:var(--accent);">₹{{ o.total_amount }}</td>
+              <td style="color:var(--text-secondary);">{{ o.created_at|date:"M d, Y" }}</td>
+              <td>{% if o.status == 'Pending' %}<span class="badge badge-pending">{{ o.status }}</span>{% elif o.status == 'Delivered' %}<span class="badge badge-delivered">{{ o.status }}</span>{% elif o.status == 'Cancelled' %}<span class="badge badge-cancelled">{{ o.status }}</span>{% else %}<span class="badge badge-confirmed">{{ o.status }}</span>{% endif %}</td>
+            </tr>
+            {% empty %}<tr class="empty-row"><td colspan="5"><i class="fa-solid fa-box-open"></i><br>No orders yet</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
 </div>
 <script src="{% static 'js/admin.js' %}"></script>
 </body>

@@ -1,164 +1,40 @@
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Categories | SSD Nursery</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
-</head>
-<body>
-{% for message in messages %}
-    <div class="django-message" data-level="{% if message.tags == 'error' %}error{% else %}success{% endif %}" style="display:none;">{{ message }}</div>
-{% endfor %}
-
-<div class="admin-layout">
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    {% include "web/admin/_sidebar.html" %}
-    <main class="main-content">
-        <header class="top-header">
-            <div class="header-left">
-                <button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button>
-                <div>
-                    <h1 class="page-title">Categories</h1>
-                    <p class="page-subtitle">{{ categories.count }} total categories</p>
-                </div>
-            </div>
-            <button class="btn-primary" data-modal-open="addCatModal">
-                <i class="fa-solid fa-plus"></i> New Category
-            </button>
-        </header>
-
-        <div class="data-card">
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width:60px">#</th>
-                            <th style="width:80px">Image</th>
-                            <th>Name</th>
-                            <th>Description</th>
-                            <th>Status</th>
-                            <th style="text-align:right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for cat in categories %}
-                        <tr>
-                            <td style="color:var(--text-secondary);font-weight:500;">{{ cat.id }}</td>
-                            <td>
-                                {% if cat.image %}<img src="{{ cat.image.url }}" alt="{{ cat.name }}" class="thumb">
-                                {% else %}<div class="thumb-placeholder"><i class="fa-solid fa-leaf"></i></div>{% endif %}
-                            </td>
-                            <td style="font-weight:600;">{{ cat.name }}</td>
-                            <td><div class="truncate">{{ cat.description|default:"—" }}</div></td>
-                            <td>
-                                {% if cat.is_active %}
-                                    <span class="badge badge-active"><i class="fa-solid fa-circle"></i> Active</span>
-                                {% else %}
-                                    <span class="badge badge-disabled">Disabled</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="action-group">
-                                    <button class="btn-icon btn-icon-edit" title="Edit"
-                                        onclick="openEditModal('editCatModal',{id:'{{ cat.id }}',name:'{{ cat.name|escapejs }}',description:'{{ cat.description|escapejs }}'});document.getElementById('editCatForm').action='{% url "edit_category" cat.id %}';">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
-                                    <a href="{% url 'toggle_category' cat.id %}" class="btn-icon btn-icon-toggle" title="Toggle">
-                                        <i class="fa-solid fa-{% if cat.is_active %}eye-slash{% else %}eye{% endif %}"></i>
-                                    </a>
-                                    <a href="{% url 'delete_category' cat.id %}" class="btn-icon btn-icon-danger" title="Delete"
-                                       data-confirm="Delete '{{ cat.name }}'? This cannot be undone.">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr class="empty-row"><td colspan="6"><i class="fa-solid fa-folder-open"></i><br>No categories yet</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </main>
-</div>
-
-<!-- ADD MODAL -->
-<div class="modal-overlay" id="addCatModal">
-    <div class="modal-card">
-        <div class="modal-header">
-            <h2>Add Category</h2>
-            <button class="close-modal"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <form method="POST" action="{% url 'add_category' %}" enctype="multipart/form-data">
-            {% csrf_token %}
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Category Name *</label>
-                    <input type="text" name="name" class="form-control" placeholder="e.g. Indoor Plants" required>
-                </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea name="description" class="form-control" placeholder="Briefly describe this category…"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Thumbnail Image</label>
-                    <div class="file-drop-area">
-                        <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <div class="file-name">Click to upload or drag image</div>
-                        <div class="file-hint">PNG, JPG or WEBP (max 2MB)</div>
-                        <input type="file" name="image" accept="image/*">
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel">Cancel</button>
-                <button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Save</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- EDIT MODAL -->
-<div class="modal-overlay" id="editCatModal">
-    <div class="modal-card">
-        <div class="modal-header">
-            <h2>Edit Category</h2>
-            <button class="close-modal"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <form method="POST" id="editCatForm" enctype="multipart/form-data">
-            {% csrf_token %}
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Category Name *</label>
-                    <input type="text" name="name" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea name="description" class="form-control"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>New Image (leave blank to keep current)</label>
-                    <div class="file-drop-area">
-                        <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <div class="file-name">Click to upload or drag image</div>
-                        <div class="file-hint">PNG, JPG or WEBP (max 2MB)</div>
-                        <input type="file" name="image" accept="image/*">
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel">Cancel</button>
-                <button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Update</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script src="{% static 'js/admin.js' %}"></script>
-</body>
-</html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Categories | Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/admin.css' %}"></head><body>
+{% for m in messages %}<div class="django-message" data-level="{% if m.tags == 'error' %}error{% else %}success{% endif %}" style="display:none;">{{ m }}</div>{% endfor %}
+<div class="admin-layout"><div class="sidebar-overlay" id="sidebarOverlay"></div>{% include "web/admin/_sidebar.html" %}
+<main class="main-content">
+<header class="top-header"><div class="header-left"><button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button><div><h1 class="page-title">Categories</h1><p class="page-subtitle">{{ categories.count }} total</p></div></div><button class="btn-primary" data-modal-open="addCatModal"><i class="fa-solid fa-plus"></i> New Category</button></header>
+<div class="data-card"><div class="table-responsive"><table><thead><tr><th>#</th><th>Image</th><th>Name</th><th>Description</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead><tbody>
+{% for c in categories %}
+<tr><td style="color:var(--text-secondary)">{{ c.id }}</td><td>{% if c.image %}<img src="{{ c.image.url }}" class="thumb">{% else %}<div class="thumb-placeholder"><i class="fa-solid fa-leaf"></i></div>{% endif %}</td>
+<td style="font-weight:600">{{ c.name }}</td><td><div class="truncate">{{ c.description|default:"—" }}</div></td>
+<td>{% if c.is_active %}<span class="badge badge-active">Active</span>{% else %}<span class="badge badge-disabled">Hidden</span>{% endif %}</td>
+<td><div class="action-group">
+<button class="btn-icon btn-icon-edit" title="Edit" onclick="openEditModal('editCatModal',{name:'{{ c.name|escapejs }}',description:'{{ c.description|escapejs }}'});document.getElementById('editCatForm').action='{% url "edit_category" c.id %}'"><i class="fa-solid fa-pen"></i></button>
+<a href="{% url 'toggle_category' c.id %}" class="btn-icon btn-icon-toggle" title="Toggle"><i class="fa-solid fa-{% if c.is_active %}eye-slash{% else %}eye{% endif %}"></i></a>
+<a href="{% url 'delete_category' c.id %}" class="btn-icon btn-icon-danger" data-confirm="Delete '{{ c.name }}'?"><i class="fa-solid fa-trash"></i></a>
+</div></td></tr>
+{% empty %}<tr class="empty-row"><td colspan="6"><i class="fa-solid fa-folder-open"></i><br>No categories yet</td></tr>{% endfor %}
+</tbody></table></div></div>
+</main></div>
+<div class="modal-overlay" id="addCatModal"><div class="modal-card"><div class="modal-header"><h2>Add Category</h2><button class="close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+<form method="POST" action="{% url 'add_category' %}" enctype="multipart/form-data">{% csrf_token %}
+<div class="modal-body">
+<div class="form-group"><label>Name *</label><input type="text" name="name" class="form-control" required placeholder="e.g. Indoor Plants"></div>
+<div class="form-group"><label>Description</label><textarea name="description" class="form-control" placeholder="Short description…"></textarea></div>
+<div class="form-group"><label>Image</label><div class="file-drop-area"><i class="fa-solid fa-cloud-arrow-up"></i><div class="file-name">Click to upload</div><div class="file-hint">PNG, JPG, WEBP</div><input type="file" name="image" accept="image/*"></div></div>
+</div><div class="modal-footer"><button type="button" class="btn-cancel">Cancel</button><button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Save</button></div>
+</form></div></div>
+<div class="modal-overlay" id="editCatModal"><div class="modal-card"><div class="modal-header"><h2>Edit Category</h2><button class="close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+<form method="POST" id="editCatForm" enctype="multipart/form-data">{% csrf_token %}
+<div class="modal-body">
+<div class="form-group"><label>Name *</label><input type="text" name="name" class="form-control" required></div>
+<div class="form-group"><label>Description</label><textarea name="description" class="form-control"></textarea></div>
+<div class="form-group"><label>New Image</label><div class="file-drop-area"><i class="fa-solid fa-cloud-arrow-up"></i><div class="file-name">Click to replace image</div><div class="file-hint">PNG, JPG, WEBP</div><input type="file" name="image" accept="image/*"></div></div>
+</div><div class="modal-footer"><button type="button" class="btn-cancel">Cancel</button><button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Update</button></div>
+</form></div></div>
+<script src="{% static 'js/admin.js' %}"></script></body></html>

@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}"><link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
 </head>
 <body data-auth="{% if request.user.is_authenticated %}1{% else %}0{% endif %}">
 <script>window.__WISHLIST_IDS__ = {{ wishlist_ids|safe }};</script>
@@ -141,12 +141,19 @@
         {% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
         {% else %}<div class="img-placeholder"><i class="fas fa-seedling"></i></div>{% endif %}
         <div class="card-actions">
-          <button class="action-btn wishlist-btn {% if p.id in wishlist_ids %}wishlisted{% endif %}"
-                  data-product="{{ p.id }}" title="Wishlist">
-            <i class="{% if p.id in wishlist_ids %}fas{% else %}far{% endif %} fa-heart"></i>
+          <button
+              type="button"
+              class="action-btn wishlist-btn {% if p.id in wishlist_ids %}wishlisted{% endif %}"
+              data-product="{{ p.id }}"
+              onclick="event.preventDefault();event.stopPropagation();toggleWishlist({{ p.id }});">
+              <i class="{% if p.id in wishlist_ids %}fas{% else %}far{% endif %} fa-heart"></i>
           </button>
-          <button class="action-btn quick-add" data-product="{{ p.id }}" title="Add to cart">
-            <i class="fas fa-shopping-bag"></i>
+          <button
+              type="button"
+              class="action-btn quick-add"
+              data-product="{{ p.id }}"
+              onclick="event.preventDefault();event.stopPropagation();addToCart({{ p.id }},1);">
+              <i class="fas fa-shopping-bag"></i>
           </button>
         </div>
       </div>

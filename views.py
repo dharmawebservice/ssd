@@ -813,9 +813,7 @@ def home(request):
         banners = []
 
     try:
-        reviews = Review.objects.filter(
-            is_approved=True
-        ).order_by("-id")[:6]
+        reviews = Review.objects.all().order_by("-id")[:6]
 
     except Exception:
         reviews = []

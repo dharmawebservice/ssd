@@ -1,141 +1,3 @@
-{% comment %} {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>My Profile | SSD Nursery</title>
-
-<link rel="stylesheet" href="{% static 'css/profile.css' %}">
-
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-</head>
-
-<body>
-
-<div class="profile-container">
-
-    <div class="profile-header">
-
-        <div class="avatar-wrapper">
-            <img
-            src="https://ui-avatars.com/api/?name={{ request.user.first_name }}&background=2f6b3d&color=fff&size=200"
-            class="avatar">
-        </div>
-
-        <h1>{{ request.user.first_name }}</h1>
-
-        <p>{{ request.user.email }}</p>
-
-        <button class="edit-btn">
-            <i class="fas fa-edit"></i>
-            Edit Profile
-        </button>
-
-    </div>
-
-    <div class="stats-grid">
-
-        <div class="stat-card">
-            <i class="fas fa-shopping-bag"></i>
-            <h2>0</h2>
-            <span>Orders</span>
-        </div>
-
-        <div class="stat-card">
-            <i class="fas fa-heart"></i>
-            <h2>0</h2>
-            <span>Wishlist</span>
-        </div>
-
-        <div class="stat-card">
-            <i class="fas fa-leaf"></i>
-            <h2>0</h2>
-            <span>Plants Bought</span>
-        </div>
-
-    </div>
-
-    <div class="info-grid">
-
-        <div class="info-card">
-
-            <h3>
-                <i class="fas fa-user"></i>
-                Personal Information
-            </h3>
-
-            <div class="detail">
-                <label>Name</label>
-                <span>{{ request.user.first_name }}</span>
-            </div>
-
-            <div class="detail">
-                <label>Email</label>
-                <span>{{ request.user.email }}</span>
-            </div>
-
-            <div class="detail">
-                <label>Phone</label>
-                <span>{{ profile.phone }}</span>
-            </div>
-
-        </div>
-
-        <div class="info-card">
-
-            <h3>
-                <i class="fas fa-location-dot"></i>
-                Delivery Address
-            </h3>
-
-            <div class="detail">
-                <label>Address</label>
-                <span>{{ profile.address }}</span>
-            </div>
-
-            <div class="detail">
-                <label>Area</label>
-                <span>{{ profile.area }}</span>
-            </div>
-
-            <div class="detail">
-                <label>City</label>
-                <span>{{ profile.city }}</span>
-            </div>
-
-            <div class="detail">
-                <label>State</label>
-                <span>{{ profile.state }}</span>
-            </div>
-
-            <div class="detail">
-                <label>Pincode</label>
-                <span>{{ profile.pincode }}</span>
-            </div>
-
-        </div>
-
-    </div>
-
-    <div class="future-card">
-
-        <h3>Recent Orders</h3>
-
-        <div class="empty-state">
-            <i class="fas fa-seedling"></i>
-            <p>No orders yet.</p>
-        </div>
-
-    </div>
-
-</div>
-
-</body>
-</html> {% endcomment %}
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -148,28 +10,10 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}"><link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
 </head>
-<body>
-    <nav class="navbar scrolled" id="navbar">
-        <div class="logo"><a href="{% url 'home' %}"><img src="{% static 'images/logo.png' %}" alt="SSD Nursery" class="brand-logo"></a></div>
-        <ul class="nav-links" id="nav-links">
-            <li><a href="{% url 'home' %}">Home</a></li>
-            <li><a href="{% url 'shop' %}">Shop</a></li>
-        </ul>
-        <div class="nav-actions">
-            <button class="icon-btn cart-btn"><i class="fas fa-shopping-bag"></i><span class="cart-count">0</span></button>
-            <div class="profile-dropdown">
-                <button class="icon-btn" id="profileToggle"><i class="far fa-user"></i></button>
-                <div class="dropdown-menu" id="profileMenu">
-                    <div class="user-info">Welcome, <strong>{{ request.user.first_name|default:request.user.username }}</strong></div>
-                    <a href="{% url 'profile' %}"><i class="fas fa-user-circle"></i> My Profile</a>
-                    <a href="{% url 'logout_user' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
-                </div>
-            </div>
-            <div class="menu-toggle" id="mobile-menu"><i class="fas fa-bars"></i></div>
-        </div>
-    </nav>
+<body data-auth="{% if request.user.is_authenticated %}1{% else %}0{% endif %}">
+    {% include "web/_navbar.html" %}
 
     <div class="profile-page">
 
@@ -272,5 +116,6 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     <div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg">Done!</span></div>
 
     <script src="{% static 'js/script.js' %}"></script>
+    <script src="{% static 'js/site.js' %}"></script>
 </body>
 </html>

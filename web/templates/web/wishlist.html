@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}"><link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
 </head>
 <body data-auth="1">
 <script>window.__WISHLIST_IDS__ = [{% for w in items %}{{ w.product.id }}{% if not forloop.last %},{% endif %}{% endfor %}];</script>

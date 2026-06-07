@@ -1,224 +1,61 @@
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Products | SSD Nursery</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
-    <style>.prod-name{font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}</style>
-</head>
-<body>
-{% for message in messages %}
-    <div class="django-message" data-level="{% if message.tags == 'error' %}error{% else %}success{% endif %}" style="display:none;">{{ message }}</div>
-{% endfor %}
-
-<div class="admin-layout">
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    {% include "web/admin/_sidebar.html" %}
-    <main class="main-content">
-        <header class="top-header">
-            <div class="header-left">
-                <button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button>
-                <div>
-                    <h1 class="page-title">Products</h1>
-                    <p class="page-subtitle">{{ products.count }} total products</p>
-                </div>
-            </div>
-            <button class="btn-primary" data-modal-open="addProductModal">
-                <i class="fa-solid fa-plus"></i> Add Product
-            </button>
-        </header>
-
-        <div class="data-card">
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Image</th>
-                            <th>Name</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Offer</th>
-                            <th>Stock</th>
-                            <th>Status</th>
-                            <th style="text-align:right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for p in products %}
-                        <tr>
-                            <td style="color:var(--text-secondary);">{{ p.id }}</td>
-                            <td>
-                                {% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" class="thumb">
-                                {% else %}<div class="thumb-placeholder"><i class="fa-solid fa-seedling"></i></div>{% endif %}
-                            </td>
-                            <td><div class="prod-name" title="{{ p.name }}">{{ p.name }}</div></td>
-                            <td style="color:var(--text-secondary);">{{ p.category.name }}</td>
-                            <td style="font-weight:600;">₹{{ p.price }}</td>
-                            <td>
-                                {% if p.offer_price %}<span class="badge badge-sale">₹{{ p.offer_price }}</span>
-                                {% else %}<span style="color:var(--text-secondary);">—</span>{% endif %}
-                            </td>
-                            <td>
-                                {% if p.stock == 0 %}<span style="color:var(--danger);font-weight:600;">0</span>
-                                {% elif p.stock < 5 %}<span style="color:var(--warn);font-weight:600;">{{ p.stock }}</span>
-                                {% else %}<span style="color:var(--success);font-weight:600;">{{ p.stock }}</span>{% endif %}
-                            </td>
-                            <td>
-                                {% if p.is_active %}<span class="badge badge-active"><i class="fa-solid fa-circle"></i>Active</span>
-                                {% else %}<span class="badge badge-disabled">Hidden</span>{% endif %}
-                            </td>
-                            <td>
-                                <div class="action-group">
-                                    <button class="btn-icon btn-icon-edit" title="Edit"
-                                        onclick="openEditModal('editProductModal',{name:'{{ p.name|escapejs }}',price:'{{ p.price }}',offer_price:'{{ p.offer_price|default:'' }}',stock:'{{ p.stock }}',description:'{{ p.description|escapejs }}',care_guide:'{{ p.care_guide|escapejs }}'});document.getElementById('editProductForm').action='{% url "edit_product" p.id %}';document.getElementById('editCatSelect').value='{{ p.category.id }}';">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
-                                    <a href="{% url 'toggle_product' p.id %}" class="btn-icon btn-icon-toggle" title="Toggle">
-                                        <i class="fa-solid fa-{% if p.is_active %}eye-slash{% else %}eye{% endif %}"></i>
-                                    </a>
-                                    <a href="{% url 'delete_product' p.id %}" class="btn-icon btn-icon-danger" title="Delete"
-                                       data-confirm="Delete '{{ p.name }}'?">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr class="empty-row"><td colspan="9"><i class="fa-solid fa-seedling"></i><br>No products yet</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </main>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Products | Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/admin.css' %}"></head><body>
+{% for m in messages %}<div class="django-message" data-level="{% if m.tags == 'error' %}error{% else %}success{% endif %}" style="display:none;">{{ m }}</div>{% endfor %}
+<div class="admin-layout"><div class="sidebar-overlay" id="sidebarOverlay"></div>{% include "web/admin/_sidebar.html" %}
+<main class="main-content">
+<header class="top-header"><div class="header-left"><button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button><div><h1 class="page-title">Products</h1><p class="page-subtitle">{{ products.count }} total</p></div></div><button class="btn-primary" data-modal-open="addProductModal"><i class="fa-solid fa-plus"></i> Add Product</button></header>
+<div class="data-card"><div class="table-responsive"><table><thead><tr><th>#</th><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Offer</th><th>Stock</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead><tbody>
+{% for p in products %}
+<tr><td style="color:var(--text-secondary)">{{ p.id }}</td>
+<td>{% if p.image %}<img src="{{ p.image.url }}" class="thumb">{% else %}<div class="thumb-placeholder"><i class="fa-solid fa-seedling"></i></div>{% endif %}</td>
+<td style="font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ p.name }}</td>
+<td style="color:var(--text-secondary)">{{ p.category.name }}</td>
+<td style="font-weight:600">₹{{ p.price }}</td>
+<td>{% if p.offer_price %}<span class="badge badge-sale">₹{{ p.offer_price }}</span>{% else %}<span style="color:var(--text-secondary)">—</span>{% endif %}</td>
+<td>{% if p.stock == 0 %}<span style="color:var(--danger);font-weight:700">0</span>{% elif p.stock < 5 %}<span style="color:var(--warn);font-weight:700">{{ p.stock }}</span>{% else %}<span style="color:var(--success);font-weight:700">{{ p.stock }}</span>{% endif %}</td>
+<td>{% if p.is_active %}<span class="badge badge-active">Active</span>{% else %}<span class="badge badge-disabled">Hidden</span>{% endif %}</td>
+<td><div class="action-group">
+<button class="btn-icon btn-icon-edit" title="Edit" onclick="openEditModal('editProductModal',{name:'{{ p.name|escapejs }}',price:'{{ p.price }}',offer_price:'{{ p.offer_price|default:'' }}',stock:'{{ p.stock }}',description:'{{ p.description|escapejs }}',care_guide:'{{ p.care_guide|escapejs }}'});document.getElementById('editProductForm').action='{% url "edit_product" p.id %}';document.getElementById('editCatSel').value='{{ p.category.id }}'"><i class="fa-solid fa-pen"></i></button>
+<a href="{% url 'toggle_product' p.id %}" class="btn-icon btn-icon-toggle" title="Toggle"><i class="fa-solid fa-{% if p.is_active %}eye-slash{% else %}eye{% endif %}"></i></a>
+<a href="{% url 'delete_product' p.id %}" class="btn-icon btn-icon-danger" data-confirm="Delete '{{ p.name }}'?"><i class="fa-solid fa-trash"></i></a>
+</div></td></tr>
+{% empty %}<tr class="empty-row"><td colspan="9"><i class="fa-solid fa-seedling"></i><br>No products yet</td></tr>{% endfor %}
+</tbody></table></div></div>
+</main></div>
+<!-- ADD -->
+<div class="modal-overlay" id="addProductModal"><div class="modal-card"><div class="modal-header"><h2>Add Product</h2><button class="close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+<form method="POST" action="{% url 'add_product' %}" enctype="multipart/form-data">{% csrf_token %}
+<div class="modal-body">
+<div class="form-group"><label>Category *</label><select name="category" class="form-control" required><option value="">Select…</option>{% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
+<div class="form-group"><label>Name *</label><input type="text" name="name" class="form-control" required placeholder="e.g. Monstera Deliciosa"></div>
+<div class="row-inputs">
+<div class="form-group"><label>Price (₹) *</label><input type="number" name="price" class="form-control" required min="0"></div>
+<div class="form-group"><label>Offer Price (₹)</label><input type="number" name="offer_price" class="form-control" min="0" placeholder="Leave blank for no offer"></div>
 </div>
-
-<!-- ADD PRODUCT MODAL -->
-<div class="modal-overlay" id="addProductModal">
-    <div class="modal-card">
-        <div class="modal-header">
-            <h2>Add Product</h2>
-            <button class="close-modal"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <form method="POST" action="{% url 'add_product' %}" enctype="multipart/form-data">
-            {% csrf_token %}
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Category *</label>
-                    <select name="category" class="form-control" required>
-                        <option value="">Select category</option>
-                        {% for cat in categories %}<option value="{{ cat.id }}">{{ cat.name }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Product Name *</label>
-                    <input type="text" name="name" class="form-control" placeholder="e.g. Monstera Deliciosa" required>
-                </div>
-                <div class="row-inputs">
-                    <div class="form-group">
-                        <label>Price (₹) *</label>
-                        <input type="number" name="price" class="form-control" placeholder="0" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Offer Price (₹)</label>
-                        <input type="number" name="offer_price" class="form-control" placeholder="Leave blank for no offer" min="0">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Stock *</label>
-                    <input type="number" name="stock" class="form-control" placeholder="0" min="0" required>
-                </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea name="description" class="form-control" placeholder="Product description…"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Care Guide</label>
-                    <textarea name="care_guide" class="form-control" placeholder="Watering, sunlight, soil tips…"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Product Image</label>
-                    <div class="file-drop-area">
-                        <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <div class="file-name">Click to upload or drag image</div>
-                        <div class="file-hint">PNG, JPG or WEBP (max 3MB)</div>
-                        <input type="file" name="image" accept="image/*">
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel">Cancel</button>
-                <button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Save Product</button>
-            </div>
-        </form>
-    </div>
+<div class="form-group"><label>Stock *</label><input type="number" name="stock" class="form-control" required min="0" value="0"></div>
+<div class="form-group"><label>Description</label><textarea name="description" class="form-control" placeholder="Product description…"></textarea></div>
+<div class="form-group"><label>Care Guide</label><textarea name="care_guide" class="form-control" placeholder="Watering, sunlight, soil tips…"></textarea></div>
+<div class="form-group"><label>Image</label><div class="file-drop-area"><i class="fa-solid fa-cloud-arrow-up"></i><div class="file-name">Click to upload</div><div class="file-hint">PNG, JPG, WEBP</div><input type="file" name="image" accept="image/*"></div></div>
+</div><div class="modal-footer"><button type="button" class="btn-cancel">Cancel</button><button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Save Product</button></div>
+</form></div></div>
+<!-- EDIT -->
+<div class="modal-overlay" id="editProductModal"><div class="modal-card"><div class="modal-header"><h2>Edit Product</h2><button class="close-modal"><i class="fa-solid fa-xmark"></i></button></div>
+<form method="POST" id="editProductForm" enctype="multipart/form-data">{% csrf_token %}
+<div class="modal-body">
+<div class="form-group"><label>Category *</label><select name="category" id="editCatSel" class="form-control" required>{% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
+<div class="form-group"><label>Name *</label><input type="text" name="name" class="form-control" required></div>
+<div class="row-inputs">
+<div class="form-group"><label>Price (₹) *</label><input type="number" name="price" class="form-control" required min="0"></div>
+<div class="form-group"><label>Offer Price (₹)</label><input type="number" name="offer_price" class="form-control" min="0"></div>
 </div>
-
-<!-- EDIT PRODUCT MODAL -->
-<div class="modal-overlay" id="editProductModal">
-    <div class="modal-card">
-        <div class="modal-header">
-            <h2>Edit Product</h2>
-            <button class="close-modal"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <form method="POST" id="editProductForm" enctype="multipart/form-data">
-            {% csrf_token %}
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Category *</label>
-                    <select name="category" id="editCatSelect" class="form-control" required>
-                        {% for cat in categories %}<option value="{{ cat.id }}">{{ cat.name }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Product Name *</label>
-                    <input type="text" name="name" class="form-control" required>
-                </div>
-                <div class="row-inputs">
-                    <div class="form-group">
-                        <label>Price (₹) *</label>
-                        <input type="number" name="price" class="form-control" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Offer Price (₹)</label>
-                        <input type="number" name="offer_price" class="form-control" min="0">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Stock *</label>
-                    <input type="number" name="stock" class="form-control" min="0" required>
-                </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea name="description" class="form-control"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Care Guide</label>
-                    <textarea name="care_guide" class="form-control"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>New Image (leave blank to keep current)</label>
-                    <div class="file-drop-area">
-                        <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <div class="file-name">Click to upload</div>
-                        <div class="file-hint">PNG, JPG or WEBP</div>
-                        <input type="file" name="image" accept="image/*">
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel">Cancel</button>
-                <button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Update</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script src="{% static 'js/admin.js' %}"></script>
-</body>
-</html>
+<div class="form-group"><label>Stock *</label><input type="number" name="stock" class="form-control" required min="0"></div>
+<div class="form-group"><label>Description</label><textarea name="description" class="form-control"></textarea></div>
+<div class="form-group"><label>Care Guide</label><textarea name="care_guide" class="form-control"></textarea></div>
+<div class="form-group"><label>New Image</label><div class="file-drop-area"><i class="fa-solid fa-cloud-arrow-up"></i><div class="file-name">Click to replace</div><div class="file-hint">Leave blank to keep current</div><input type="file" name="image" accept="image/*"></div></div>
+</div><div class="modal-footer"><button type="button" class="btn-cancel">Cancel</button><button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Update</button></div>
+</form></div></div>
+<script src="{% static 'js/admin.js' %}"></script></body></html>
