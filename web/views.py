@@ -1558,3 +1558,21 @@ def contact(request):
         
     context = {'active_nav': 'more'}
     return render(request, 'web/contact.html', context)
+
+from django.shortcuts import render, get_object_or_404
+from .models import Order
+
+def order_details(request, order_id):
+    order = get_object_or_404(
+        Order,
+        id=order_id,
+        user=request.user
+    )
+
+    return render(
+        request,
+        "web/order_details.html",
+        {
+            "order": order
+        }
+    )

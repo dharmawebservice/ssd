@@ -1,0 +1,276 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order #{{ order.id }}</title>
+
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<style>
+
+.order-page{
+    max-width:1200px;
+    margin:120px auto 60px;
+    padding:0 20px;
+}
+
+.order-card{
+    background:#fff;
+    border-radius:20px;
+    padding:30px;
+    box-shadow:0 10px 30px rgba(0,0,0,.08);
+    margin-bottom:25px;
+}
+
+.order-header{
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:20px;
+}
+
+.order-id{
+    color:var(--forest);
+    font-size:2rem;
+    margin-bottom:10px;
+}
+
+.order-meta{
+    color:#666;
+    line-height:1.8;
+}
+
+.status-badge{
+    display:inline-block;
+    padding:8px 18px;
+    border-radius:25px;
+    font-weight:700;
+}
+
+.status-Pending{
+    background:#FFF7E0;
+    color:#D97706;
+}
+
+.status-Confirmed{
+    background:#E0F2FE;
+    color:#0284C7;
+}
+
+.status-Packed{
+    background:#F3E8FF;
+    color:#7E22CE;
+}
+
+.status-Shipped{
+    background:#DBEAFE;
+    color:#2563EB;
+}
+
+.status-Delivered{
+    background:#DCFCE7;
+    color:#16A34A;
+}
+
+.status-Cancelled{
+    background:#FEE2E2;
+    color:#DC2626;
+}
+
+.product-row{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    padding:18px 0;
+    border-bottom:1px solid #eee;
+}
+
+.product-row:last-child{
+    border-bottom:none;
+}
+
+.product-row img{
+    width:90px;
+    height:90px;
+    border-radius:12px;
+    object-fit:cover;
+}
+
+.product-info{
+    flex:1;
+}
+
+.product-name{
+    font-size:1.1rem;
+    color:var(--forest);
+    font-weight:700;
+}
+
+.product-price{
+    color:#666;
+    margin-top:6px;
+}
+
+.total-box{
+    background:var(--forest);
+    color:white;
+    border-radius:20px;
+    padding:25px;
+}
+
+.total-box h3{
+    color:white;
+}
+
+.total-row{
+    display:flex;
+    justify-content:space-between;
+    margin:12px 0;
+}
+
+.back-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:var(--forest);
+    color:white;
+    padding:12px 24px;
+    border-radius:30px;
+    text-decoration:none;
+}
+
+@media(max-width:768px){
+
+.product-row{
+    flex-direction:column;
+    text-align:center;
+}
+
+.order-header{
+    flex-direction:column;
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+{% include "web/_navbar.html" %}
+
+<div class="order-page">
+
+<div class="order-card">
+
+<div class="order-header">
+
+<div>
+<h1 class="order-id">
+Order #{{ order.id }}
+</h1>
+
+<div class="order-meta">
+<div><strong>Date:</strong> {{ order.created_at|date:"d M Y h:i A" }}</div>
+<div><strong>Payment:</strong> {{ order.get_payment_method_display }}</div>
+<div><strong>Payment ID:</strong> {{ order.payment_id|default:"N/A" }}</div>
+</div>
+</div>
+
+<div>
+<span class="status-badge status-{{ order.status }}">
+{{ order.status }}
+</span>
+</div>
+
+</div>
+
+</div>
+
+<div class="order-card">
+
+<h2 style="margin-bottom:20px;">Delivery Address</h2>
+
+<p style="line-height:1.8;">
+{{ order.address|linebreaks }}
+</p>
+
+{% if order.notes %}
+<hr style="margin:20px 0;">
+<strong>Notes:</strong><br>
+{{ order.notes }}
+{% endif %}
+
+</div>
+
+<div class="order-card">
+
+<h2 style="margin-bottom:20px;">Ordered Products</h2>
+
+{% for item in order.items.all %}
+
+<div class="product-row">
+
+{% if item.product.image %}
+<img src="{{ item.product.image.url }}">
+{% endif %}
+
+<div class="product-info">
+
+<div class="product-name">
+{{ item.product.name }}
+</div>
+
+<div class="product-price">
+₹{{ item.price }} × {{ item.quantity }}
+</div>
+
+</div>
+
+<div style="font-weight:700;color:var(--forest);">
+₹{{ item.subtotal }}
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+<div class="order-card total-box">
+
+<h3>Order Summary</h3>
+
+<div class="total-row">
+<span>Subtotal</span>
+<span>₹{{ order.total_amount }}</span>
+</div>
+
+<div class="total-row">
+<span>Discount</span>
+<span>- ₹{{ order.discount_amount }}</span>
+</div>
+
+<hr style="margin:15px 0;border-color:rgba(255,255,255,.2);">
+
+<div class="total-row" style="font-size:1.2rem;font-weight:700;">
+<span>Total Paid</span>
+<span>₹{{ order.total_amount }}</span>
+</div>
+
+</div>
+
+<a href="{% url 'profile' %}" class="back-btn">
+<i class="fas fa-arrow-left"></i>
+Back To Profile
+</a>
+
+</div>
+
+</body>
+</html>

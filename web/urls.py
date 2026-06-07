@@ -427,5 +427,11 @@ urlpatterns = [
         "review/<int:product_id>/submit/",
         views.submit_review,
         name="submit_review"
-    )
+    ),
+
+    path(
+    "order-details/<int:order_id>/",
+    views.order_details,
+    name="order_details"
+),
 ]

@@ -1,0 +1,318 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>FAQ | SSD Nursery</title>
+<link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<style>
+.faq-hero{background:linear-gradient(135deg,var(--forest) 0%,#0E2A20 100%);padding:140px 5% 90px;text-align:center;position:relative;overflow:hidden}
+.faq-hero::before{content:'';position:absolute;width:500px;height:500px;border-radius:50%;border:1px solid rgba(255,255,255,.05);top:-120px;right:-120px;pointer-events:none}
+.faq-hero .section-label{color:rgba(255,255,255,.6)}
+.faq-hero h1{font-family:'DM Serif Display',serif;font-size:clamp(2.6rem,5vw,4rem);color:white;line-height:1.1;margin-bottom:16px}
+.faq-hero h1 em{color:var(--gold)}
+.faq-hero p{font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:rgba(255,255,255,.65);max-width:520px;margin:0 auto 32px;line-height:1.75}
+.faq-search-wrap{max-width:560px;margin:0 auto;position:relative}
+.faq-search{width:100%;padding:16px 24px 16px 52px;border:none;border-radius:50px;font-family:'Cormorant Garamond',serif;font-size:1.05rem;outline:none;box-shadow:0 8px 32px rgba(0,0,0,.2);color:var(--text-dark)}
+.faq-search::placeholder{color:var(--text-light)}
+.faq-search-icon{position:absolute;left:20px;top:50%;transform:translateY(-50%);color:var(--text-light);font-size:.95rem;pointer-events:none}
+
+.faq-body{padding:80px 5%;max-width:900px;margin:0 auto}
+.faq-cats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:48px;justify-content:center}
+.faq-cat-btn{padding:9px 22px;border-radius:30px;border:1.5px solid var(--ivory-dark);font-family:'Cormorant Garamond',serif;font-size:.97rem;color:var(--text-mid);background:white;cursor:pointer;transition:.3s}
+.faq-cat-btn:hover,.faq-cat-btn.active{background:var(--forest);color:white;border-color:var(--forest)}
+
+.faq-group{margin-bottom:48px}
+.faq-group-title{font-family:'DM Serif Display',serif;font-size:1.35rem;color:var(--forest);margin-bottom:20px;display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:2px solid var(--ivory-dark)}
+.faq-group-title i{color:var(--terracotta);font-size:1.1rem}
+
+.faq-item{background:white;border-radius:16px;margin-bottom:10px;border:1px solid var(--ivory-dark);overflow:hidden;transition:.3s}
+.faq-item.open{box-shadow:0 8px 28px rgba(28,58,43,.1);border-color:transparent}
+.faq-question{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;cursor:pointer;gap:16px;user-select:none}
+.faq-question h4{font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--forest);font-weight:400;line-height:1.35;flex:1}
+.faq-chevron{width:32px;height:32px;border-radius:50%;background:var(--ivory);display:flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--forest);flex-shrink:0;transition:all .3s}
+.faq-item.open .faq-chevron{background:var(--forest);color:white;transform:rotate(180deg)}
+.faq-answer{max-height:0;overflow:hidden;transition:max-height .4s cubic-bezier(.4,0,.2,1),padding .4s}
+.faq-item.open .faq-answer{max-height:600px}
+.faq-answer-inner{padding:0 24px 22px;font-family:'Cormorant Garamond',serif;font-size:1.02rem;color:var(--text-mid);line-height:1.78}
+.faq-answer-inner a{color:var(--terracotta);font-weight:600}
+.faq-answer-inner ul{padding-left:18px;margin-top:8px}
+.faq-answer-inner li{margin-bottom:6px}
+.faq-answer-inner strong{color:var(--forest);font-weight:600}
+
+.faq-still-wrap{background:linear-gradient(135deg,var(--forest) 0%,#0E2A20 100%);border-radius:26px;padding:52px 48px;text-align:center;margin:0 5% 80px;display:flex;align-items:center;gap:48px;overflow:hidden}
+.faq-still-text{flex:1;text-align:left}
+.faq-still-text h2{font-size:1.8rem;color:white;margin-bottom:12px}
+.faq-still-text h2 em{color:var(--gold)}
+.faq-still-text p{font-family:'Cormorant Garamond',serif;font-size:1.02rem;color:rgba(255,255,255,.65);line-height:1.7;max-width:360px}
+.faq-still-actions{display:flex;flex-direction:column;gap:12px;flex-shrink:0}
+.btn-faq-act{display:inline-flex;align-items:center;gap:9px;padding:13px 26px;border-radius:30px;font-family:'DM Serif Display',serif;font-size:.97rem;transition:.3s;text-decoration:none;white-space:nowrap}
+.btn-faq-act.primary{background:var(--terracotta);color:white}
+.btn-faq-act.primary:hover{background:var(--terracotta-lt);color:white}
+.btn-faq-act.outline{background:transparent;border:1.5px solid rgba(255,255,255,.45);color:white}
+.btn-faq-act.outline:hover{background:white;color:var(--forest);border-color:white}
+
+.no-results{text-align:center;padding:60px 20px;color:var(--text-light);display:none}
+.no-results i{font-size:3rem;color:var(--sage);display:block;margin-bottom:16px}
+.no-results p{font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--forest);margin-bottom:8px}
+
+@media(max-width:768px){.faq-still-wrap{flex-direction:column;padding:40px 28px;text-align:center}.faq-still-text{text-align:center}.faq-still-text p{margin:0 auto}.faq-still-actions{flex-direction:row;flex-wrap:wrap;justify-content:center}}
+@media(max-width:480px){.faq-still-wrap{margin:0 4% 60px}}
+</style>
+</head>
+<body data-auth="{% if request.user.is_authenticated %}1{% else %}0{% endif %}">
+<script>window.__WISHLIST_IDS__ = [];</script>
+{% with active_nav="faq" nav_solid=True %}{% include "web/_navbar.html" %}{% endwith %}
+
+<!-- HERO -->
+<section class="faq-hero">
+  <div class="section-label">Help Centre</div>
+  <h1>Frequently Asked<br><em>Questions.</em></h1>
+  <p>Everything you need to know about plants, orders, delivery and care. Can't find your answer? <a href="{% url 'contact' %}" style="color:var(--gold);font-weight:600;">Contact us.</a></p>
+  <div class="faq-search-wrap">
+    <i class="fas fa-search faq-search-icon"></i>
+    <input type="text" class="faq-search" id="faqSearch" placeholder="Search questions…">
+  </div>
+</section>
+
+<div class="faq-body">
+  <!-- CATEGORY FILTERS -->
+  <div class="faq-cats">
+    <button class="faq-cat-btn active" data-cat="all">All Questions</button>
+    <button class="faq-cat-btn" data-cat="orders">Orders & Payment</button>
+    <button class="faq-cat-btn" data-cat="delivery">Delivery</button>
+    <button class="faq-cat-btn" data-cat="plants">Plant Care</button>
+    <button class="faq-cat-btn" data-cat="returns">Returns & Guarantee</button>
+    <button class="faq-cat-btn" data-cat="account">My Account</button>
+  </div>
+
+  <div id="noResults" class="no-results">
+    <i class="fas fa-search"></i>
+    <p>No results found</p>
+    <span>Try different keywords or <a href="{% url 'contact' %}" style="color:var(--terracotta);">contact us</a></span>
+  </div>
+
+  <!-- ORDERS & PAYMENT -->
+  <div class="faq-group" data-cat="orders">
+    <div class="faq-group-title"><i class="fas fa-shopping-bag"></i> Orders & Payment</div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>What payment methods do you accept?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">We accept all major payment methods through Razorpay — including <strong>UPI (GPay, PhonePe, Paytm)</strong>, credit/debit cards, net banking, and EMI. We also offer <strong>Cash on Delivery (COD)</strong> for orders across India.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>Is it safe to pay on your website?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">Absolutely. All online payments are processed through <strong>Razorpay</strong>, which is PCI-DSS compliant and uses 256-bit SSL encryption. We never store your card details on our servers.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>Can I modify or cancel my order after placing it?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">You can cancel or modify your order within <strong>2 hours</strong> of placing it by contacting us via WhatsApp or email. Once the order is packed or shipped, we're unable to make changes. Please check your order carefully before confirming.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>When will my payment be confirmed?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">Online payments are confirmed instantly. You'll receive an order confirmation email with your order ID. If you paid via UPI and don't see a confirmation within 15 minutes, please <a href="{% url 'contact' %}">contact us</a>.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>Do you offer any discounts or coupons?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">Yes! We regularly offer seasonal discounts and coupon codes. Subscribe to our newsletter and follow us on Instagram to be the first to know. You can apply coupon codes during checkout on the cart or checkout page.</div></div>
+    </div>
+  </div>
+
+  <!-- DELIVERY -->
+  <div class="faq-group" data-cat="delivery">
+    <div class="faq-group-title"><i class="fas fa-truck-fast"></i> Delivery</div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>How long does delivery take?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">
+        <ul>
+          <li><strong>Hyderabad & Telangana:</strong> 1–2 business days</li>
+          <li><strong>Metro cities (Mumbai, Delhi, Bangalore, Chennai):</strong> 2–4 business days</li>
+          <li><strong>Rest of India:</strong> 3–7 business days</li>
+        </ul>
+        We avoid shipping on Sundays and public holidays to ensure your plants aren't sitting in transit over the weekend.
+      </div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>Is delivery free?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">Yes! Delivery is <strong>free on all orders above ₹999</strong>. For orders below ₹999, a flat delivery charge of ₹49 applies.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>How are the plants packaged for delivery?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">Every plant is packed in our custom-designed, eco-friendly packaging with moisture-retaining tissue, cardboard support sleeves and biodegradable cushioning. Plants are removed from pots to reduce damage risk and replanted upon arrival (instructions included).</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>How do I track my order?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">Once your order is shipped, you'll receive a tracking ID and delivery partner information via email/SMS. You can also view tracking details in <strong>My Profile → My Orders</strong> on our website.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>Do you deliver pan-India?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">Yes, we deliver to all serviceable pin codes across India. A handful of remote pin codes may not be serviceable — if your pin code is unserviceable, you'll be notified at checkout.</div></div>
+    </div>
+  </div>
+
+  <!-- PLANT CARE -->
+  <div class="faq-group" data-cat="plants">
+    <div class="faq-group-title"><i class="fas fa-leaf"></i> Plant Care</div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>My plant arrived wilted. What should I do?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">Minor wilting during transit is normal and usually recovers within 24–48 hours. Place the plant in indirect light, water it gently and keep it away from AC/fan drafts. If it doesn't recover within 2 days, contact us immediately — this is covered under our 7-day guarantee.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>Do you include care instructions with each plant?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">Yes! Every order includes a printed care card specific to each plant with watering frequency, light requirements, soil type and seasonal tips. Detailed care guides are also available on each product page on our website.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>How often should I water my new plant?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">This varies by plant type, but the golden rule is: <strong>water when the top 1–2 inches of soil feel dry.</strong> Overwatering is the most common cause of plant death. Check each product's care guide for specific instructions.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>Which plants are best for beginners?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">
+        Great choices for beginners:
+        <ul>
+          <li><strong>Pothos</strong> — nearly indestructible, thrives in low light</li>
+          <li><strong>Snake Plant (Sansevieria)</strong> — extremely low maintenance</li>
+          <li><strong>ZZ Plant</strong> — drought tolerant and great for busy lifestyles</li>
+          <li><strong>Spider Plant</strong> — fast-growing and air-purifying</li>
+          <li><strong>Succulents</strong> — minimal water, lots of personality</li>
+        </ul>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- RETURNS & GUARANTEE -->
+  <div class="faq-group" data-cat="returns">
+    <div class="faq-group-title"><i class="fas fa-shield-halved"></i> Returns & Guarantee</div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>What is your 7-day healthy plant guarantee?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">If your plant is unhealthy, damaged or not what you ordered within <strong>7 days of delivery</strong>, we will send you a free replacement — no questions asked. Just send us a photo of the plant to <a href="mailto:hello@ssdnursery.in">hello@ssdnursery.in</a> or WhatsApp us within 7 days.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>Can I return a plant?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">Due to the perishable nature of plants, we don't accept returns. However, our 7-day guarantee covers you if your plant arrives damaged, unhealthy or wrong. We'll replace it at no charge.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>What if I receive the wrong plant?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">We're sorry! If you receive the wrong item, please contact us within 7 days with a photo and your order number. We'll dispatch the correct plant immediately and arrange pickup of the wrong one if needed.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>How long does a refund take?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">For cancelled orders paid online, refunds are processed within <strong>5–7 business days</strong> back to your original payment method. UPI refunds are typically faster (2–3 days).</div></div>
+    </div>
+  </div>
+
+  <!-- ACCOUNT -->
+  <div class="faq-group" data-cat="account">
+    <div class="faq-group-title"><i class="fas fa-user-circle"></i> My Account</div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>Do I need an account to order?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">You need to create an account to place an order. This allows us to save your delivery address, show order history and send you tracking updates. Registration is quick — just your name, email, phone and password.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>How do I track my orders?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">Go to <strong>My Profile → My Orders</strong>. Each order shows its current status, tracking ID and delivery partner (once shipped). You can use the tracking ID directly on the courier's website for live updates.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>How do I change my delivery address?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">Go to <strong>My Profile</strong> and click "Add/Edit Address". Currently we support one saved address per account. For a different delivery address on a specific order, mention it in the order notes during checkout.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question"><h4>I forgot my password. How do I reset it?</h4><div class="faq-chevron"><i class="fas fa-chevron-down"></i></div></div>
+      <div class="faq-answer"><div class="faq-answer-inner">Click "Forgot password?" on the login page and enter your registered email. You'll receive a reset link. If you don't receive it within 5 minutes, check your spam folder or <a href="{% url 'contact' %}">contact support</a>.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- STILL NEED HELP -->
+<div class="faq-still-wrap">
+  <div class="faq-still-text">
+    <h2>Still Have a<br><em>Question?</em></h2>
+    <p>Our plant experts are available Mon–Sat, 9 AM to 7 PM. We typically respond within a few hours.</p>
+  </div>
+  <div class="faq-still-actions">
+    <a href="{% url 'contact' %}" class="btn-faq-act primary"><i class="fas fa-envelope"></i> Email Us</a>
+    <a href="https://wa.me/918008001234" target="_blank" class="btn-faq-act outline"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-top">
+    <div class="footer-brand"><img src="{% static 'images/logo.png' %}" alt="SSD Nursery" class="footer-logo"><p>Bringing nature into your home since 2018.</p><div class="social-links"><a href="#"><i class="fab fa-instagram"></i></a><a href="#"><i class="fab fa-facebook-f"></i></a><a href="#"><i class="fab fa-whatsapp"></i></a></div></div>
+    <div class="footer-links"><h4>Shop</h4><a href="{% url 'shop' %}">All Plants</a><a href="{% url 'shop' %}?sale=1">On Sale</a><a href="{% url 'collections' %}">Collections</a></div>
+    <div class="footer-links"><h4>Company</h4><a href="{% url 'about' %}">About Us</a><a href="{% url 'contact' %}">Contact</a><a href="{% url 'faq' %}">FAQ</a></div>
+    <div class="footer-newsletter"><h4>Newsletter</h4><p>Tips, offers & new arrivals.</p><div class="newsletter-form"><input type="email" placeholder="your@email.com"><button><i class="fas fa-arrow-right"></i></button></div></div>
+  </div>
+  <div class="footer-bottom"><span>© 2025 SSD Nursery. All rights reserved.</span><span>Made with 🌱 in India</span></div>
+</footer>
+
+<script src="{% static 'js/site.js' %}"></script>
+<script>
+// Accordion
+document.querySelectorAll('.faq-item').forEach(item=>{
+  item.querySelector('.faq-question').addEventListener('click',()=>{
+    const isOpen=item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(i=>i.classList.remove('open'));
+    if(!isOpen)item.classList.add('open');
+  });
+});
+// Category filter
+document.querySelectorAll('.faq-cat-btn').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.faq-cat-btn').forEach(b=>b.classList.remove('active'));
+    this.classList.add('active');
+    const cat=this.dataset.cat;
+    document.querySelectorAll('.faq-group').forEach(g=>{
+      g.style.display=(cat==='all'||g.dataset.cat===cat)?'block':'none';
+    });
+    document.getElementById('faqSearch').value='';
+    document.getElementById('noResults').style.display='none';
+  });
+});
+// Search
+document.getElementById('faqSearch').addEventListener('input',function(){
+  const q=this.value.toLowerCase().trim();
+  let found=0;
+  // Reset category filter
+  document.querySelectorAll('.faq-cat-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('[data-cat="all"]').classList.add('active');
+  document.querySelectorAll('.faq-group').forEach(g=>{
+    let groupHas=false;
+    g.querySelectorAll('.faq-item').forEach(item=>{
+      const text=item.textContent.toLowerCase();
+      const match=!q||text.includes(q);
+      item.style.display=match?'block':'none';
+      if(match){groupHas=true;found++;}
+    });
+    g.style.display=groupHas?'block':'none';
+  });
+  document.getElementById('noResults').style.display=(!q||found>0)?'none':'block';
+});
+</script>
+</body>
+</html>

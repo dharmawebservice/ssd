@@ -71,6 +71,7 @@
                             <th style="padding:12px 16px;text-align:left;font-size:0.78rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-light);">Date</th>
                             <th style="padding:12px 16px;text-align:left;font-size:0.78rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-light);">Amount</th>
                             <th style="padding:12px 16px;text-align:left;font-size:0.78rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-light);">Status</th>
+                            <th style="padding:12px 16px;text-align:left;font-size:0.78rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-light);">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -89,6 +90,11 @@
                                 {% else %}
                                     <span style="background:#EFF6FF;color:#3B82F6;padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:700;">{{ order.status }}</span>
                                 {% endif %}
+                            </td>
+                            <td style="padding:14px 16px;">
+                                <a href="{% url 'order_details' order.id %}" style="background:var(--forest);color:white;padding:8px 16px;border-radius:20px;text-decoration:none;font-size:0.85rem;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:var(--transition);">
+                                    <i class="fas fa-eye"></i> Details
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}
