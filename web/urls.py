@@ -434,4 +434,11 @@ urlpatterns = [
     views.order_details,
     name="order_details"
 ),
+
+path(
+"contact-submit/",
+views.contact_submit,
+name="contact_submit"
+),
+
 ]

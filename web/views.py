@@ -8,6 +8,13 @@ import hmac
 import hashlib
 from datetime import timedelta
 from decimal import Decimal
+from django.http import JsonResponse
+from django.core.mail import send_mail
+import json
+from django.template.loader import render_to_string
+from django.core.mail import EmailMultiAlternatives
+from django.conf import settings
+from .models import ContactMessage
 
 import razorpay
 from geopy.geocoders import Nominatim
@@ -28,6 +35,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from requests import request
 
 from .models import (
     Banner, CartItem, Category, Coupon,
@@ -1576,3 +1584,96 @@ def order_details(request, order_id):
             "order": order
         }
     )
+
+from django.http import JsonResponse
+from django.core.mail import send_mail
+from django.conf import settings
+import json
+
+def contact_submit(request):
+
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False,
+            "message": "Invalid request"
+        })
+
+    try:
+
+        data = json.loads(request.body)
+
+        name = data.get("name")
+        email = data.get("email")
+        phone = data.get("phone")
+        subject = data.get("subject")
+        message = data.get("message")
+
+        ContactMessage.objects.create(
+            name=name,
+            email=email,
+            phone=phone,
+            subject=subject,
+            message=message
+        )
+
+        # Admin Mail
+        admin_html = render_to_string(
+            "web/emails/contact_admin.html",
+            {
+                "name": name,
+                "email": email,
+                "phone": phone,
+                "subject": subject,
+                "message": message,
+            }
+        )
+
+        admin_email = EmailMultiAlternatives(
+            subject=f"SSD Nursery Contact - {subject}",
+            body="New Contact Form Submission",
+            from_email=settings.EMAIL_HOST_USER,
+            to=["ssdnurserygarden@gmail.com"]
+        )
+
+        admin_email.attach_alternative(
+            admin_html,
+            "text/html"
+        )
+
+        admin_email.send()
+
+        # Customer Mail
+        user_html = render_to_string(
+            "web/emails/contact_user.html",
+            {
+                "name": name,
+                "subject": subject,
+            }
+        )
+
+        user_email = EmailMultiAlternatives(
+            subject="We Received Your Message 🌱",
+            body="Thank you for contacting SSD Nursery",
+            from_email=settings.EMAIL_HOST_USER,
+            to=[email]
+        )
+
+        user_email.attach_alternative(
+            user_html,
+            "text/html"
+        )
+
+        user_email.send()
+
+        return JsonResponse({
+            "success": True
+        })
+
+    except Exception as e:
+
+        print("CONTACT MAIL ERROR:", str(e))
+
+        return JsonResponse({
+            "success": False,
+            "message": str(e)
+        })

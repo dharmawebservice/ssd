@@ -61,8 +61,39 @@ textarea.form-input{resize:vertical;min-height:120px}
 .form-success p{font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--text-mid);line-height:1.65}
 
 /* Map section */
-.map-section{background:var(--ivory);padding:0 5% 80px}
-.map-wrap{border-radius:24px;overflow:hidden;box-shadow:0 8px 32px rgba(28,58,43,.1);height:360px;background:var(--forest-mid);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-family:'DM Serif Display',serif;font-size:1.2rem}
+.map-section{
+padding:0 5% 80px;
+background:var(--ivory);
+}
+
+.map-wrap{
+width:100%;
+max-width:1200px;
+margin:auto;
+border-radius:24px;
+overflow:hidden;
+box-shadow:0 10px 35px rgba(28,58,43,.12);
+border:1px solid var(--ivory-dark);
+}
+
+.map-wrap iframe{
+display:block;
+width:100%;
+height:450px;
+border:none;
+}
+
+@media(max-width:768px){
+
+  .map-section{
+      padding:0 20px 60px;
+  }
+
+  .map-wrap iframe{
+      height:320px;
+  }
+
+}
 
 /* FAQ link strip */
 .faq-strip{background:var(--forest);padding:36px 5%;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
@@ -73,6 +104,23 @@ textarea.form-input{resize:vertical;min-height:120px}
 
 @media(max-width:1000px){.contact-body{grid-template-columns:1fr;gap:36px}.contact-form-col{position:static}}
 @media(max-width:600px){.subject-grid{grid-template-columns:1fr}}
+
+.btn-send.loading{
+    opacity:.8;
+    cursor:not-allowed;
+    pointer-events:none;
+}
+
+.btn-send.loading #sendBtnText{
+    display:none;
+}
+
+.btn-send.loading #sendBtnSpinner{
+    display:flex !important;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+}
 </style>
 </head>
 <body data-auth="{% if request.user.is_authenticated %}1{% else %}0{% endif %}">
@@ -94,15 +142,16 @@ textarea.form-input{resize:vertical;min-height:120px}
       <div class="contact-card-icon"><i class="fas fa-location-dot"></i></div>
       <div class="contact-card-info">
         <h3>Visit Our Nursery</h3>
-        <p>Plot 42, Greenway Road, Jubilee Hills,<br>Hyderabad, Telangana — 500033</p>
-        <p style="margin-top:8px;"><a href="https://maps.google.com" target="_blank">Get directions →</a></p>
+        <p>7XC7+RR8,Karenahalli<br>Padignahalli, Kolar, Karnataka — 563157</p>
+        <p style="margin-top:8px;"><a href="https://maps.app.goo.gl/Hm3cEF7TJgHxpe5f6" target="_blank">Get directions →</a></p>
       </div>
     </div>
     <div class="contact-card reveal-child">
       <div class="contact-card-icon"><i class="fas fa-phone"></i></div>
       <div class="contact-card-info">
         <h3>Call / WhatsApp</h3>
-        <p><a href="tel:+918008001234">+91 8008 001 234</a></p>
+        <p><a href="tel:+919880303349">+91 98803 03349</a></p>
+        <p><a href="tel:+919591963939">+91 95919 63939</a></p>
         <p style="margin-top:4px;font-size:.88rem;color:var(--text-light);">Mon–Sat · 9 AM to 7 PM IST</p>
       </div>
     </div>
@@ -110,7 +159,7 @@ textarea.form-input{resize:vertical;min-height:120px}
       <div class="contact-card-icon"><i class="fas fa-envelope"></i></div>
       <div class="contact-card-info">
         <h3>Email Us</h3>
-        <p><a href="mailto:hello@ssdnursery.in">hello@ssdnursery.in</a></p>
+        <p><a href="mailto:ssdnurserygarden@gmail.com">ssdnurserygarden@gmail.com</a></p>
         <p style="margin-top:4px;font-size:.88rem;color:var(--text-light);">We reply within 24 hours</p>
       </div>
     </div>
@@ -119,7 +168,7 @@ textarea.form-input{resize:vertical;min-height:120px}
       <div class="contact-card-info">
         <h3>WhatsApp Chat</h3>
         <p>Quick responses for order queries,<br>plant care advice and more.</p>
-        <p style="margin-top:8px;"><a href="https://wa.me/918008001234" target="_blank">Chat now →</a></p>
+        <p style="margin-top:8px;"><a href="https://wa.me/919880303349" target="_blank">Chat now →</a></p>
       </div>
     </div>
     <div class="contact-hours reveal-child">
@@ -139,15 +188,15 @@ textarea.form-input{resize:vertical;min-height:120px}
       <div id="contactForm">
         <div class="form-group">
           <label>Your Name *</label>
-          <input type="text" id="contactName" class="form-input" placeholder="John Doe" value="{% if request.user.is_authenticated %}{{ request.user.first_name }}{% endif %}">
+          <input type="text" id="contactName" class="form-input" placeholder="John Doe" value="{% if request.user.is_authenticated %}{{ request.user.first_name }}{% endif %}" required>
         </div>
         <div class="form-group">
           <label>Email Address *</label>
-          <input type="email" id="contactEmail" class="form-input" placeholder="you@example.com" value="{% if request.user.is_authenticated %}{{ request.user.email }}{% endif %}">
+          <input type="email" id="contactEmail" class="form-input" placeholder="you@example.com" value="{% if request.user.is_authenticated %}{{ request.user.email }}{% endif %}" required>
         </div>
         <div class="form-group">
-          <label>Phone (Optional)</label>
-          <input type="tel" id="contactPhone" class="form-input" placeholder="9876543210">
+          <label>Phone *</label>
+          <input type="tel" id="contactPhone" class="form-input" placeholder="9876543210" required>
         </div>
         <div class="form-group">
           <label>Subject *</label>
@@ -160,7 +209,7 @@ textarea.form-input{resize:vertical;min-height:120px}
         </div>
         <div class="form-group">
           <label>Message *</label>
-          <textarea id="contactMessage" class="form-input" placeholder="Tell us how we can help…"></textarea>
+          <textarea id="contactMessage" class="form-input" required placeholder="Tell us how we can help…"></textarea>
         </div>
         <button class="btn-send" id="sendBtn" onclick="submitContactForm()">
           <span id="sendBtnText"><i class="fas fa-paper-plane"></i> Send Message</span>
@@ -178,15 +227,20 @@ textarea.form-input{resize:vertical;min-height:120px}
 </div>
 
 <!-- MAP PLACEHOLDER -->
+<h2 style="text-align:center;margin-bottom:30px;">
+    Visit Our Nursery
+</h2>
 <div class="map-section">
-  <div class="map-wrap">
-    <div style="text-align:center;">
-      <i class="fas fa-map-marked-alt" style="font-size:3rem;display:block;margin-bottom:14px;opacity:.35;"></i>
-      <span>Nursery Location — Hyderabad, Telangana</span><br>
-      <a href="https://maps.google.com" target="_blank" style="color:var(--gold);font-family:'DM Serif Display',serif;font-size:1rem;margin-top:10px;display:inline-block;">Open in Google Maps →</a>
+    <div class="map-wrap">
+        <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3195.594422968024!2d77.96198757410222!3d13.272062487071583!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bb201000a486a13%3A0xa618bd3c01230fca!2zU1NEIE51cnNlcnkgR2FyZGVuLeCytuCzjeCysOCzgCDgsrjgsr7gsq_gsr8g4LKm4LOB4LKw4LON4LKX4LK-IOCyqOCysOCzjeCyuOCysOCyvyDgspfgsr7gsrDgs43gsqHgsqjgs40!5e1!3m2!1sen!2sin!4v1780840710316!5m2!1sen!2sin"
+            allowfullscreen=""
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade">
+        </iframe>
     </div>
-  </div>
 </div>
+
 
 <!-- FAQ STRIP -->
 <div class="faq-strip">
@@ -207,25 +261,152 @@ textarea.form-input{resize:vertical;min-height:120px}
 
 <script src="{% static 'js/site.js' %}"></script>
 <script>
-function submitContactForm(){
-  const name=document.getElementById('contactName').value.trim();
-  const email=document.getElementById('contactEmail').value.trim();
-  const msg=document.getElementById('contactMessage').value.trim();
-  const subject=document.querySelector('input[name=subject]:checked')?.value||'Other';
-  if(!name)return showToast&&showToast('Please enter your name','error');
-  if(!email||!email.includes('@'))return showToast&&showToast('Please enter a valid email','error');
-  if(!msg||msg.length<10)return showToast&&showToast('Message must be at least 10 characters','error');
-  const btn=document.getElementById('sendBtn');
-  const txt=document.getElementById('sendBtnText');
-  const spin=document.getElementById('sendBtnSpinner');
-  btn.disabled=true;txt.style.display='none';spin.style.display='flex';
-  // Simulate send (replace with real API call if needed)
-  setTimeout(()=>{
-    document.getElementById('contactForm').style.display='none';
-    document.getElementById('formSuccess').style.display='block';
-    showToast&&showToast('Message sent successfully!','success');
-  },1400);
+
+
+function getCookie(name){
+
+
+let cookieValue = null;
+
+if(document.cookie){
+
+    const cookies =
+        document.cookie.split(';');
+
+    for(let cookie of cookies){
+
+        cookie = cookie.trim();
+
+        if(cookie.startsWith(name + '=')){
+
+            cookieValue =
+                decodeURIComponent(
+                    cookie.substring(
+                        name.length + 1
+                    )
+                );
+        }
+    }
 }
+
+return cookieValue;
+
+
+}
+
+let isSubmitting = false;
+
+async function submitContactForm(){
+
+    if(isSubmitting){
+        return;
+    }
+
+    const name =
+        document.getElementById('contactName').value.trim();
+
+    const email =
+        document.getElementById('contactEmail').value.trim();
+
+    const phone =
+        document.getElementById('contactPhone').value.trim();
+
+    const message =
+        document.getElementById('contactMessage').value.trim();
+
+    const subject =
+        document.querySelector(
+            'input[name=subject]:checked'
+        )?.value || 'Other';
+
+    if(!name){
+        showToast('Please enter your name','error');
+        return;
+    }
+
+    if(!email || !email.includes('@')){
+        showToast('Please enter a valid email','error');
+        return;
+    }
+
+    if(!phone){
+        showToast('Please enter phone number','error');
+        return;
+    }
+
+    if(!message || message.length < 10){
+        showToast('Message must be at least 10 characters','error');
+        return;
+    }
+
+    const btn =
+        document.getElementById('sendBtn');
+
+    isSubmitting = true;
+
+    btn.disabled = true;
+    btn.classList.add('loading');
+
+    try{
+
+        const response =
+            await fetch('/contact-submit/',{
+                method:'POST',
+
+                headers:{
+                    'Content-Type':'application/json',
+                    'X-CSRFToken':getCookie('csrftoken')
+                },
+
+                body:JSON.stringify({
+                    name,
+                    email,
+                    phone,
+                    subject,
+                    message
+                })
+            });
+
+        const data =
+            await response.json();
+
+        if(data.success){
+
+            document.getElementById(
+                'contactForm'
+            ).style.display='none';
+
+            document.getElementById(
+                'formSuccess'
+            ).style.display='block';
+
+            showToast(
+                'Message sent successfully!',
+                'success'
+            );
+
+        }else{
+
+            throw new Error('Failed');
+        }
+
+    }catch(error){
+
+        isSubmitting = false;
+
+        btn.disabled = false;
+        btn.classList.remove('loading');
+
+        showToast(
+            'Failed to send message',
+            'error'
+        );
+
+        console.error(error);
+    }
+}
+
+
 </script>
 </body>
 </html>
