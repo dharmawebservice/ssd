@@ -233,7 +233,6 @@
 
 table{
     width:100%;
-    table-layout:fixed;
 }
 
 table th,
@@ -242,48 +241,6 @@ table td{
     word-wrap:break-word;
 }
 
-/* Order ID */
-table th:nth-child(1),
-table td:nth-child(1){
-    width:140px;
-}
-
-/* Customer */
-table th:nth-child(2),
-table td:nth-child(2){
-    width:220px;
-}
-
-/* Amount */
-table th:nth-child(3),
-table td:nth-child(3){
-    width:90px;
-}
-
-/* Payment */
-table th:nth-child(4),
-table td:nth-child(4){
-    width:90px;
-}
-
-/* Date */
-table th:nth-child(5),
-table td:nth-child(5){
-    width:100px;
-}
-
-/* Status */
-table th:nth-child(6),
-table td:nth-child(6){
-    width:90px;
-}
-
-/* Action */
-table th:nth-child(7),
-table td:nth-child(7){
-    width:80px;
-    text-align:center;
-}
 
 .btn-view-detail{
     padding:5px 8px;
@@ -314,6 +271,251 @@ table td:nth-child(7){
     color:#B45309;
     border:1px solid #FCD34D;
 }
+
+/* =====================================================
+   RESPONSIVE ORDERS PAGE
+   ===================================================== */
+
+/* Large Tablets */
+@media (max-width: 1200px){
+
+    .order-modal{
+        max-width:90vw;
+    }
+
+    .info-grid{
+        grid-template-columns:1fr;
+    }
+}
+
+/* Tablets */
+@media (max-width: 992px){
+
+    .main-content{
+        padding:20px;
+    }
+
+    .table-responsive{
+        overflow-x:auto !important;
+        -webkit-overflow-scrolling:touch;
+    }
+
+    table{
+        min-width:900px;
+        table-layout:auto;
+    }
+
+    .top-header{
+        flex-direction:column;
+        align-items:flex-start;
+        gap:15px;
+    }
+
+    .modal-body{
+        padding:20px;
+    }
+
+    .modal-header{
+        padding:18px 20px;
+    }
+
+    .modal-footer{
+        padding:18px 20px;
+    }
+}
+
+/* Mobile */
+@media (max-width:768px){
+
+    .page-title{
+        font-size:1.4rem;
+    }
+
+    .page-subtitle{
+        font-size:.85rem;
+    }
+
+    /* Status pills */
+    .top-header > div:last-child{
+        width:100%;
+        overflow-x:auto;
+        flex-wrap:nowrap !important;
+        padding-bottom:5px;
+    }
+
+    .top-header > div:last-child a{
+        white-space:nowrap;
+        flex-shrink:0;
+    }
+
+    /* Table */
+    .table-responsive{
+        overflow-x:auto !important;
+        -webkit-overflow-scrolling:touch;
+    }
+
+    table{
+        min-width:850px;
+    }
+
+    /* Modal */
+    .order-modal-overlay{
+        padding:10px;
+        align-items:flex-start;
+    }
+
+    .order-modal{
+        width:100%;
+        max-width:100%;
+        border-radius:16px;
+    }
+
+    .modal-header{
+        padding:16px;
+    }
+
+    .modal-body{
+        padding:16px;
+    }
+
+    .modal-footer{
+        padding:16px;
+        flex-direction:column;
+    }
+
+    .btn-modal-save,
+    .btn-modal-cancel{
+        width:100%;
+        justify-content:center;
+    }
+
+    /* Customer + payment cards */
+    .info-grid{
+        grid-template-columns:1fr;
+    }
+
+    .info-card{
+        padding:12px;
+    }
+
+    .info-card span{
+        word-break:break-word;
+    }
+
+    /* Shipping form */
+    .status-form-grid{
+        grid-template-columns:1fr;
+    }
+
+    /* Shipping display */
+    .shipping-info-display{
+        grid-template-columns:1fr;
+    }
+
+    /* Order items */
+    .modal-item{
+        align-items:flex-start;
+    }
+
+    .modal-item-name{
+        white-space:normal;
+        overflow:visible;
+    }
+
+    .modal-item-total{
+        font-size:.85rem;
+    }
+
+    .tracking-id-pill{
+        word-break:break-all;
+    }
+}
+
+/* Small Phones */
+@media (max-width:480px){
+
+    .modal-header h2{
+        font-size:1rem;
+    }
+
+    .modal-item{
+        gap:10px;
+        padding:10px;
+    }
+
+    .modal-item-img{
+        width:42px;
+        height:42px;
+    }
+
+    .modal-item-name{
+        font-size:.82rem;
+    }
+
+    .modal-item-sub{
+        font-size:.72rem;
+    }
+
+    .modal-item-total{
+        font-size:.8rem;
+    }
+
+    .info-section-title{
+        font-size:.68rem;
+    }
+
+    .info-card label{
+        font-size:.65rem;
+    }
+
+    .info-card span{
+        font-size:.82rem;
+    }
+
+    .btn-view-detail{
+        padding:4px 8px;
+        font-size:.68rem;
+    }
+}
+
+/* Ultra Small Devices */
+@media (max-width:360px){
+
+    .page-title{
+        font-size:1.2rem;
+    }
+
+    .modal-header{
+        padding:14px;
+    }
+
+    .modal-body{
+        padding:14px;
+    }
+
+    .modal-footer{
+        padding:14px;
+    }
+
+    .btn-modal-save,
+    .btn-modal-cancel{
+        font-size:.8rem;
+        padding:10px;
+    }
+}
+
+.data-card{
+    overflow-x:auto;
+}
+
+.table-responsive{
+    overflow-x:auto !important;
+    -webkit-overflow-scrolling:touch;
+}
+
+table{
+    min-width:900px;
+}
 </style>
 </head>
 <body>
@@ -336,9 +538,9 @@ table td:nth-child(7){
             </div>
             <!-- Status filter pills -->
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <a href="?" style="padding:7px 14px;border-radius:20px;font-size:.82rem;font-weight:600;text-decoration:none;background:{% if not request.GET.status %}#111{% else %}var(--bg-body){% endif %};color:{% if not request.GET.status %}white{% else %}var(--text-secondary){% endif %};">All</a>
+                <a href="?" style="padding:7px 14px;border-radius:20px;font-size:.82rem;font-weight:600;text-decoration:none;background:{% if not selected_status %}#111{% else %}var(--bg-body){% endif %};color:{% if not selected_status %}white{% else %}var(--text-secondary){% endif %};">All</a>
                 {% for s in statuses %}
-                <a href="?status={{ s }}" style="padding:7px 14px;border-radius:20px;font-size:.82rem;font-weight:600;text-decoration:none;background:{% if request.GET.status == s %}#111{% else %}var(--bg-body){% endif %};color:{% if request.GET.status == s %}white{% else %}var(--text-secondary){% endif %};">{{ s }}</a>
+                <a href="?status={{ s }}" style="padding:7px 14px;border-radius:20px;font-size:.82rem;font-weight:600;text-decoration:none;background:{% if selected_status == s %}#111{% else %}var(--bg-body){% endif %};color:{% if selected_status == s %}white{% else %}var(--text-secondary){% endif %};">{{ s }}</a>
                 {% endfor %}
             </div>
         </header>

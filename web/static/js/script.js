@@ -71,14 +71,22 @@
         hamburger.querySelector("i").className = "fas fa-bars";
       });
     });
-    document.querySelectorAll(".has-drop > a").forEach(a => {
-      a.addEventListener("click", e => {
-        if (window.innerWidth <= 768) {
-          e.preventDefault();
-          a.parentElement.classList.toggle("open");
-        }
-      });
+    document.querySelectorAll(".has-drop > a").forEach(link => {
+
+    link.addEventListener("click", function(e){
+
+        if(window.innerWidth > 768) return;
+
+        e.preventDefault();
+
+        const parent = this.closest(".has-drop");
+
+        parent.classList.toggle("open");
+
+        console.log("dropdown toggled");
     });
+
+});
   }
 
   // Profile dropdown
@@ -583,7 +591,13 @@
   // ══════════════════════════════════════════════════════════
   document.querySelectorAll('a[href^="#"]').forEach(a => {
     a.addEventListener("click", function (e) {
-      const t = document.querySelector(this.getAttribute("href"));
+      const href = this.getAttribute("href");
+
+      if (!href || href === "#") {
+          return;
+      }
+
+      const t = document.querySelector(href);
       if (t) { e.preventDefault(); t.scrollIntoView({ behavior: "smooth" }); }
     });
   });

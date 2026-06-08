@@ -1432,10 +1432,40 @@ def delete_product(request, id):
 @login_required
 @_admin_required
 def order_list(request):
-    orders   = Order.objects.select_related("user").order_by("-id")
-    statuses = ["Pending", "Confirmed", "Packed", "Shipped", "Delivered", "Returned", "Cancelled"]
-    return render(request, "web/admin/orders.html", {"orders": orders, "statuses": statuses})
 
+    statuses = [
+        "Pending",
+        "Confirmed",
+        "Packed",
+        "Shipped",
+        "Delivered",
+        "Returned",
+        "Cancelled",
+    ]
+
+    orders = (
+        Order.objects
+        .select_related("user")
+        .prefetch_related("items")
+        .order_by("-id")
+    )
+
+    selected_status = request.GET.get("status", "").strip()
+
+    if selected_status:
+        orders = orders.filter(
+            status__iexact=selected_status
+        )
+
+    return render(
+        request,
+        "web/admin/orders.html",
+        {
+            "orders": orders,
+            "statuses": statuses,
+            "selected_status": selected_status,
+        }
+    )
 
 @login_required
 @_admin_required

@@ -236,79 +236,7 @@ function submitShopSearch(){
   window.location.href=url.toString();
 }
 
-const searchInput = document.getElementById("shopSearchInput");
-const suggestionBox = document.getElementById("shopSuggDrop");
 
-if(searchInput){
-
-    searchInput.addEventListener("input", async function(){
-
-        const q = this.value.trim();
-
-        if(q.length < 2){
-            suggestionBox.innerHTML = "";
-            suggestionBox.style.display = "none";
-            return;
-        }
-
-        try{
-
-            const response = await fetch(`/api/search/?q=${encodeURIComponent(q)}`);
-            const data = await response.json();
-
-            if(!data.groups || !data.groups.length){
-                suggestionBox.innerHTML = `
-                    <div class="sugg-empty">
-                        No results found
-                    </div>
-                `;
-                suggestionBox.style.display = "block";
-                return;
-            }
-
-            let html += `<a href="/shop/?category=${group.category.slug}" class="sugg-category-link">
-              <img src="${group.category.image || '/static/images/category-placeholder.jpg'}" class="sugg-thumb" alt="${group.category.name}">
-              <div class="sugg-info">
-                <div class="sugg-title">${group.category.name}</div>
-                <div class="sugg-subtitle">Collection</div>
-              </div>
-            </a>`;
-
-                group.products.forEach(product => {
-
-                    html += `
-                        <a href="/product/${product.slug}/"
-                          class="sugg-product-link">
-                            <img src="${product.image || '/static/images/product-placeholder.jpg'}"
-                                class="sugg-thumb"
-                                alt="${product.name}">
-                            <span>${product.name}</span>
-                        </a>
-                    `;
-                });
-
-            });
-
-            suggestionBox.innerHTML = html;
-            suggestionBox.style.display = "block";
-
-        }catch(err){
-            console.error(err);
-        }
-
-    });
-
-    document.addEventListener("click", function(e){
-
-        if(
-            !searchInput.contains(e.target) &&
-            !suggestionBox.contains(e.target)
-        ){
-            suggestionBox.style.display = "none";
-        }
-
-    });
-}
 </script>
 </body>
 </html>

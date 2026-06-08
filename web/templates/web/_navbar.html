@@ -1,51 +1,78 @@
 {% load static %}
 <style>
-  .has-drop {
-    position: relative;
+
+@media (max-width:768px){
+
+    .has-drop{
+        width:100%;
+    }
+
+    .mega-drop{
+        position:static;
+        display:none;
+        width:100%;
+        background:#f8f8f8;
+        border-radius:12px;
+        margin-top:8px;
+        box-shadow:none;
+        padding:0;
+    }
+
+    .has-drop.open .mega-drop{
+        display:block;
+    }
+
+    .mega-drop a{
+        justify-content:center;
+        padding:14px;
+        border-bottom:1px solid #eee;
+    }
+
+    .mega-drop a:last-child{
+        border-bottom:none;
+    }
+
+}
+/* Desktop / Mobile menu separation */
+
+.mobile-only{
+    display:none;
 }
 
-.mega-drop {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    min-width: 220px;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.12);
-    padding: 10px 0;
-    display: none;
-    z-index: 9999;
-}
-
-.has-drop:hover .mega-drop {
-    display: block;
-}
-
-.mega-drop a {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 18px;
-    text-decoration: none;
-    color: #222;
-    transition: background .3s;
-}
-
-.mega-drop a:hover {
-    background: #f5f5f5;
+.desktop-only{
+    display:block;
 }
 
 @media (max-width:768px){
 
-    .mega-drop{
-        display:none;
-        position:static;
-        box-shadow:none;
-        margin-top:10px;
+    .desktop-only{
+        display:none !important;
     }
 
-    .mega-drop.show{
-        display:block;
+    .mobile-only{
+        display:block !important;
+    }
+
+    .nav-links{
+        position:fixed;
+        top:64px;
+        left:0;
+        width:100%;
+        height:calc(100vh - 64px);
+        background:#fff;
+        overflow-y:auto;
+        z-index:99999;
+    }
+
+    .nav-links li{
+        width:100%;
+        text-align:center;
+        padding:18px 0;
+    }
+
+    .nav-links a{
+        font-size:1.5rem;
+        font-family:'DM Serif Display', serif;
     }
 }
 </style>
@@ -98,29 +125,44 @@
         </a>
     </li>
 
-    <li class="has-drop">
+    <!-- Desktop Dropdown -->
+    <li class="has-drop desktop-only">
         <a href="#">
             More
-            <i class="fas fa-chevron-down" style="font-size:0.65rem;"></i>
+            <i class="fas fa-chevron-down"></i>
         </a>
 
         <div class="mega-drop">
+            <a href="{% url 'about' %}">
+                <i class="fas fa-leaf"></i>
+                About Us
+            </a>
 
-    <a href="{% url 'about' %}">
-        <i class="fas fa-leaf"></i>
-        About Us
-    </a>
+            <a href="{% url 'contact' %}">
+                <i class="fas fa-envelope"></i>
+                Contact Us
+            </a>
 
-    <a href="{% url 'contact' %}">
-        <i class="fas fa-envelope"></i>
-        Contact Us
-    </a>
+            <a href="{% url 'faq' %}">
+                <i class="fas fa-circle-question"></i>
+                FAQ
+            </a>
+        </div>
+    </li>
 
-    <a href="{% url 'faq' %}">
-        <i class="fas fa-circle-question"></i>
-        FAQ
-    </a>
+    <!-- Mobile Direct Links -->
+    <li class="mobile-only">
+        <a href="{% url 'about' %}">About Us</a>
+    </li>
 
+    <li class="mobile-only">
+        <a href="{% url 'contact' %}">Contact Us</a>
+    </li>
+
+    <li class="mobile-only">
+        <a href="{% url 'faq' %}">FAQ</a>
+    </li>
+</ul>
 </div>
     </li>
 </ul>
@@ -257,19 +299,25 @@
     <i class="fas fa-check-circle"></i>
     <span id="toastMsg">Done!</span>
 </div>
+
 <script>
-  document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', function() {
 
-    const moreMenu = document.querySelector(".has-drop > a");
-    const dropdown = document.querySelector(".mega-drop");
+    const dropLink = document.querySelector('.has-drop > a');
 
-    if (moreMenu && dropdown) {
-        moreMenu.addEventListener("click", (e) => {
+    if (dropLink) {
+
+        dropLink.addEventListener('click', function(e) {
+
             if (window.innerWidth <= 768) {
+
                 e.preventDefault();
-                dropdown.classList.toggle("show");
+
+                this.parentElement.classList.toggle('open');
             }
+
         });
+
     }
 
 });

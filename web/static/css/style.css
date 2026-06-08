@@ -1843,7 +1843,12 @@
             box-shadow: 0 12px 24px rgba(28, 58, 43, 0.1);
             z-index: 1000;
         }
-        .nav-links.active { padding: 20px 0; max-height: 400px; }
+        .nav-links.active {
+            padding: 20px 0;
+            max-height: 100vh;
+            height: calc(100vh - 64px);
+            overflow-y: auto;
+        }
         .nav-links li { width: 100%; text-align: center; padding: 14px 0; }
         .nav-links a { color: var(--text-dark) !important; }
 
