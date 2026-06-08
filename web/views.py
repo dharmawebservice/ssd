@@ -1,3 +1,7 @@
+from threading import Thread
+import logging
+
+logger = logging.getLogger(__name__)
 from django.db.models.functions import Coalesce
 from django.db.models import DecimalField
 from django.db.models import Min, Max
@@ -174,6 +178,22 @@ def _send_order_confirmation(order):
     except Exception:
         pass   # never crash on email failure
 
+def send_email_background(func, *args, **kwargs):
+    """
+    Execute email functions in background thread.
+    Never block order placement.
+    """
+
+    def runner():
+        try:
+            func(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Background email error: {e}")
+
+    Thread(
+        target=runner,
+        daemon=True
+    ).start()
 
 def send_order_status_email(order, old_status, new_status):
     """
@@ -1152,11 +1172,10 @@ def verify_razorpay_payment(request):
         if "pending_checkout" in request.session:
             del request.session["pending_checkout"]
 
-        # Fix Issue 14: confirmation email
-        # _send_order_confirmation(order)
 
         # Customer + Admin HTML email
-        send_order_status_email(
+        send_email_background(
+            send_order_status_email,
             order,
             "New",
             "Pending"
@@ -1227,8 +1246,8 @@ def place_cod_order(request):
                 ci.product.save(update_fields=["stock"])
 
             items.delete()
-
-        send_order_status_email(
+        send_email_background(
+            send_order_status_email,
             order,
             "New",
             "Pending"
@@ -1467,7 +1486,8 @@ def update_order_status(request, order_id):
         order.save()
 
         if old_status != new_status:
-            send_order_status_email(
+            send_email_background(
+                send_order_status_email,
                 order,
                 old_status,
                 new_status
@@ -1776,7 +1796,7 @@ def contact_submit(request):
             "text/html"
         )
 
-        admin_email.send()
+        send_email_background(admin_email.send)
 
         # Customer Mail
         user_html = render_to_string(
@@ -1799,7 +1819,7 @@ def contact_submit(request):
             "text/html"
         )
 
-        user_email.send()
+        send_email_background(user_email.send)
 
         return JsonResponse({
             "success": True
