@@ -1,30 +1,201 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>New Order — SSD Nursery</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body, table, td { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+  table { border-spacing: 0; }
+  td    { padding: 0; }
+
+  body {
+    background: #f1f5f9;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    margin: 0; padding: 0;
+  }
+
+  .outer  { width: 100%; background: #f1f5f9; padding: 36px 16px; }
+  .card   { max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 18px; overflow: hidden; }
+
+  /* top accent bar */
+  .accent { background: #1b4332; height: 5px; }
+
+  /* header */
+  .header { padding: 28px 36px 22px; border-bottom: 1px solid #f1f5f9; text-align: center; }
+  .brand  { font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.3px; }
+  .brand span { color: #1b4332; }
+  .sub    { font-size: 12px; color: #94a3b8; margin-top: 4px; text-transform: uppercase; letter-spacing: 1.8px; font-weight: 600; }
+
+  /* alert row */
+  .alert-row  { background: #f0fdf4; border-bottom: 1px solid #bbf7d0; padding: 22px 36px; }
+  .alert-icon { font-size: 32px; margin-bottom: 8px; display: block; }
+  .alert-head { font-size: 22px; font-weight: 800; color: #14532d; margin-bottom: 4px; letter-spacing: -0.3px; }
+  .alert-note { font-size: 14px; color: #4b7a5f; line-height: 1.6; }
+  .alert-note strong { color: #14532d; }
+
+  /* order id band */
+  .id-band { background: #1b4332; padding: 14px 36px; text-align: center; }
+  .id-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #74c69d; margin-bottom: 4px; }
+  .id-value { font-size: 22px; font-weight: 800; color: #ffffff; font-family: 'Courier New', Courier, monospace; letter-spacing: 2px; }
+
+  /* info block */
+  .info-block { padding: 24px 36px; border-bottom: 1px solid #f1f5f9; }
+  .row-tbl { width: 100%; border-collapse: collapse; }
+  .row-tbl td { padding: 7px 0; font-size: 14px; vertical-align: middle; border-bottom: 1px solid #f8fafc; }
+  .row-tbl tr:last-child td { border-bottom: none; }
+  .rkey { color: #94a3b8; font-weight: 500; width: 40%; }
+  .rval { color: #0f172a; font-weight: 700; text-align: right; }
+
+  /* amount highlight */
+  .amount-block {
+    margin: 0 36px 24px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 18px 20px;
+    text-align: center;
+  }
+  .amount-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; margin-bottom: 6px; }
+  .amount-value   { font-size: 32px; font-weight: 800; color: #1b4332; letter-spacing: -1px; }
+
+  /* items */
+  .items-block { padding: 0 36px 24px; }
+  .items-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; margin-bottom: 14px; }
+  .item-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+  .item-row:last-child { border-bottom: none; }
+  .iname-wrap {}
+  .iname { font-weight: 700; color: #0f172a; }
+  .icat  { font-size: 11px; color: #94a3b8; margin-top: 2px; font-weight: 500; }
+  .iqty  { color: #64748b; font-weight: 600; white-space: nowrap; padding-left: 12px; }
+
+  /* address */
+  .addr-block { padding: 0 36px 28px; }
+  .addr-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; margin-bottom: 12px; }
+  .addr-card  { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #475569; line-height: 1.7; }
+  .addr-card strong { color: #0f172a; font-size: 14px; display: block; margin-bottom: 4px; }
+
+  /* footer */
+  .footer { background: #f8fafc; border-top: 1px solid #f1f5f9; padding: 18px 36px; text-align: center; }
+  .footer-txt   { font-size: 11px; color: #94a3b8; line-height: 1.7; }
+  .footer-brand { font-size: 13px; font-weight: 800; color: #1b4332; margin-top: 6px; }
+
+  @media only screen and (max-width: 560px) {
+    .outer        { padding: 16px 8px !important; }
+    .card         { border-radius: 14px !important; }
+    .header       { padding: 22px 24px 18px !important; }
+    .alert-row    { padding: 18px 24px !important; }
+    .id-band      { padding: 12px 24px !important; }
+    .info-block   { padding: 18px 24px !important; }
+    .amount-block { margin: 0 24px 20px !important; }
+    .items-block  { padding: 0 24px 20px !important; }
+    .addr-block   { padding: 0 24px 22px !important; }
+    .footer       { padding: 16px 24px !important; }
+    .amount-value { font-size: 26px !important; }
+  }
+</style>
+</head>
 <body>
+<div class="outer">
+<div class="card">
 
-<h2>Order Status Updated</h2>
+  <div class="accent"></div>
 
-<p>
-<b>Order Number:</b> {{ order.order_number }}
-</p>
+  <!-- HEADER -->
+  <div class="header">
+    <div class="brand">&#127807; SSD<span>Nursery</span></div>
+    <div class="sub">Admin Notification</div>
+  </div>
 
-<p>
-<b>Customer:</b> {{ order.user.first_name }}
-</p>
+  <!-- ALERT -->
+  <div class="alert-row">
+    <span class="alert-icon">&#127873;</span>
+    <div class="alert-head">You've got a new order!</div>
+    <div class="alert-note">
+      <strong>{{ order.user.first_name }} {{ order.user.last_name }}</strong> just placed an order on {{ order.created_at|date:"D, d M Y" }} at {{ order.created_at|date:"g:i A" }}.
+    </div>
+  </div>
 
-<p>
-<b>Email:</b> {{ order.user.email }}
-</p>
+  <!-- ORDER ID BAND -->
+  <div class="id-band">
+    <div class="id-label">Order ID</div>
+    <div class="id-value">#{{ order.order_number }}</div>
+  </div>
 
-<p>
-<b>Status:</b>
-{{ old_status }} → {{ new_status }}
-</p>
+  <!-- ORDER META -->
+  <div class="info-block">
+    <table class="row-tbl">
+      <tr>
+        <td class="rkey">Customer</td>
+        <td class="rval">{{ order.user.first_name }} {{ order.user.last_name }}</td>
+      </tr>
+      <tr>
+        <td class="rkey">Phone</td>
+        <td class="rval">
+          {% if order.user.profile.phone %}{{ order.user.profile.phone }}{% else %}—{% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td class="rkey">Email</td>
+        <td class="rval">{{ order.user.email }}</td>
+      </tr>
+      <tr>
+        <td class="rkey">Payment</td>
+        <td class="rval">
+          {% if order.payment_method == "razorpay" %}
+            Online (Razorpay)
+          {% else %}
+            Cash on Delivery
+          {% endif %}
+        </td>
+      </tr>
+    </table>
+  </div>
 
-<p>
-<b>Amount:</b>
-₹{{ order.total_amount }}
-</p>
+  <!-- TOTAL AMOUNT -->
+  <div class="amount-block">
+    <div class="amount-eyebrow">Order Total</div>
+    <div class="amount-value">&#8377;{{ order.total_amount|floatformat:0 }}</div>
+  </div>
 
+  <!-- ITEMS -->
+  <div class="items-block">
+    <div class="items-title">Items Ordered</div>
+    {% for item in order.items.all %}
+    <div class="item-row">
+      <div class="iname-wrap">
+        <div class="iname">{{ item.product.name }}</div>
+        <div class="icat">{{ item.product.category.name }}</div>
+      </div>
+      <div class="iqty">x{{ item.quantity }} &nbsp;&middot;&nbsp; &#8377;{{ item.price|floatformat:0 }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- DELIVERY ADDRESS -->
+  <div class="addr-block">
+    <div class="addr-title">Deliver To</div>
+    <div class="addr-card">
+      <strong>{{ order.user.first_name }} {{ order.user.last_name }}</strong>
+      {{ order.address }}
+      {% if order.user.profile.phone %}<br>&#128241; {{ order.user.profile.phone }}{% endif %}
+    </div>
+    {% if order.notes %}
+    <div style="margin-top:10px; font-size:13px; color:#78350f; background:#fffbeb; border-left:3px solid #f59e0b; padding:10px 14px; border-radius:0 8px 8px 0;">
+      <strong>Note:</strong> {{ order.notes }}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-txt">Automated notification &mdash; SSD Nursery order management system.</div>
+    <div class="footer-brand">&#127807; SSD Nursery</div>
+  </div>
+
+</div>
+</div>
 </body>
 </html>

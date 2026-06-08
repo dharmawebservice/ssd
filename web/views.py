@@ -176,8 +176,25 @@ def _send_order_confirmation(order):
 
 
 def send_order_status_email(order, old_status, new_status):
-
+    """
+    Sends a status update email to the customer for every transition.
+    Sends an admin alert ONLY when a brand-new order is placed (old_status == "New").
+    """
     try:
+        subject_map = {
+            "Pending":   f"Order Received 🌱 #{order.order_number}",
+            "Confirmed": f"Order Confirmed ✅ #{order.order_number}",
+            "Packed":    f"Order Packed 📦 #{order.order_number}",
+            "Shipped":   f"Your Order is on the Way 🚚 #{order.order_number}",
+            "Delivered": f"Order Delivered 🌿 #{order.order_number}",
+            "Cancelled": f"Order Cancelled ❌ #{order.order_number}",
+            "Returned":  f"Return Initiated ↩️ #{order.order_number}",
+        }
+
+        subject = subject_map.get(
+            new_status,
+            f"Order Update #{order.order_number}"
+        )
 
         context = {
             "order": order,
@@ -185,70 +202,47 @@ def send_order_status_email(order, old_status, new_status):
             "new_status": new_status,
         }
 
-        # Dynamic Subject
-        if new_status == "Pending":
-            subject = f"Order Received 🌱 #{order.order_number}"
-
-        elif new_status == "Confirmed":
-            subject = f"Order Confirmed ✅ #{order.order_number}"
-
-        elif new_status == "Packed":
-            subject = f"Order Packed 📦 #{order.order_number}"
-
-        elif new_status == "Shipped":
-            subject = f"Order Shipped 🚚 #{order.order_number}"
-
-        elif new_status == "Delivered":
-            subject = f"Order Delivered 🌿 #{order.order_number}"
-
-        elif new_status == "Cancelled":
-            subject = f"Order Cancelled ❌ #{order.order_number}"
-
-        elif new_status == "Returned":
-            subject = f"Order Returned ↩️ #{order.order_number}"
-
-        else:
-            subject = f"Order Update #{order.order_number}"
-
-        # Customer Mail
+        # Customer Email
         customer_html = render_to_string(
             "web/emails/order_status_customer.html",
             context
         )
 
-        customer_email = EmailMultiAlternatives(
+        customer_msg = EmailMultiAlternatives(
             subject=subject,
-            body="Order Status Updated",
+            body=f"Your order #{order.order_number} status: {new_status}",
             from_email=settings.EMAIL_HOST_USER,
-            to=[order.user.email]
+            to=[order.user.email],
         )
 
-        customer_email.attach_alternative(
+        customer_msg.attach_alternative(
             customer_html,
             "text/html"
         )
 
-        customer_email.send()
+        customer_msg.send()
 
-        # Admin Mail
-        admin_html = render_to_string(
-            "web/emails/order_status_admin.html",
-            context
-        )
+        # Admin email ONLY for newly placed orders
+        if old_status == "New":
 
-        admin_email = EmailMultiAlternatives(
-            subject=f"Order #{order.order_number} changed to {new_status}",
-            body="Order Status Changed",
-            from_email=settings.EMAIL_HOST_USER,
-            to=["ssdnurserygarden@gmail.com"]
-        )
+            admin_html = render_to_string(
+                "web/emails/order_status_admin.html",
+                context
+            )
 
-        admin_email.attach_alternative(
-            admin_html,
-            "text/html"
-        )
+            admin_msg = EmailMultiAlternatives(
+                subject=f"🛒 New Order #{order.order_number} — ₹{order.total_amount}",
+                body=f"New order #{order.order_number} placed by {order.user.first_name}.",
+                from_email=settings.EMAIL_HOST_USER,
+                to=["ssdnurserygarden@gmail.com"],
+            )
 
-        admin_email.send()
+            admin_msg.attach_alternative(
+                admin_html,
+                "text/html"
+            )
+
+            admin_msg.send()
 
     except Exception as e:
         print("ORDER STATUS MAIL ERROR:", e)

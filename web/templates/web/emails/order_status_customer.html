@@ -1,26 +1,729 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+<title>Order Update — SSD Nursery</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body, table, td, a {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  table { border-spacing: 0; }
+  td    { padding: 0; }
+  img   { border: 0; line-height: 100%; outline: none; text-decoration: none; }
+  a     { text-decoration: none; }
+
+  body {
+    background-color: #edf2ed;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    color: #1a1a1a;
+    margin: 0;
+    padding: 0;
+  }
+
+  .email-outer {
+    width: 100%;
+    background-color: #edf2ed;
+    padding: 32px 16px;
+  }
+
+  .email-container {
+    max-width: 580px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  /* ─── HEADER ─── */
+  .header {
+    background: #1b4332;
+    padding: 28px 40px 24px;
+    text-align: center;
+  }
+  .header-brand {
+    font-size: 22px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.3px;
+  }
+  .header-brand span { color: #74c69d; }
+  .header-tagline {
+    font-size: 11px;
+    color: #95d5b2;
+    margin-top: 5px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ─── STATUS HERO ─── */
+  .status-hero {
+    padding: 36px 40px 28px;
+    text-align: center;
+    border-bottom: 1px solid #f0f4f0;
+  }
+  .status-badge {
+    display: inline-block;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    font-size: 30px;
+    line-height: 72px;
+    margin-bottom: 18px;
+    text-align: center;
+  }
+  .badge-pending   { background: #fef3c7; }
+  .badge-confirmed { background: #dbeafe; }
+  .badge-packed    { background: #fce7f3; }
+  .badge-shipped   { background: #ccfbf1; }
+  .badge-delivered { background: #dcfce7; }
+  .badge-cancelled { background: #fee2e2; }
+  .badge-returned  { background: #ffedd5; }
+
+  .status-headline {
+    font-size: 26px;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 10px;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+  }
+  .status-message {
+    font-size: 15px;
+    color: #6b7280;
+    line-height: 1.65;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+
+  /* ─── PROGRESS TRACKER ─── */
+  .progress-wrap {
+    background: #f9fafb;
+    padding: 24px 40px 28px;
+    border-bottom: 1px solid #f0f4f0;
+  }
+  .progress-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #9ca3af;
+    margin-bottom: 22px;
+    text-align: center;
+  }
+
+  /* Table-based steps — renders in all email clients */
+  .steps-table { width: 100%; border-collapse: collapse; }
+  .step-cell   { text-align: center; vertical-align: top; padding: 0; }
+
+  .step-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    margin: 0 auto 8px;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 36px;
+    text-align: center;
+    display: block;
+  }
+  .circle-done   { background: #1b4332; color: #ffffff; }
+  .circle-active { background: #ffffff; color: #1b4332; outline: 2px solid #1b4332; }
+  .circle-todo   { background: #ffffff; color: #d1d5db; outline: 2px solid #e5e7eb; }
+
+  .step-label {
+    font-size: 10px;
+    font-weight: 600;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .label-done   { color: #1b4332; }
+  .label-active { color: #1b4332; }
+  .label-todo   { color: #c4c4c4; }
+
+  .step-connector { vertical-align: middle; padding: 0 4px; padding-bottom: 28px; }
+  .connector-line {
+    height: 2px;
+    width: 100%;
+    min-width: 20px;
+    border-radius: 2px;
+    display: block;
+  }
+  .line-done { background: #1b4332; }
+  .line-todo { background: #e5e7eb; }
+
+  /* ─── ALERT BOXES ─── */
+  .alert-cancel {
+    margin: 0 40px 0;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    border-radius: 12px;
+    padding: 18px 20px;
+    font-size: 14px;
+    color: #881337;
+    line-height: 1.65;
+  }
+  .alert-return {
+    margin: 0 40px 0;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 12px;
+    padding: 18px 20px;
+    font-size: 14px;
+    color: #9a3412;
+    line-height: 1.65;
+  }
+  .alert-title-text {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  /* ─── SECTION BLOCK ─── */
+  .block {
+    padding: 24px 40px;
+    border-bottom: 1px solid #f0f4f0;
+  }
+  .block-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #9ca3af;
+    margin-bottom: 16px;
+  }
+
+  /* ─── ORDER META ROWS ─── */
+  .meta-table { width: 100%; border-collapse: collapse; }
+  .meta-table td { padding: 7px 0; vertical-align: middle; }
+  .meta-key { font-size: 13px; color: #9ca3af; font-weight: 500; width: 45%; }
+  .meta-val { font-size: 13px; color: #111827; font-weight: 600; text-align: right; }
+
+  /* ─── STATUS PILL ─── */
+  .pill {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    vertical-align: middle;
+  }
+  .pill-pending   { background: #fef3c7; color: #b45309; }
+  .pill-confirmed { background: #dbeafe; color: #1d4ed8; }
+  .pill-packed    { background: #fce7f3; color: #9d174d; }
+  .pill-shipped   { background: #ccfbf1; color: #0f766e; }
+  .pill-delivered { background: #dcfce7; color: #15803d; }
+  .pill-cancelled { background: #fee2e2; color: #b91c1c; }
+  .pill-returned  { background: #ffedd5; color: #c2410c; }
+  .pill-online    { background: #ede9fe; color: #6d28d9; }
+  .pill-cod       { background: #fef3c7; color: #b45309; }
+
+  /* ─── TRACKING BOX ─── */
+  .tracking-box {
+    background: #f0fdf4;
+    border: 1.5px solid #86efac;
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+  .tracking-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #16a34a;
+    margin-bottom: 6px;
+  }
+  .tracking-id-text {
+    font-size: 20px;
+    font-weight: 800;
+    color: #14532d;
+    letter-spacing: 1px;
+    font-family: 'Courier New', Courier, monospace;
+  }
+  .tracking-via {
+    font-size: 13px;
+    color: #4b7a5f;
+    margin-top: 5px;
+  }
+
+  /* ─── ITEMS TABLE ─── */
+  .items-tbl { width: 100%; border-collapse: collapse; }
+  .items-tbl thead td {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #9ca3af;
+    padding-bottom: 12px;
+    border-bottom: 1.5px solid #f0f4f0;
+  }
+  .items-tbl tbody td {
+    padding: 13px 0;
+    border-bottom: 1px solid #f9fafb;
+    vertical-align: top;
+  }
+  .items-tbl tbody tr:last-child td { border-bottom: none; }
+  .item-name-text  { font-size: 13px; font-weight: 700; color: #111827; line-height: 1.4; }
+  .item-cat-text   { font-size: 11px; color: #9ca3af; margin-top: 3px; font-weight: 500; }
+  .item-qty-text   { font-size: 13px; color: #6b7280; text-align: center; font-weight: 500; }
+  .item-price-text { font-size: 13px; font-weight: 700; color: #1b4332; text-align: right; }
+
+  /* ─── TOTALS ─── */
+  .totals-tbl { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  .totals-tbl td { padding: 5px 0; font-size: 13px; }
+  .tot-label { color: #6b7280; }
+  .tot-val   { text-align: right; color: #374151; font-weight: 600; }
+  .free-text { color: #16a34a; font-weight: 700; }
+  .disc-text { color: #dc2626; font-weight: 600; }
+  .grand-row td {
+    border-top: 2px solid #1b4332;
+    padding-top: 12px !important;
+    margin-top: 6px;
+    font-size: 16px;
+    font-weight: 800;
+    color: #1b4332;
+  }
+
+  /* ─── ADDRESS BOX ─── */
+  .addr-box {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .addr-name-text { font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 6px; }
+  .addr-line      { font-size: 13px; color: #6b7280; line-height: 1.7; }
+
+  /* ─── NOTE ─── */
+  .note-bar {
+    margin-top: 14px;
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #78350f;
+    line-height: 1.6;
+  }
+
+  /* ─── REVIEW CTA ─── */
+  .review-box {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 1px solid #bbf7d0;
+    border-radius: 14px;
+    padding: 24px 20px;
+    text-align: center;
+    margin-top: 4px;
+  }
+  .review-title { font-size: 16px; font-weight: 800; color: #14532d; margin-bottom: 6px; }
+  .review-sub   { font-size: 13px; color: #4b7a5f; margin-bottom: 16px; line-height: 1.5; }
+  .review-btn {
+    display: inline-block;
+    background: #1b4332;
+    color: #ffffff !important;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 12px 28px;
+    border-radius: 10px;
+    letter-spacing: 0.3px;
+    text-decoration: none;
+  }
+
+  /* ─── TRUST STRIP ─── */
+  .trust-strip {
+    padding: 22px 40px;
+    border-bottom: 1px solid #f0f4f0;
+  }
+  .trust-tbl { width: 100%; border-collapse: collapse; }
+  .trust-tbl td { text-align: center; padding: 0 8px; vertical-align: middle; }
+  .trust-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    margin: 0 auto 6px;
+    line-height: 40px;
+    font-size: 18px;
+    text-align: center;
+    display: block;
+  }
+  .trust-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; }
+
+  /* ─── FOOTER ─── */
+  .footer {
+    padding: 24px 40px 28px;
+    text-align: center;
+    background: #fafafa;
+  }
+  .footer-text { font-size: 12px; color: #9ca3af; line-height: 1.8; }
+  .footer-text a { color: #1b4332; font-weight: 600; text-decoration: none; }
+  .footer-brand  { font-size: 14px; font-weight: 800; color: #1b4332; margin-top: 10px; }
+
+  /* ─── RESPONSIVE ─── */
+  @media only screen and (max-width: 600px) {
+    .email-outer   { padding: 16px 8px !important; }
+    .email-container { border-radius: 14px !important; }
+    .header        { padding: 22px 24px 18px !important; }
+    .status-hero   { padding: 28px 24px 22px !important; }
+    .status-headline { font-size: 22px !important; }
+    .progress-wrap { padding: 20px 20px 24px !important; }
+    .block         { padding: 20px 24px !important; }
+    .trust-strip   { padding: 18px 24px !important; }
+    .footer        { padding: 20px 24px 24px !important; }
+    .alert-cancel,
+    .alert-return  { margin: 0 24px !important; }
+    .tracking-id-text { font-size: 16px !important; }
+    .step-circle   { width: 28px !important; height: 28px !important; line-height: 28px !important; font-size: 11px !important; }
+    .step-label    { font-size: 9px !important; letter-spacing: 0.4px !important; }
+  }
+</style>
+</head>
 <body>
+<div class="email-outer">
+<div class="email-container">
 
-<h2>Hello {{ order.user.first_name }}</h2>
+  <!-- ══ HEADER ══ -->
+  <div class="header">
+    <div class="header-brand">&#127807; SSD<span>Nursery</span></div>
+    <div class="header-tagline">Bringing nature to your doorstep</div>
+  </div>
 
-<p>Your order status has been updated.</p>
+  <!-- ══ STATUS HERO ══ -->
+  <div class="status-hero">
 
-<p>
-<b>Order ID:</b> {{ order.order_number }}<br>
-<b>Previous Status:</b> {{ old_status }}<br>
-<b>Current Status:</b> {{ new_status }}
-</p>
+    {% if new_status == "Pending" %}
+      <div class="status-badge badge-pending">&#127881;</div>
+      <div class="status-headline">Order Placed!</div>
+      <div class="status-message">Hi {{ order.user.first_name|default:order.user.username }}, we've received your order and it's being processed. You'll hear from us soon.</div>
 
-{% if order.tracking_id %}
-<p>
-<b>Tracking ID:</b> {{ order.tracking_id }}
-</p>
-{% endif %}
+    {% elif new_status == "Confirmed" %}
+      <div class="status-badge badge-confirmed">&#9989;</div>
+      <div class="status-headline">Order Confirmed!</div>
+      <div class="status-message">Hi {{ order.user.first_name|default:order.user.username }}, your order has been confirmed and our team will start preparing it shortly.</div>
 
-<p>
-Thank you for shopping with SSD Nursery 🌱
-</p>
+    {% elif new_status == "Packed" %}
+      <div class="status-badge badge-packed">&#128230;</div>
+      <div class="status-headline">Order Packed &amp; Ready</div>
+      <div class="status-message">Hi {{ order.user.first_name|default:order.user.username }}, your plants have been carefully packed and are ready for dispatch.</div>
 
+    {% elif new_status == "Shipped" %}
+      <div class="status-badge badge-shipped">&#128665;</div>
+      <div class="status-headline">Your Order is on the Way!</div>
+      <div class="status-message">Hi {{ order.user.first_name|default:order.user.username }}, great news — your order has been shipped and is heading to you.</div>
+
+    {% elif new_status == "Delivered" %}
+      <div class="status-badge badge-delivered">&#127807;</div>
+      <div class="status-headline">Order Delivered!</div>
+      <div class="status-message">Hi {{ order.user.first_name|default:order.user.username }}, your order has arrived. We hope your new plants bring joy to your space!</div>
+
+    {% elif new_status == "Cancelled" %}
+      <div class="status-badge badge-cancelled">&#10060;</div>
+      <div class="status-headline">Order Cancelled</div>
+      <div class="status-message">Hi {{ order.user.first_name|default:order.user.username }}, your order has been cancelled. See details below.</div>
+
+    {% elif new_status == "Returned" %}
+      <div class="status-badge badge-returned">&#8617;&#65039;</div>
+      <div class="status-headline">Return Initiated</div>
+      <div class="status-message">Hi {{ order.user.first_name|default:order.user.username }}, we've received your return request and will process it within 3–5 business days.</div>
+
+    {% else %}
+      <div class="status-badge badge-confirmed">&#128276;</div>
+      <div class="status-headline">Order Updated</div>
+      <div class="status-message">Hi {{ order.user.first_name|default:order.user.username }}, your order status has changed to <strong>{{ new_status }}</strong>.</div>
+    {% endif %}
+
+  </div>
+
+  <!-- ══ PROGRESS TRACKER (hide for cancelled/returned) ══ -->
+  {% if new_status != "Cancelled" and new_status != "Returned" %}
+  <div class="progress-wrap">
+    <div class="progress-title">Order Progress</div>
+    <table class="steps-table">
+      <tr>
+
+        <!-- Step 1: Placed (always done) -->
+        <td class="step-cell" style="width:13%">
+          <span class="step-circle circle-done">&#10003;</span>
+          <span class="step-label label-done">Placed</span>
+        </td>
+
+        <td class="step-connector" style="width:9%">
+          <span class="connector-line line-done"></span>
+        </td>
+
+        <!-- Step 2: Confirmed -->
+        <td class="step-cell" style="width:13%">
+          {% if new_status == "Confirmed" %}
+            <span class="step-circle circle-active">2</span>
+            <span class="step-label label-active">Confirmed</span>
+          {% elif new_status == "Packed" or new_status == "Shipped" or new_status == "Delivered" %}
+            <span class="step-circle circle-done">&#10003;</span>
+            <span class="step-label label-done">Confirmed</span>
+          {% else %}
+            <span class="step-circle circle-todo">2</span>
+            <span class="step-label label-todo">Confirmed</span>
+          {% endif %}
+        </td>
+
+        <td class="step-connector" style="width:9%">
+          {% if new_status == "Packed" or new_status == "Shipped" or new_status == "Delivered" %}
+            <span class="connector-line line-done"></span>
+          {% else %}
+            <span class="connector-line line-todo"></span>
+          {% endif %}
+        </td>
+
+        <!-- Step 3: Packed -->
+        <td class="step-cell" style="width:13%">
+          {% if new_status == "Packed" %}
+            <span class="step-circle circle-active">3</span>
+            <span class="step-label label-active">Packed</span>
+          {% elif new_status == "Shipped" or new_status == "Delivered" %}
+            <span class="step-circle circle-done">&#10003;</span>
+            <span class="step-label label-done">Packed</span>
+          {% else %}
+            <span class="step-circle circle-todo">3</span>
+            <span class="step-label label-todo">Packed</span>
+          {% endif %}
+        </td>
+
+        <td class="step-connector" style="width:9%">
+          {% if new_status == "Shipped" or new_status == "Delivered" %}
+            <span class="connector-line line-done"></span>
+          {% else %}
+            <span class="connector-line line-todo"></span>
+          {% endif %}
+        </td>
+
+        <!-- Step 4: Shipped -->
+        <td class="step-cell" style="width:13%">
+          {% if new_status == "Shipped" %}
+            <span class="step-circle circle-active">4</span>
+            <span class="step-label label-active">Shipped</span>
+          {% elif new_status == "Delivered" %}
+            <span class="step-circle circle-done">&#10003;</span>
+            <span class="step-label label-done">Shipped</span>
+          {% else %}
+            <span class="step-circle circle-todo">4</span>
+            <span class="step-label label-todo">Shipped</span>
+          {% endif %}
+        </td>
+
+        <td class="step-connector" style="width:9%">
+          {% if new_status == "Delivered" %}
+            <span class="connector-line line-done"></span>
+          {% else %}
+            <span class="connector-line line-todo"></span>
+          {% endif %}
+        </td>
+
+        <!-- Step 5: Delivered -->
+        <td class="step-cell" style="width:13%">
+          {% if new_status == "Delivered" %}
+            <span class="step-circle circle-done">&#10003;</span>
+            <span class="step-label label-done">Delivered</span>
+          {% else %}
+            <span class="step-circle circle-todo">5</span>
+            <span class="step-label label-todo">Delivered</span>
+          {% endif %}
+        </td>
+
+      </tr>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- ══ CANCELLED ALERT ══ -->
+  {% if new_status == "Cancelled" %}
+  <div style="padding: 24px 40px; border-bottom: 1px solid #f0f4f0;">
+    <div class="alert-cancel">
+      <span class="alert-title-text">Your order has been cancelled.</span>
+      If you paid online, your refund will be processed within 5–7 business days to your original payment method. For help, email us at <a href="mailto:ssdnurserygarden@gmail.com" style="color:#881337; font-weight:700;">ssdnurserygarden@gmail.com</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ══ RETURNED ALERT ══ -->
+  {% if new_status == "Returned" %}
+  <div style="padding: 24px 40px; border-bottom: 1px solid #f0f4f0;">
+    <div class="alert-return">
+      <span class="alert-title-text">Return request received.</span>
+      Our team will review and process your return within 3–5 business days. Refunds (if applicable) will be issued once the return is verified.
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ══ ORDER SUMMARY ══ -->
+  <div class="block">
+    <div class="block-title">Order Summary</div>
+    <table class="meta-table">
+      <tr>
+        <td class="meta-key">Order ID</td>
+        <td class="meta-val">#{{ order.order_number }}</td>
+      </tr>
+      <tr>
+        <td class="meta-key">Order Date</td>
+        <td class="meta-val">{{ order.created_at|date:"D, d M Y" }}</td>
+      </tr>
+      <tr>
+        <td class="meta-key">Payment</td>
+        <td class="meta-val">
+          {% if order.payment_method == "razorpay" %}
+            <span class="pill pill-online">Razorpay (Online)</span>
+          {% else %}
+            <span class="pill pill-cod">Cash on Delivery</span>
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td class="meta-key">Status</td>
+        <td class="meta-val">
+          <span class="pill pill-{{ new_status|lower }}">{{ new_status }}</span>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ══ TRACKING (Shipped only) ══ -->
+  {% if new_status == "Shipped" and order.tracking_id %}
+  <div class="block">
+    <div class="block-title">Tracking Information</div>
+    <div class="tracking-box">
+      <div class="tracking-eyebrow">Tracking ID</div>
+      <div class="tracking-id-text">{{ order.tracking_id }}</div>
+      {% if order.delivery_partner %}
+      <div class="tracking-via">Shipped via {{ order.delivery_partner }}</div>
+      {% endif %}
+    </div>
+    <table class="meta-table" style="margin-top:4px;">
+      <tr>
+        <td class="meta-key">Shipped On</td>
+        <td class="meta-val">{{ order.updated_at|date:"D, d M Y" }}</td>
+      </tr>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- ══ ITEMS ══ -->
+  <div class="block">
+    <div class="block-title">Items in Your Order</div>
+    <table class="items-tbl">
+      <thead>
+        <tr>
+          <td style="width:55%;">Item</td>
+          <td style="width:15%; text-align:center;">Qty</td>
+          <td style="width:30%; text-align:right;">Amount</td>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in order.items.all %}
+        <tr>
+          <td>
+            <div class="item-name-text">{{ item.product.name }}</div>
+            <div class="item-cat-text">{{ item.product.category.name }}</div>
+          </td>
+          <td class="item-qty-text">{{ item.quantity }}</td>
+          <td class="item-price-text">&#8377;{{ item.price|floatformat:0 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <table class="totals-tbl">
+      <tr>
+        <td class="tot-label">Subtotal</td>
+        <td class="tot-val">&#8377;{{ order.total_amount|floatformat:0 }}</td>
+      </tr>
+      <tr>
+        <td class="tot-label">Delivery</td>
+        <td class="tot-val"><span class="free-text">FREE</span></td>
+      </tr>
+      {% if order.discount_amount and order.discount_amount > 0 %}
+      <tr>
+        <td class="tot-label">Discount{% if order.coupon %} ({{ order.coupon.code }}){% endif %}</td>
+        <td class="tot-val"><span class="disc-text">&#8722; &#8377;{{ order.discount_amount|floatformat:0 }}</span></td>
+      </tr>
+      {% endif %}
+      <tr class="grand-row">
+        <td class="tot-label" style="font-size:16px; font-weight:800; color:#1b4332; border-top:2px solid #1b4332; padding-top:12px;">Total</td>
+        <td class="tot-val"   style="font-size:16px; font-weight:800; color:#1b4332; border-top:2px solid #1b4332; padding-top:12px; text-align:right;">&#8377;{{ order.total_amount|floatformat:0 }}</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ══ DELIVERY ADDRESS ══ -->
+  <div class="block">
+    <div class="block-title">Delivery Address</div>
+    <div class="addr-box">
+      <div class="addr-name-text">{{ order.user.first_name }} {{ order.user.last_name }}</div>
+      <div class="addr-line">{{ order.address }}</div>
+      {% if order.user.profile.phone %}
+      <div class="addr-line" style="margin-top:6px;">&#128241; {{ order.user.profile.phone }}</div>
+      {% endif %}
+    </div>
+    {% if new_status == "Pending" or new_status == "Confirmed" or new_status == "Packed" %}
+    <div class="note-bar">
+      &#9888;&#65039; Please keep your phone available at delivery time. Our team will call before arriving.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ══ REVIEW CTA (Delivered only) ══ -->
+  {% if new_status == "Delivered" %}
+  <div class="block" style="border-bottom: none;">
+    <div class="review-box">
+      <div class="review-title">Happy with your plants? &#127807;</div>
+      <div class="review-sub">Your review helps other plant lovers find their perfect green companion.</div>
+      <a href="https://ssdnursery.com/shop/" class="review-btn">Write a Review &#11088;</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ══ TRUST STRIP ══ -->
+  <div class="trust-strip">
+    <table class="trust-tbl">
+      <tr>
+        <td>
+          <span class="trust-icon-wrap">&#127807;</span>
+          <span class="trust-lbl">Fresh Plants</span>
+        </td>
+        <td>
+          <span class="trust-icon-wrap">&#128230;</span>
+          <span class="trust-lbl">Safe Packing</span>
+        </td>
+        <td>
+          <span class="trust-icon-wrap">&#8617;&#65039;</span>
+          <span class="trust-lbl">Easy Returns</span>
+        </td>
+        <td>
+          <span class="trust-icon-wrap">&#128222;</span>
+          <span class="trust-lbl">24/7 Support</span>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ══ FOOTER ══ -->
+  <div class="footer">
+    <div class="footer-text">
+      Questions? Reach us at <a href="mailto:ssdnurserygarden@gmail.com">ssdnurserygarden@gmail.com</a><br>
+      We never ask for banking or card details via email or call.
+    </div>
+    <div class="footer-brand">&#127807; Team SSD Nursery</div>
+  </div>
+
+</div><!-- /.email-container -->
+</div><!-- /.email-outer -->
 </body>
 </html>

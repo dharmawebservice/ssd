@@ -266,35 +266,23 @@ if(searchInput){
                 return;
             }
 
-            let html = "";
-
-            data.groups.forEach(group => {
-
-                html += `
-                    <div class="sugg-category">
-                        🌿 ${group.category.name}
-                    </div>
-                `;
+            let html += `<a href="/shop/?category=${group.category.slug}" class="sugg-category-link">
+              <img src="${group.category.image || '/static/images/category-placeholder.jpg'}" class="sugg-thumb" alt="${group.category.name}">
+              <div class="sugg-info">
+                <div class="sugg-title">${group.category.name}</div>
+                <div class="sugg-subtitle">Collection</div>
+              </div>
+            </a>`;
 
                 group.products.forEach(product => {
 
                     html += `
                         <a href="/product/${product.slug}/"
-                           class="sugg-item">
-
-                            <img src="${product.image}"
-                                 alt="${product.name}">
-
-                            <div>
-                                <div class="sugg-name">
-                                    ${product.name}
-                                </div>
-
-                                <div class="sugg-price">
-                                    ₹${product.price}
-                                </div>
-                            </div>
-
+                          class="sugg-product-link">
+                            <img src="${product.image || '/static/images/product-placeholder.jpg'}"
+                                class="sugg-thumb"
+                                alt="${product.name}">
+                            <span>${product.name}</span>
                         </a>
                     `;
                 });
