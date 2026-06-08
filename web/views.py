@@ -509,7 +509,7 @@ def product_detail(request, slug):
 
         cart_qty = ci.quantity if ci else 0
 
-    return render(request, "web/product_detail.html", {
+    return render(request, "web/Product_detail.html", {
         "product":     product,
         "reviews":     reviews,
         "related":     related,
