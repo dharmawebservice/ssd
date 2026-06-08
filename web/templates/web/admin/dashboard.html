@@ -40,7 +40,7 @@
           <tbody>
             {% for o in recent_orders %}
             <tr>
-              <td style="color:var(--text-secondary);font-weight:500;">#{{ o.id }}</td>
+              <td style="color:var(--text-secondary);font-weight:500;">#{{ o.order_number }}</td>
               <td style="font-weight:600;">{{ o.user.first_name|default:"Guest" }}</td>
               <td style="font-weight:700;color:var(--accent);">₹{{ o.total_amount }}</td>
               <td style="color:var(--text-secondary);">{{ o.created_at|date:"M d, Y" }}</td>

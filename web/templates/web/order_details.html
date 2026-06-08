@@ -4,273 +4,708 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Order #{{ order.id }}</title>
-
+<title>Order #{{ order.order_number }} | SSD Nursery</title>
 <link rel="stylesheet" href="{% static 'css/style.css' %}">
 <link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
-
-.order-page{
-    max-width:1200px;
-    margin:120px auto 60px;
-    padding:0 20px;
+/* ─── Page Layout ─────────────────────────────────────── */
+.od-page {
+    max-width: 1100px;
+    margin: 120px auto 80px;
+    padding: 0 20px;
 }
 
-.order-card{
-    background:#fff;
-    border-radius:20px;
-    padding:30px;
-    box-shadow:0 10px 30px rgba(0,0,0,.08);
-    margin-bottom:25px;
+/* ─── Top Banner ──────────────────────────────────────── */
+.od-hero {
+    background: linear-gradient(135deg, var(--forest) 0%, #0E2A20 100%);
+    border-radius: 24px;
+    padding: 36px 40px;
+    margin-bottom: 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 24px;
+    position: relative;
+    overflow: hidden;
+}
+.od-hero::before {
+    content: '';
+    position: absolute;
+    right: -60px; top: -60px;
+    width: 260px; height: 260px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+.od-hero::after {
+    content: '';
+    position: absolute;
+    right: 60px; bottom: -80px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.04);
+}
+.od-hero-left { position: relative; z-index: 1; }
+.od-hero-label {
+    font-size: 0.72rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 8px;
+    font-family: 'Cormorant Garamond', serif;
+}
+.od-hero-id {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.2rem;
+    color: white;
+    margin-bottom: 10px;
+    line-height: 1;
+}
+.od-hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 12px;
+}
+.od-hero-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.88rem;
+    color: rgba(255,255,255,0.6);
+    font-family: 'Cormorant Garamond', serif;
+}
+.od-hero-meta-item i { color: #8BAF8C; font-size: 0.8rem; }
+.od-hero-meta-item strong { color: rgba(255,255,255,0.9); }
+
+.od-hero-right { position: relative; z-index: 1; text-align: right; }
+.od-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    font-family: 'DM Serif Display', serif;
+    letter-spacing: 0.3px;
+}
+.st-Pending   { background: #FFF7E0; color: #D97706; }
+.st-Confirmed { background: #E0F2FE; color: #0284C7; }
+.st-Packed    { background: #F3E8FF; color: #7E22CE; }
+.st-Shipped   { background: #DBEAFE; color: #2563EB; }
+.st-Delivered { background: #DCFCE7; color: #16A34A; }
+.st-Cancelled { background: #FEE2E2; color: #DC2626; }
+
+/* ─── Progress Tracker ─────────────────────────────────── */
+.od-tracker {
+    background: white;
+    border-radius: 20px;
+    padding: 32px 40px;
+    margin-bottom: 28px;
+    box-shadow: 0 4px 24px rgba(28,58,43,0.08);
+    border: 1px solid #EDE7DE;
+}
+.od-tracker h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.05rem;
+    color: var(--forest);
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.od-tracker h3 i { color: #C9694A; }
+
+.tracker-steps {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    position: relative;
+    gap: 0;
+}
+/* Connecting line */
+.tracker-steps::before {
+    content: '';
+    position: absolute;
+    top: 20px; left: 20px; right: 20px;
+    height: 2px;
+    background: #EDE7DE;
+    z-index: 0;
+}
+.tracker-progress-line {
+    position: absolute;
+    top: 20px; left: 20px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--forest), #3D7358);
+    z-index: 1;
+    transition: width 0.5s ease;
 }
 
-.order-header{
-    display:flex;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap:20px;
+.tracker-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    position: relative;
+    z-index: 2;
+}
+.step-icon {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: #EDE7DE;
+    border: 2px solid #EDE7DE;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.95rem;
+    color: #aaa;
+    transition: all 0.3s ease;
+}
+.tracker-step.done .step-icon {
+    background: var(--forest);
+    border-color: var(--forest);
+    color: white;
+}
+.tracker-step.active .step-icon {
+    background: white;
+    border-color: var(--forest);
+    color: var(--forest);
+    box-shadow: 0 0 0 4px rgba(28,58,43,0.12);
+}
+.tracker-step.cancelled .step-icon {
+    background: #FEE2E2;
+    border-color: #DC2626;
+    color: #DC2626;
+}
+.step-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #aaa;
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    letter-spacing: 0.5px;
+}
+.tracker-step.done .step-label,
+.tracker-step.active .step-label { color: var(--forest); }
+.tracker-step.cancelled .step-label { color: #DC2626; }
+
+/* ─── Two-column grid ──────────────────────────────────── */
+.od-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    align-items: flex-start;
 }
 
-.order-id{
-    color:var(--forest);
-    font-size:2rem;
-    margin-bottom:10px;
+/* ─── Cards ────────────────────────────────────────────── */
+.od-card {
+    background: white;
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 4px 24px rgba(28,58,43,0.08);
+    border: 1px solid #EDE7DE;
+    margin-bottom: 24px;
+}
+.od-card:last-child { margin-bottom: 0; }
+.od-card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.05rem;
+    color: var(--forest);
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #EDE7DE;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+.od-card-title i { color: #C9694A; font-size: 0.9rem; }
+
+/* ─── Product Rows ─────────────────────────────────────── */
+.od-product-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid #F5F0EA;
+}
+.od-product-row:last-child { border-bottom: none; padding-bottom: 0; }
+.od-product-img {
+    width: 76px; height: 76px;
+    border-radius: 12px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: #F7F3EE;
+}
+.od-product-img-placeholder {
+    width: 76px; height: 76px;
+    border-radius: 12px;
+    background: #F7F3EE;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem;
+    flex-shrink: 0;
+}
+.od-product-info { flex: 1; min-width: 0; }
+.od-product-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1rem;
+    color: var(--forest);
+    margin-bottom: 4px;
+}
+.od-product-qty {
+    font-size: 0.83rem;
+    color: #8A9A90;
+    font-family: 'Cormorant Garamond', serif;
+}
+.od-product-price {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1rem;
+    color: var(--forest);
+    font-weight: 600;
+    flex-shrink: 0;
 }
 
-.order-meta{
-    color:#666;
-    line-height:1.8;
+/* ─── Shipping info card ───────────────────────────────── */
+.shipping-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+.si-cell {
+    background: #F7F3EE;
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+.si-cell label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #8A9A90;
+    margin-bottom: 5px;
+    font-family: 'Cormorant Garamond', serif;
+}
+.si-cell span {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #1A1F1C;
+    word-break: break-all;
+    font-family: 'DM Serif Display', serif;
+}
+.si-cell.full { grid-column: 1 / -1; }
+.si-cell.green { background: #F0FDF4; }
+.si-cell.green label { color: #15803D; }
+.si-cell.green span { color: #14532D; }
+
+.track-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--forest);
+    color: white;
+    padding: 11px 22px;
+    border-radius: 30px;
+    font-family: 'DM Serif Display', serif;
+    font-size: 0.92rem;
+    text-decoration: none;
+    margin-top: 16px;
+    transition: all 0.25s ease;
+}
+.track-btn:hover {
+    background: #C9694A;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(201,105,74,0.3);
+}
+.track-btn i { font-size: 0.8rem; }
+
+/* Not yet shipped notice */
+.not-shipped-notice {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #FFF7E0;
+    border: 1px solid #FDE68A;
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 0.88rem;
+    color: #92400E;
+    font-family: 'Cormorant Garamond', serif;
+}
+.not-shipped-notice i { color: #D97706; font-size: 1rem; flex-shrink: 0; }
+
+/* ─── Summary card ─────────────────────────────────────── */
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #F5F0EA;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    color: #4A5550;
+}
+.summary-row:last-child { border-bottom: none; }
+.summary-row.total {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.2rem;
+    color: var(--forest);
+    font-weight: 700;
+    border-top: 2px solid #EDE7DE;
+    border-bottom: none;
+    margin-top: 6px;
+    padding-top: 14px;
+}
+.summary-row .discount-val { color: #16A34A; font-weight: 600; }
+
+/* ─── Address card ─────────────────────────────────────── */
+.address-text {
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: #4A5550;
+    font-family: 'Cormorant Garamond', serif;
 }
 
-.status-badge{
-    display:inline-block;
-    padding:8px 18px;
-    border-radius:25px;
-    font-weight:700;
+/* ─── Back button ──────────────────────────────────────── */
+.od-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--forest);
+    font-family: 'DM Serif Display', serif;
+    font-size: 0.95rem;
+    padding: 10px 22px;
+    border: 1.5px solid var(--forest);
+    border-radius: 30px;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    margin-bottom: 24px;
 }
+.od-back:hover { background: var(--forest); color: white; }
 
-.status-Pending{
-    background:#FFF7E0;
-    color:#D97706;
+/* ─── Responsive ───────────────────────────────────────── */
+@media (max-width: 900px) {
+    .od-grid { grid-template-columns: 1fr; }
 }
-
-.status-Confirmed{
-    background:#E0F2FE;
-    color:#0284C7;
+@media (max-width: 600px) {
+    .od-hero { padding: 28px 24px; }
+    .od-hero-id { font-size: 1.7rem; }
+    .od-card { padding: 20px; }
+    .tracker-steps { gap: 0; }
+    .step-label { font-size: 0.65rem; }
+    .tracker-steps::before { left: 10px; right: 10px; }
+    .od-tracker { padding: 24px 20px; }
+    .shipping-info-grid { grid-template-columns: 1fr; }
 }
-
-.status-Packed{
-    background:#F3E8FF;
-    color:#7E22CE;
-}
-
-.status-Shipped{
-    background:#DBEAFE;
-    color:#2563EB;
-}
-
-.status-Delivered{
-    background:#DCFCE7;
-    color:#16A34A;
-}
-
-.status-Cancelled{
-    background:#FEE2E2;
-    color:#DC2626;
-}
-
-.product-row{
-    display:flex;
-    align-items:center;
-    gap:20px;
-    padding:18px 0;
-    border-bottom:1px solid #eee;
-}
-
-.product-row:last-child{
-    border-bottom:none;
-}
-
-.product-row img{
-    width:90px;
-    height:90px;
-    border-radius:12px;
-    object-fit:cover;
-}
-
-.product-info{
-    flex:1;
-}
-
-.product-name{
-    font-size:1.1rem;
-    color:var(--forest);
-    font-weight:700;
-}
-
-.product-price{
-    color:#666;
-    margin-top:6px;
-}
-
-.total-box{
-    background:var(--forest);
-    color:white;
-    border-radius:20px;
-    padding:25px;
-}
-
-.total-box h3{
-    color:white;
-}
-
-.total-row{
-    display:flex;
-    justify-content:space-between;
-    margin:12px 0;
-}
-
-.back-btn{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    background:var(--forest);
-    color:white;
-    padding:12px 24px;
-    border-radius:30px;
-    text-decoration:none;
-}
-
-@media(max-width:768px){
-
-.product-row{
-    flex-direction:column;
-    text-align:center;
-}
-
-.order-header{
-    flex-direction:column;
-}
-
-}
-
 </style>
 </head>
-
 <body>
 
-{% include "web/_navbar.html" %}
+{% include "web/_navbar.html" with nav_solid=True %}
 
-<div class="order-page">
+<div class="od-page">
 
-<div class="order-card">
+    <!-- Back -->
+    <a href="{% url 'profile' %}" class="od-back">
+        <i class="fas fa-arrow-left"></i> Back to Profile
+    </a>
 
-<div class="order-header">
+    <!-- ── Hero Banner ── -->
+    <div class="od-hero">
+        <div class="od-hero-left">
+            <div class="od-hero-label">SSD Nursery</div>
+            <div class="od-hero-id">Order #{{ order.order_number }}</div>
+            <div class="od-hero-meta">
+                <div class="od-hero-meta-item">
+                    <i class="fas fa-calendar"></i>
+                    <strong>{{ order.created_at|date:"d M Y" }}</strong>
+                    &nbsp;at {{ order.created_at|date:"h:i A" }}
+                </div>
+                <div class="od-hero-meta-item">
+                    <i class="fas fa-credit-card"></i>
+                    <strong>{{ order.get_payment_method_display }}</strong>
+                </div>
+                {% if order.payment_id %}
+                <div class="od-hero-meta-item">
+                    <i class="fas fa-hashtag"></i>
+                    <strong>{{ order.payment_id }}</strong>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="od-hero-right">
+            <div class="od-status-badge st-{{ order.status }}">
+                {% if order.status == 'Pending' %}<i class="fas fa-clock"></i>
+                {% elif order.status == 'Confirmed' %}<i class="fas fa-check-circle"></i>
+                {% elif order.status == 'Packed' %}<i class="fas fa-box"></i>
+                {% elif order.status == 'Shipped' %}<i class="fas fa-truck"></i>
+                {% elif order.status == 'Delivered' %}<i class="fas fa-star"></i>
+                {% elif order.status == 'Cancelled' %}<i class="fas fa-times-circle"></i>
+                {% endif %}
+                {{ order.status }}
+            </div>
+        </div>
+    </div>
 
-<div>
-<h1 class="order-id">
-Order #{{ order.id }}
-</h1>
+    <!-- ── Progress Tracker ── -->
+    {% if order.status != 'Cancelled' %}
+    <div class="od-tracker">
+        <h3><i class="fas fa-route"></i> Order Progress</h3>
 
-<div class="order-meta">
-<div><strong>Date:</strong> {{ order.created_at|date:"d M Y h:i A" }}</div>
-<div><strong>Payment:</strong> {{ order.get_payment_method_display }}</div>
-<div><strong>Payment ID:</strong> {{ order.payment_id|default:"N/A" }}</div>
+        {% with s=order.status %}
+        <div class="tracker-steps" id="trackerSteps">
+
+            <!-- Progress fill line injected by JS -->
+            <div class="tracker-progress-line" id="progressLine"></div>
+
+            <div class="tracker-step {% if s == 'Pending' %}active{% elif s != 'Pending' %}done{% endif %}">
+                <div class="step-icon"><i class="fas fa-clock"></i></div>
+                <div class="step-label">Pending</div>
+            </div>
+
+            <div class="tracker-step {% if s == 'Confirmed' %}active{% elif s == 'Packed' or s == 'Shipped' or s == 'Delivered' %}done{% endif %}">
+                <div class="step-icon"><i class="fas fa-check"></i></div>
+                <div class="step-label">Confirmed</div>
+            </div>
+
+            <div class="tracker-step {% if s == 'Packed' %}active{% elif s == 'Shipped' or s == 'Delivered' %}done{% endif %}">
+                <div class="step-icon"><i class="fas fa-box"></i></div>
+                <div class="step-label">Packed</div>
+            </div>
+
+            <div class="tracker-step {% if s == 'Shipped' %}active{% elif s == 'Delivered' %}done{% endif %}">
+                <div class="step-icon"><i class="fas fa-truck"></i></div>
+                <div class="step-label">Shipped</div>
+            </div>
+
+            <div class="tracker-step {% if s == 'Delivered' %}active{% endif %}">
+                <div class="step-icon"><i class="fas fa-home"></i></div>
+                <div class="step-label">Delivered</div>
+            </div>
+
+        </div>
+        {% endwith %}
+    </div>
+    {% else %}
+    <div class="od-card" style="border-left: 4px solid #DC2626;">
+        <div style="display:flex;align-items:center;gap:12px;color:#DC2626;">
+            <i class="fas fa-times-circle" style="font-size:1.4rem;"></i>
+            <div>
+                <div style="font-family:'DM Serif Display',serif;font-size:1.05rem;">Order Cancelled</div>
+                <div style="font-size:0.85rem;color:#666;margin-top:3px;font-family:'Cormorant Garamond',serif;">
+                    This order has been cancelled. If you have any questions, please contact support.
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Main Grid ── -->
+    <div class="od-grid">
+
+        <!-- LEFT COLUMN -->
+        <div>
+
+            <!-- Products -->
+            <div class="od-card">
+                <div class="od-card-title">
+                    <i class="fas fa-seedling"></i> Ordered Items
+                </div>
+                {% for item in order.items.all %}
+                <div class="od-product-row">
+                    {% if item.product.image %}
+                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="od-product-img">
+                    {% else %}
+                        <div class="od-product-img-placeholder">🌿</div>
+                    {% endif %}
+                    <div class="od-product-info">
+                        <div class="od-product-name">{{ item.product.name }}</div>
+                        <div class="od-product-qty">
+                            ₹{{ item.price }} × {{ item.quantity }} unit{{ item.quantity|pluralize }}
+                        </div>
+                    </div>
+                    <div class="od-product-price">₹{{ item.subtotal }}</div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Shipping / Tracking -->
+            <div class="od-card">
+                <div class="od-card-title">
+                    <i class="fas fa-truck"></i> Shipping & Tracking
+                </div>
+
+                {% if order.tracking_id and order.delivery_partner %}
+                    <div class="shipping-info-grid">
+                        <div class="si-cell green">
+                            <label>Delivery Partner</label>
+                            <span>{{ order.delivery_partner_display }}</span>
+                        </div>
+                        <div class="si-cell green">
+                            <label>Tracking ID (AWB)</label>
+                            <span style="font-family:monospace;">{{ order.tracking_id }}</span>
+                        </div>
+                        {% if order.shipped_at %}
+                        <div class="si-cell">
+                            <label>Shipped On</label>
+                            <span>{{ order.shipped_at|date:"d M Y, h:i A" }}</span>
+                        </div>
+                        {% endif %}
+                        {% if order.delivered_at %}
+                        <div class="si-cell">
+                            <label>Delivered On</label>
+                            <span>{{ order.delivered_at|date:"d M Y, h:i A" }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if order.tracking_url %}
+                    <a href="{{ order.tracking_url }}" target="_blank" class="track-btn">
+                        <i class="fas fa-external-link-alt"></i>
+                        Track on {{ order.delivery_partner_display }}
+                    </a>
+                    {% endif %}
+                {% else %}
+                    <div class="not-shipped-notice">
+                        <i class="fas fa-hourglass-half"></i>
+                        <span>
+                            Your order has not been shipped yet. Tracking details will appear here
+                            once your order is dispatched.
+                        </span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Delivery Address -->
+            <div class="od-card">
+                <div class="od-card-title">
+                    <i class="fas fa-map-marker-alt"></i> Delivery Address
+                </div>
+                <div class="address-text">{{ order.address|linebreaks }}</div>
+                {% if order.notes %}
+                <hr style="margin:16px 0;border:none;border-top:1px solid #EDE7DE;">
+                <div style="font-size:0.8rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#8A9A90;margin-bottom:6px;font-family:'Cormorant Garamond',serif;">Delivery Notes</div>
+                <div class="address-text" style="color:#6B7280;">{{ order.notes }}</div>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div>
+
+            <!-- Order Summary -->
+            <div class="od-card">
+                <div class="od-card-title">
+                    <i class="fas fa-receipt"></i> Order Summary
+                </div>
+
+                {% for item in order.items.all %}
+                <div class="summary-row">
+                    <span style="font-size:0.9rem;">{{ item.product.name }} ×{{ item.quantity }}</span>
+                    <span>₹{{ item.subtotal }}</span>
+                </div>
+                {% endfor %}
+
+                <div class="summary-row" style="margin-top:8px;">
+                    <span>Subtotal</span>
+                    <span>₹{{ order.total_amount }}</span>
+                </div>
+                {% if order.discount_amount > 0 %}
+                <div class="summary-row">
+                    <span>Discount</span>
+                    <span class="discount-val">− ₹{{ order.discount_amount }}</span>
+                </div>
+                {% endif %}
+                <div class="summary-row total">
+                    <span>Total Paid</span>
+                    <span>₹{{ order.total_amount }}</span>
+                </div>
+            </div>
+
+            <!-- Payment Info -->
+            <div class="od-card">
+                <div class="od-card-title">
+                    <i class="fas fa-indian-rupee-sign"></i> Payment Info
+                </div>
+                <div class="shipping-info-grid" style="grid-template-columns:1fr;">
+                    <div class="si-cell">
+                        <label>Payment Method</label>
+                        <span>{{ order.get_payment_method_display }}</span>
+                    </div>
+                    {% if order.payment_id %}
+                    <div class="si-cell">
+                        <label>Payment ID</label>
+                        <span style="font-family:monospace;font-size:0.82rem;">{{ order.payment_id }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="si-cell">
+                        <label>Order Date</label>
+                        <span>{{ order.created_at|date:"d M Y, h:i A" }}</span>
+                    </div>
+                    {% if order.coupon %}
+                    <div class="si-cell green">
+                        <label>Coupon Applied</label>
+                        <span>{{ order.coupon.code }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Help -->
+            <div class="od-card" style="background:var(--forest);border:none;">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+                    <div style="width:38px;height:38px;background:rgba(255,255,255,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#8BAF8C;font-size:1rem;">
+                        <i class="fas fa-headset"></i>
+                    </div>
+                    <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:white;">Need Help?</div>
+                </div>
+                <p style="font-size:0.88rem;color:rgba(255,255,255,0.6);font-family:'Cormorant Garamond',serif;line-height:1.6;margin-bottom:16px;">
+                    Have a question about this order? Our team is happy to help.
+                </p>
+                <a href="{% url 'contact' %}"
+                   style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:white;padding:10px 20px;border-radius:30px;font-family:'DM Serif Display',serif;font-size:0.88rem;text-decoration:none;transition:all 0.25s ease;">
+                    <i class="fas fa-envelope"></i> Contact Support
+                </a>
+            </div>
+
+        </div>
+    </div>
 </div>
-</div>
 
-<div>
-<span class="status-badge status-{{ order.status }}">
-{{ order.status }}
-</span>
-</div>
-
-</div>
-
-</div>
-
-<div class="order-card">
-
-<h2 style="margin-bottom:20px;">Delivery Address</h2>
-
-<p style="line-height:1.8;">
-{{ order.address|linebreaks }}
-</p>
-
-{% if order.notes %}
-<hr style="margin:20px 0;">
-<strong>Notes:</strong><br>
-{{ order.notes }}
-{% endif %}
-
-</div>
-
-<div class="order-card">
-
-<h2 style="margin-bottom:20px;">Ordered Products</h2>
-
-{% for item in order.items.all %}
-
-<div class="product-row">
-
-{% if item.product.image %}
-<img src="{{ item.product.image.url }}">
-{% endif %}
-
-<div class="product-info">
-
-<div class="product-name">
-{{ item.product.name }}
-</div>
-
-<div class="product-price">
-₹{{ item.price }} × {{ item.quantity }}
-</div>
-
-</div>
-
-<div style="font-weight:700;color:var(--forest);">
-₹{{ item.subtotal }}
-</div>
-
-</div>
-
-{% endfor %}
-
-</div>
-
-<div class="order-card total-box">
-
-<h3>Order Summary</h3>
-
-<div class="total-row">
-<span>Subtotal</span>
-<span>₹{{ order.total_amount }}</span>
-</div>
-
-<div class="total-row">
-<span>Discount</span>
-<span>- ₹{{ order.discount_amount }}</span>
-</div>
-
-<hr style="margin:15px 0;border-color:rgba(255,255,255,.2);">
-
-<div class="total-row" style="font-size:1.2rem;font-weight:700;">
-<span>Total Paid</span>
-<span>₹{{ order.total_amount }}</span>
-</div>
-
-</div>
-
-<a href="{% url 'profile' %}" class="back-btn">
-<i class="fas fa-arrow-left"></i>
-Back To Profile
-</a>
-
-</div>
 {% include "web/_footer.html" %}
+
+<script>
+/* ── Progress line width based on current step ── */
+document.addEventListener("DOMContentLoaded", () => {
+    const steps = document.querySelectorAll(".tracker-step");
+    const line  = document.getElementById("progressLine");
+    if (!steps.length || !line) return;
+
+    const total = steps.length;
+    let doneCount = 0;
+    steps.forEach(s => { if (s.classList.contains("done") || s.classList.contains("active")) doneCount++; });
+
+    const pct = doneCount <= 1 ? 0 : ((doneCount - 1) / (total - 1)) * 100;
+    line.style.width = `calc(${pct}% * (100% - 40px) / 100%)`;
+
+    /* More precise: measure actual step positions */
+    const stepsArr = Array.from(steps);
+    const container = document.getElementById("trackerSteps");
+    if (!container) return;
+
+    const containerLeft = container.getBoundingClientRect().left;
+    const lastDone = stepsArr.filter(s => s.classList.contains("done") || s.classList.contains("active")).pop();
+    const firstStep = stepsArr[0];
+
+    if (lastDone && firstStep) {
+        const startX = firstStep.getBoundingClientRect().left + 21 - containerLeft;
+        const endX   = lastDone.getBoundingClientRect().left  + 21 - containerLeft;
+        line.style.left  = startX + "px";
+        line.style.width = Math.max(0, endX - startX) + "px";
+    }
+});
+</script>
+
 </body>
 </html>

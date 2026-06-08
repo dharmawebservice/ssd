@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
-
+from django.views.generic import RedirectView
+from django.contrib.staticfiles.storage import staticfiles_storage
 urlpatterns = [
 
     # =========================
@@ -441,4 +442,11 @@ views.contact_submit,
 name="contact_submit"
 ),
 
+path(
+        'favicon.ico',
+            RedirectView.as_view(
+                url=staticfiles_storage.url('favicon.ico'),
+                permanent=True
+            ),
+        ),
 ]

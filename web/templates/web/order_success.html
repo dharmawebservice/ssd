@@ -15,7 +15,7 @@
 <div class="success-page">
   <div class="success-icon"><i class="fas fa-check"></i></div>
   <h1>Order Confirmed!</h1>
-  <p class="order-id">Order #{{ order.id }} &nbsp;·&nbsp;
+  <p class="order-id">Order #{{ order.order_number }} &nbsp;·&nbsp;
     {% if order.payment_method == 'razorpay' %}Paid via Razorpay{% else %}Cash on Delivery{% endif %}
   </p>
 
@@ -65,6 +65,6 @@
 </div>
 
 {% include "web/_footer.html" %}
-<script src="{% static 'js/site.js' %}"></script>
+<script src="{% static 'js/script.js' %}"></script>
 </body>
 </html>

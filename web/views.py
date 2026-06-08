@@ -15,7 +15,8 @@ from django.template.loader import render_to_string
 from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from .models import ContactMessage
-
+from django.template.loader import render_to_string
+from django.core.mail import EmailMultiAlternatives
 import razorpay
 from geopy.geocoders import Nominatim
 
@@ -155,11 +156,11 @@ def _send_order_confirmation(order):
             for i in order.items.select_related("product")
         )
         send_mail(
-            subject=f"SSD Nursery — Order #{order.id} Confirmed 🌱",
+            subject=f"SSD Nursery — Order #{order.order_number} Confirmed 🌱",
             message=(
                 f"Hi {order.user.first_name or order.user.username},\n\n"
                 f"Your order has been placed successfully!\n\n"
-                f"Order ID : #{order.id}\n"
+                f"Order ID : #{order.order_number}\n"
                 f"Amount   : ₹{order.total_amount}\n"
                 f"Payment  : {order.payment_method.upper()}\n"
                 f"Status   : {order.status}\n\n"
@@ -174,6 +175,83 @@ def _send_order_confirmation(order):
         pass   # never crash on email failure
 
 
+def send_order_status_email(order, old_status, new_status):
+
+    try:
+
+        context = {
+            "order": order,
+            "old_status": old_status,
+            "new_status": new_status,
+        }
+
+        # Dynamic Subject
+        if new_status == "Pending":
+            subject = f"Order Received 🌱 #{order.order_number}"
+
+        elif new_status == "Confirmed":
+            subject = f"Order Confirmed ✅ #{order.order_number}"
+
+        elif new_status == "Packed":
+            subject = f"Order Packed 📦 #{order.order_number}"
+
+        elif new_status == "Shipped":
+            subject = f"Order Shipped 🚚 #{order.order_number}"
+
+        elif new_status == "Delivered":
+            subject = f"Order Delivered 🌿 #{order.order_number}"
+
+        elif new_status == "Cancelled":
+            subject = f"Order Cancelled ❌ #{order.order_number}"
+
+        elif new_status == "Returned":
+            subject = f"Order Returned ↩️ #{order.order_number}"
+
+        else:
+            subject = f"Order Update #{order.order_number}"
+
+        # Customer Mail
+        customer_html = render_to_string(
+            "web/emails/order_status_customer.html",
+            context
+        )
+
+        customer_email = EmailMultiAlternatives(
+            subject=subject,
+            body="Order Status Updated",
+            from_email=settings.EMAIL_HOST_USER,
+            to=[order.user.email]
+        )
+
+        customer_email.attach_alternative(
+            customer_html,
+            "text/html"
+        )
+
+        customer_email.send()
+
+        # Admin Mail
+        admin_html = render_to_string(
+            "web/emails/order_status_admin.html",
+            context
+        )
+
+        admin_email = EmailMultiAlternatives(
+            subject=f"Order #{order.order_number} changed to {new_status}",
+            body="Order Status Changed",
+            from_email=settings.EMAIL_HOST_USER,
+            to=["ssdnurserygarden@gmail.com"]
+        )
+
+        admin_email.attach_alternative(
+            admin_html,
+            "text/html"
+        )
+
+        admin_email.send()
+
+    except Exception as e:
+        print("ORDER STATUS MAIL ERROR:", e)
 # ══════════════════════════════════════════════════════════════
 # HOME
 # ══════════════════════════════════════════════════════════════
@@ -1054,7 +1132,7 @@ def verify_razorpay_payment(request):
                 user            = request.user,
                 total_amount    = total,
                 discount_amount = discount,
-                status          = "Confirmed",
+                status          = "Pending",
                 payment_method  = "razorpay",
                 payment_id      = rz_payment_id,
                 razorpay_order_id = rz_order_id,
@@ -1081,7 +1159,14 @@ def verify_razorpay_payment(request):
             del request.session["pending_checkout"]
 
         # Fix Issue 14: confirmation email
-        _send_order_confirmation(order)
+        # _send_order_confirmation(order)
+
+        # Customer + Admin HTML email
+        send_order_status_email(
+            order,
+            "New",
+            "Pending"
+        )
 
         return JsonResponse({"success": True, "order_id": order.id})
 
@@ -1149,7 +1234,11 @@ def place_cod_order(request):
 
             items.delete()
 
-        _send_order_confirmation(order)
+        send_order_status_email(
+            order,
+            "New",
+            "Pending"
+        )
         return JsonResponse({"success": True, "order_id": order.id})
 
     except ValueError as e:
@@ -1331,18 +1420,71 @@ def delete_product(request, id):
 @_admin_required
 def order_list(request):
     orders   = Order.objects.select_related("user").order_by("-id")
-    statuses = ["Pending", "Confirmed", "Packed", "Shipped", "Delivered", "Cancelled"]
+    statuses = ["Pending", "Confirmed", "Packed", "Shipped", "Delivered", "Returned", "Cancelled"]
     return render(request, "web/admin/orders.html", {"orders": orders, "statuses": statuses})
 
 
 @login_required
 @_admin_required
 def update_order_status(request, order_id):
-    order        = get_object_or_404(Order, id=order_id)
-    order.status = request.POST.get("status", order.status)
-    order.save()
-    return redirect("order_list")
 
+    order = get_object_or_404(Order, id=order_id)
+
+    if request.method == "POST":
+
+        new_status = request.POST.get("status", order.status)
+
+        delivery_partner = request.POST.get(
+            "delivery_partner",
+            ""
+        ).strip()
+
+        tracking_id = request.POST.get(
+            "tracking_id",
+            ""
+        ).strip()
+
+        # SHIPPING VALIDATION
+        if new_status == "Shipped":
+
+            if not delivery_partner:
+                messages.error(
+                    request,
+                    "Delivery Partner is required for shipped orders."
+                )
+                return redirect("order_list")
+
+            if not tracking_id:
+                messages.error(
+                    request,
+                    "Tracking ID is required for shipped orders."
+                )
+                return redirect("order_list")
+
+            # Save only first time
+            if not order.delivery_partner:
+                order.delivery_partner = delivery_partner
+
+            if not order.tracking_id:
+                order.tracking_id = tracking_id
+
+        old_status = order.status
+        order.status = new_status
+        order.save()
+
+        if old_status != new_status:
+            send_order_status_email(
+                order,
+                old_status,
+                new_status
+            )
+
+        messages.success(
+            request,
+            f"Order #{order.order_number} updated successfully."
+        )
+
+    return redirect("order_list")
 
 # ── Coupons ───────────────────────────────────────────────────
 
@@ -1569,7 +1711,7 @@ def contact(request):
 
 from django.shortcuts import render, get_object_or_404
 from .models import Order
-
+@login_required
 def order_details(request, order_id):
     order = get_object_or_404(
         Order,

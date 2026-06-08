@@ -14,7 +14,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <!-- External CSS -->
-    <link rel="stylesheet" href="{% static 'css/style.css' %}"><link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
     
     <style>
         /* =========================================
@@ -67,7 +68,9 @@
 
         .detail-info-col { 
             flex: 1; 
-            min-width: 0; 
+            min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
             padding-top: 8px; 
         }
 
@@ -85,7 +88,7 @@
             flex-wrap: wrap; 
         }
         
-        .breadcrumb a { color: var(--text-light); text-decoration: none; transition: 0.2s;}
+        .breadcrumb a { color: var(--text-light); text-decoration: none; transition: 0.2s; }
         .breadcrumb a:hover { color: var(--forest); }
         .breadcrumb i { font-size: 0.65rem; color: var(--ivory-dark); }
         
@@ -195,107 +198,128 @@
         /* =========================================
            BUTTONS & CART CONTROLS
            ========================================= */
-        .btn-row { 
-            display: flex; 
-            align-items: center; 
-            gap: 16px; 
-            margin-bottom: 32px; 
-            flex-wrap: wrap;
-        }
 
-        #cartControl {
+        /* Shared height token */
+        :root { --btn-h: 52px; }
+
+        /* Row: [cartControl grows]  [♥ fixed] — always one line, never overflows */
+        .btn-row {
             display: flex;
-            flex: 1;
-            min-width: 200px;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
         }
 
-        /* Standardized exact height of 52px for all row elements */
-        .qty-selector { 
-            display: flex; 
-            align-items: center; 
-            border: 1.5px solid var(--ivory-dark); 
-            border-radius: var(--radius-leaf); 
-            overflow: hidden; 
-            height: 52px; /* Perfect match with buttons */
+        /* Grows to fill remaining space, never pushes wishlist off-screen */
+        #cartControl {
+            flex: 1 1 0;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .qty-selector {
+            display: flex;
+            align-items: center;
+            border: 1.5px solid var(--ivory-dark);
+            border-radius: var(--radius-leaf);
+            overflow: hidden;
+            height: var(--btn-h);
             background: white;
-            width: fit-content;
-        }
-        
-        .qty-selector button { 
-            width: 46px; 
-            height: 100%; 
-            background: var(--ivory); 
-            border: none; 
-            font-size: 1.2rem; 
-            color: var(--forest); 
-            cursor: pointer; 
-            transition: var(--transition); 
-        }
-        
-        .qty-selector button:hover { 
-            background: var(--forest); 
-            color: white; 
-        }
-        
-        .qty-selector input { 
-            width: 60px; 
-            height: 100%; 
-            border: none; 
-            text-align: center; 
-            font-family: 'DM Serif Display', serif; 
-            font-size: 1.2rem; 
-            color: var(--forest); 
-            background: transparent; 
-            outline: none; 
-        }
-        
-        .btn-add-cart { 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            gap: 12px; 
-            background: var(--forest); 
-            color: white; 
-            height: 52px; /* Perfect match */
-            padding: 0 36px; 
-            border-radius: var(--radius-leaf); 
-            font-family: 'DM Serif Display', serif; 
-            font-size: 1.1rem; 
-            border: none; 
-            cursor: pointer; 
-            transition: var(--transition); 
             width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
         }
-        
-        .btn-add-cart:hover { 
-            background: var(--forest-mid); 
-            transform: translateY(-2px); 
-            box-shadow: 0 8px 20px rgba(28,58,43,0.25); 
+
+        .qty-selector button {
+            flex: 0 0 44px;
+            width: 44px;
+            height: 100%;
+            background: var(--ivory);
+            border: none;
+            font-size: 1.2rem;
+            color: var(--forest);
+            cursor: pointer;
+            transition: var(--transition);
         }
-        
-        .btn-wishlist { 
-            width: 52px; 
-            height: 52px; /* Perfect match */
-            border-radius: 50%; 
-            background: var(--ivory); 
-            border: 1.5px solid var(--ivory-dark); 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 1.2rem; 
-            color: var(--forest); 
-            cursor: pointer; 
-            transition: var(--transition); 
-            flex-shrink: 0; 
+
+        .qty-selector button:hover {
+            background: var(--forest);
+            color: white;
         }
-        
-        .btn-wishlist:hover { 
-            background: #e74c3c; 
-            border-color: #e74c3c; 
-            color: white; 
+
+        .qty-selector input {
+            flex: 1 1 0;
+            min-width: 0;
+            height: 100%;
+            border: none;
+            text-align: center;
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.2rem;
+            color: var(--forest);
+            background: transparent;
+            outline: none;
+        }
+
+        .btn-add-cart {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: var(--forest);
+            color: white;
+            height: var(--btn-h);
+            padding: 0 24px;
+            border-radius: var(--radius-leaf);
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.05rem;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            width: 100%;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .btn-add-cart:hover {
+            background: var(--forest-mid);
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.25);
+            box-shadow: 0 8px 20px rgba(28,58,43,0.25);
         }
+
+        /* Wishlist: fixed square, never shrinks, never grows */
+        .btn-wishlist {
+            flex: 0 0 var(--btn-h);
+            width: var(--btn-h);
+            height: var(--btn-h);
+            border-radius: 50%;
+            background: var(--ivory);
+            border: 1.5px solid var(--ivory-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: var(--forest);
+            cursor: pointer;
+            transition: var(--transition);
+            box-sizing: border-box;
+        }
+
+        .btn-wishlist:hover,
+        .btn-wishlist.active {
+            background: #e74c3c;
+            border-color: #e74c3c;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(231,76,60,0.25);
+        }
+        .btn-wishlist.active i { color: #fff; }
 
         /* =========================================
            CARE GRID & MINI TRUST BADGES
@@ -449,7 +473,8 @@
             resize: vertical; 
             min-height: 120px; 
             outline: none; 
-            transition: border-color 0.2s; 
+            transition: border-color 0.2s;
+            box-sizing: border-box;
         }
         
         .review-textarea:focus { border-color: var(--forest); }
@@ -477,17 +502,11 @@
         
         .review-item-header { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
         .rev-avatar { 
-            width: 44px; 
-            height: 44px; 
+            width: 44px; height: 44px; 
             background: linear-gradient(135deg, var(--forest-light), var(--forest)); 
-            color: white; 
-            border-radius: 50%; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-family: 'DM Serif Display', serif; 
-            font-size: 1.1rem; 
-            flex-shrink: 0; 
+            color: white; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-family: 'DM Serif Display', serif; font-size: 1.1rem; flex-shrink: 0; 
         }
         .rev-info strong { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--forest); display: block; }
         .rev-info .rev-stars { display: flex; gap: 3px; color: var(--gold); font-size: 0.85rem; margin-top: 4px; }
@@ -507,13 +526,13 @@
         }
 
         /* =========================================
-           RESPONSIVE QUERIES
+           RESPONSIVE
            ========================================= */
-        @media(max-width: 1200px) {
+        @media (max-width: 1200px) {
             .detail-img-col { flex: 0 0 420px; }
         }
 
-        @media(max-width: 992px) {
+        @media (max-width: 992px) {
             .detail-layout { flex-direction: column; padding-top: 100px; gap: 40px; }
             .detail-img-col { width: 100%; position: static; flex: none; }
             .main-img { max-height: 500px; aspect-ratio: auto; }
@@ -521,23 +540,35 @@
             .care-grid { grid-template-columns: 1fr; }
         }
 
-        @media(max-width: 768px) {
-            .detail-layout, .tab-section-wrapper, .related-section { padding-left: 20px; padding-right: 20px; }
+        @media (max-width: 768px) {
+            body { overflow-x: hidden; }
+            .detail-layout, .tab-section-wrapper, .related-section {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+            .detail-info-col { width: 100%; max-width: 100%; overflow: hidden; }
             .related-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
-            .btn-row { flex-direction: row; flex-wrap: wrap; }
-            #cartControl { width: 100%; flex: none; }
-            .btn-wishlist { margin-left: auto; }
         }
 
-        @media(max-width: 480px) {
-            .main-img { max-height: 350px; border-radius: 20px; }
+        @media (max-width: 480px) {
+            .detail-layout { padding-left: 14px; padding-right: 14px; gap: 24px; }
+            .tab-section-wrapper { padding-left: 14px; padding-right: 14px; }
+            .main-img { max-height: 320px; border-radius: 20px; }
             .product-price { font-size: 2rem; }
-            .detail-tabs { gap: 0; justify-content: space-between; overflow-x: auto; white-space: nowrap; }
-            .tab-btn { padding: 12px 16px; font-size: 1rem; }
+            .detail-tabs {
+                gap: 0;
+                justify-content: space-between;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            .tab-btn { padding: 12px 14px; font-size: 0.95rem; }
             .related-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-            .qty-selector { width: 100%; justify-content: space-between; }
-        }
 
+            /* Shrink btn-h slightly and reduce Add to Basket padding */
+            :root { --btn-h: 48px; }
+            .btn-add-cart { padding: 0 14px; font-size: 0.9rem; gap: 7px; }
+            .btn-add-cart i { font-size: 0.9rem; }
+        }
     </style>
 </head>
 <body data-auth="{% if request.user.is_authenticated %}1{% else %}0{% endif %}">
@@ -545,7 +576,8 @@
 
     <div class="container-fluid">
         <div class="detail-layout">
-            <!-- Image Section -->
+
+            <!-- ── Image Column ── -->
             <div class="detail-img-col">
                 <div class="main-img">
                     {% if product.image %}
@@ -556,8 +588,10 @@
                 </div>
             </div>
 
-            <!-- Info Section -->
+            <!-- ── Info Column ── -->
             <div class="detail-info-col">
+
+                <!-- Breadcrumb -->
                 <div class="breadcrumb">
                     <a href="{% url 'home' %}">Home</a>
                     <i class="fas fa-chevron-right"></i>
@@ -565,12 +599,13 @@
                     <i class="fas fa-chevron-right"></i>
                     <a href="{% url 'shop' %}?category={{ product.category.slug }}">{{ product.category.name }}</a>
                     <i class="fas fa-chevron-right"></i>
-                    <span style="color:var(--text-dark); font-weight:600;">{{ product.name }}</span>
+                    <span style="color:var(--text-dark);font-weight:600;">{{ product.name }}</span>
                 </div>
 
                 <span class="product-category-tag">{{ product.category.name }}</span>
                 <h1 class="product-title">{{ product.name }}</h1>
 
+                <!-- Rating row -->
                 <div class="product-rating-row">
                     <div class="stars">
                         {% for i in "12345" %}
@@ -584,6 +619,7 @@
                     <span>{{ avg_rating }} ({{ reviews.count }} review{{ reviews.count|pluralize }})</span>
                 </div>
 
+                <!-- Price -->
                 <div class="product-price-block">
                     {% if product.offer_price %}
                         <span class="product-price">₹{{ product.offer_price }}</span>
@@ -594,13 +630,17 @@
                     {% endif %}
                 </div>
 
+                <!-- Stock -->
                 <div class="stock-status">
                     {% if product.stock == 0 %}
-                        <div class="stock-dot red"></div> <span style="color:var(--terracotta);">Out of Stock</span>
+                        <div class="stock-dot red"></div>
+                        <span style="color:var(--terracotta);">Out of Stock</span>
                     {% elif product.stock < 5 %}
-                        <div class="stock-dot orange"></div> <span style="color:var(--gold);">Only {{ product.stock }} left in stock!</span>
+                        <div class="stock-dot orange"></div>
+                        <span style="color:var(--gold);">Only {{ product.stock }} left in stock!</span>
                     {% else %}
-                        <div class="stock-dot green"></div> <span style="color:#22C55E;">In Stock</span>
+                        <div class="stock-dot green"></div>
+                        <span style="color:#22C55E;">In Stock</span>
                     {% endif %}
                 </div>
 
@@ -611,7 +651,9 @@
                 <div class="divider"></div>
 
                 {% if product.stock > 0 %}
+                <!-- ── Cart row: [qty/add-to-cart]  [♥] — always inline ── -->
                 <div class="btn-row">
+
                     <div id="cartControl">
                         {% if cart_qty > 0 %}
                         <div class="qty-selector product-cart-box">
@@ -626,9 +668,14 @@
                         {% endif %}
                     </div>
 
-                    <button class="btn-wishlist" id="wishlistBtn" aria-label="Add to wishlist">
-                        <i class="far fa-heart"></i>
+                    <button
+                        class="btn-wishlist {% if in_wishlist %}active{% endif %}"
+                        id="wishlistBtn"
+                        aria-label="Toggle wishlist"
+                    >
+                        <i class="{% if in_wishlist %}fas{% else %}far{% endif %} fa-heart"></i>
                     </button>
+
                 </div>
                 {% else %}
                 <div style="margin-bottom:28px;">
@@ -636,6 +683,7 @@
                 </div>
                 {% endif %}
 
+                <!-- Trust badges -->
                 <div class="trust-mini">
                     <div class="trust-mini-item"><i class="fas fa-truck-fast"></i> Free delivery over ₹999</div>
                     <div class="trust-mini-item"><i class="fas fa-shield-halved"></i> 7-day healthy guarantee</div>
@@ -646,16 +694,29 @@
                 <div class="divider"></div>
                 <span class="info-label">Care Guide</span>
                 <div class="care-grid">
-                    <div class="care-item"><div class="care-icon"><i class="fas fa-tint"></i></div><div><strong>Watering</strong><span>Water when top inch of soil is dry</span></div></div>
-                    <div class="care-item"><div class="care-icon"><i class="fas fa-sun"></i></div><div><strong>Light</strong><span>Bright indirect sunlight preferred</span></div></div>
-                    <div class="care-item"><div class="care-icon"><i class="fas fa-thermometer-half"></i></div><div><strong>Temperature</strong><span>18°C – 30°C ideal range</span></div></div>
-                    <div class="care-item"><div class="care-icon"><i class="fas fa-seedling"></i></div><div><strong>Soil</strong><span>Well-draining potting mix</span></div></div>
+                    <div class="care-item">
+                        <div class="care-icon"><i class="fas fa-tint"></i></div>
+                        <div><strong>Watering</strong><span>Water when top inch of soil is dry</span></div>
+                    </div>
+                    <div class="care-item">
+                        <div class="care-icon"><i class="fas fa-sun"></i></div>
+                        <div><strong>Light</strong><span>Bright indirect sunlight preferred</span></div>
+                    </div>
+                    <div class="care-item">
+                        <div class="care-icon"><i class="fas fa-thermometer-half"></i></div>
+                        <div><strong>Temperature</strong><span>18°C – 30°C ideal range</span></div>
+                    </div>
+                    <div class="care-item">
+                        <div class="care-icon"><i class="fas fa-seedling"></i></div>
+                        <div><strong>Soil</strong><span>Well-draining potting mix</span></div>
+                    </div>
                 </div>
                 {% endif %}
-            </div>
-        </div>
 
-        <!-- Tabs: Description / Care / Reviews -->
+            </div>{# end detail-info-col #}
+        </div>{# end detail-layout #}
+
+        <!-- ── Tabs: Reviews / Care ── -->
         <section class="tab-section-wrapper">
             <div class="detail-tabs">
                 <button class="tab-btn active" data-tab="reviews">Reviews ({{ reviews.count }})</button>
@@ -664,17 +725,22 @@
                 {% endif %}
             </div>
 
-            <!-- Reviews tab -->
+            <!-- Reviews pane -->
             <div class="tab-pane active" id="tab-reviews">
-                <div class="container-fluid" style="max-width: 800px; margin: 0;">
+                <div class="container-fluid" style="max-width:800px;margin:0;">
+
                     {% if request.user.is_authenticated %}
                     <div class="review-form-wrap">
                         <h3>{% if user_review %}Update Your Review{% else %}Write a Review{% endif %}</h3>
                         <div class="star-rating" id="starRating">
-                            {% for i in "12345" %}<i class="{% if user_review and forloop.counter <= user_review.rating %}fas{% else %}far{% endif %} fa-star" data-val="{{ forloop.counter }}"></i>{% endfor %}
+                            {% for i in "12345" %}
+                                <i class="{% if user_review and forloop.counter <= user_review.rating %}fas{% else %}far{% endif %} fa-star" data-val="{{ forloop.counter }}"></i>
+                            {% endfor %}
                         </div>
                         <textarea id="reviewText" class="review-textarea" placeholder="Share your experience with this plant…" maxlength="500">{% if user_review %}{{ user_review.review }}{% endif %}</textarea>
-                        <button class="btn-submit-review" id="submitReview"><i class="fas fa-paper-plane"></i> Submit Review</button>
+                        <button class="btn-submit-review" id="submitReview">
+                            <i class="fas fa-paper-plane"></i> Submit Review
+                        </button>
                     </div>
                     {% else %}
                     <div style="background:var(--ivory);border-radius:16px;padding:24px;margin-bottom:32px;text-align:center;font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--text-mid);border:1px solid var(--ivory-dark);">
@@ -697,12 +763,16 @@
                         <p class="rev-text">{{ review.review }}</p>
                     </div>
                     {% empty %}
-                    <div class="no-reviews"><i class="fas fa-star-half-stroke"></i>No reviews yet. Be the first to review!</div>
+                    <div class="no-reviews">
+                        <i class="fas fa-star-half-stroke"></i>
+                        No reviews yet. Be the first to review!
+                    </div>
                     {% endfor %}
+
                 </div>
             </div>
 
-            <!-- Care Details Tab -->
+            <!-- Care pane -->
             {% if product.care_guide %}
             <div class="tab-pane" id="tab-care">
                 <div style="font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:var(--text-mid);line-height:1.8;max-width:800px;">
@@ -711,9 +781,9 @@
             </div>
             {% endif %}
         </section>
-    </div>
+    </div>{# end container-fluid #}
 
-    <!-- Related products -->
+    <!-- ── Related products ── -->
     {% if related %}
     <section class="related-section reveal-section">
         <div class="container-fluid">
@@ -726,13 +796,18 @@
                 <a href="{% url 'product_detail' p.slug %}" class="product-card reveal-child" style="text-decoration:none;">
                     <div class="img-container">
                         {% if p.offer_price %}<span class="badge badge-sale">SALE</span>{% endif %}
-                        {% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
-                        {% else %}<div class="img-placeholder"><i class="fas fa-seedling"></i></div>{% endif %}
+                        {% if p.image %}
+                            <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
+                        {% else %}
+                            <div class="img-placeholder"><i class="fas fa-seedling"></i></div>
+                        {% endif %}
                     </div>
                     <div class="product-info">
                         <h3>{{ p.name }}</h3>
                         <div class="price-row">
-                            <p class="price">{% if p.offer_price %}₹{{ p.offer_price }}<span class="old-price">₹{{ p.price }}</span>{% else %}₹{{ p.price }}{% endif %}</p>
+                            <p class="price">
+                                {% if p.offer_price %}₹{{ p.offer_price }}<span class="old-price">₹{{ p.price }}</span>{% else %}₹{{ p.price }}{% endif %}
+                            </p>
                         </div>
                     </div>
                 </a>
@@ -741,64 +816,16 @@
         </div>
     </section>
     {% endif %}
-{% include "web/_footer.html" %}
-    <script src="{% static 'js/site.js' %}"></script>
+
+    {% include "web/_footer.html" %}
+
+    <!-- Merged JS (script.js handles everything) -->
     <script src="{% static 'js/script.js' %}"></script>
 
     <script>
-        // Qty selector
-        function changeQty(delta) {
-            const input = document.getElementById('qtyInput');
-            const max   = parseInt(input.max) || 99;
-            let val = parseInt(input.value) + delta;
-            if (val < 1) val = 1;
-            if (val > max) val = max;
-            input.value = val;
-        }
-
-        // Add to cart from detail page (Fallback non-ajax handling if needed)
-        const addBtn = document.getElementById('addToCartBtn');
-        if (addBtn && !addBtn.hasAttribute('onclick')) {
-            addBtn.addEventListener('click', function() {
-                const pid   = this.dataset.product;
-                const name  = this.dataset.name;
-                const price = parseInt(this.dataset.price) || 0;
-                const qty   = parseInt(document.getElementById('qtyInput').value) || 1;
-
-                let cart = JSON.parse(sessionStorage.getItem('ssd_cart') || '[]');
-                const ex = cart.find(i => i.id === pid);
-                if (ex) ex.qty += qty;
-                else cart.push({ id: pid, name, price, qty });
-                sessionStorage.setItem('ssd_cart', JSON.stringify(cart));
-
-                // Update badge
-                const total = cart.reduce((s,i)=>s+i.qty,0);
-                const badge = document.querySelector('.cart-count');
-                if (badge) badge.textContent = total;
-
-                showToast(`${name} added to basket!`);
-                this.innerHTML = '<i class="fas fa-check"></i> Added!';
-                setTimeout(() => { this.innerHTML = '<i class="fas fa-shopping-bag"></i> Add to Basket'; }, 2000);
-            });
-        }
-
-        // Wishlist button
-        const wishBtn = document.getElementById('wishlistBtn');
-        if (wishBtn) {
-            wishBtn.addEventListener('click', function() {
-                const icon = this.querySelector('i');
-                icon.classList.toggle('far');
-                icon.classList.toggle('fas');
-                if (icon.classList.contains('fas')) {
-                    this.style.background = '#e74c3c'; this.style.borderColor = '#e74c3c'; this.style.color = 'white';
-                    showToast('{{ product.name|escapejs }} added to wishlist!');
-                } else { this.style.background=''; this.style.borderColor=''; this.style.color=''; }
-            });
-        }
-
-        // Tabs
+        // ── Tab switching ──────────────────────────────────────
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
                 this.classList.add('active');
@@ -807,126 +834,141 @@
             });
         });
 
-        // Star rating
+        // ── Star rating ────────────────────────────────────────
         const stars = document.querySelectorAll('#starRating i');
         let selectedRating = {{ user_review.rating|default:"5" }};
+
         stars.forEach(star => {
-            star.addEventListener('click', function() {
+            star.addEventListener('click', function () {
                 selectedRating = parseInt(this.dataset.val);
-                stars.forEach((s, i) => { s.classList.toggle('fas', i < selectedRating); s.classList.toggle('far', i >= selectedRating); s.classList.toggle('active', i < selectedRating); });
+                stars.forEach((s, i) => {
+                    s.classList.toggle('fas',    i < selectedRating);
+                    s.classList.toggle('far',    i >= selectedRating);
+                    s.classList.toggle('active', i < selectedRating);
+                });
             });
-            star.addEventListener('mouseenter', function() {
+            star.addEventListener('mouseenter', function () {
                 const val = parseInt(this.dataset.val);
-                stars.forEach((s, i) => { s.classList.toggle('fas', i < val); s.classList.toggle('far', i >= val); });
+                stars.forEach((s, i) => {
+                    s.classList.toggle('fas', i < val);
+                    s.classList.toggle('far', i >= val);
+                });
             });
-        });
-        document.getElementById('starRating') && document.getElementById('starRating').addEventListener('mouseleave', () => {
-            stars.forEach((s, i) => { s.classList.toggle('fas', i < selectedRating); s.classList.toggle('far', i >= selectedRating); });
         });
 
-        // Submit review
+        document.getElementById('starRating')?.addEventListener('mouseleave', () => {
+            stars.forEach((s, i) => {
+                s.classList.toggle('fas', i < selectedRating);
+                s.classList.toggle('far', i >= selectedRating);
+            });
+        });
+
+        // ── Submit review ──────────────────────────────────────
         const submitBtn = document.getElementById('submitReview');
         if (submitBtn) {
-            submitBtn.addEventListener('click', async function() {
+            submitBtn.addEventListener('click', async function () {
                 const text = document.getElementById('reviewText').value.trim();
                 if (!text || text.length < 10) { showToast('Review must be at least 10 characters'); return; }
                 this.disabled = true;
                 this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
                 try {
-                    const res = await fetch('/review/{{ product.id }}/submit/', {
+                    const res  = await fetch('/review/{{ product.id }}/submit/', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
                         body: JSON.stringify({ rating: selectedRating, review: text })
                     });
                     const data = await res.json();
                     showToast(data.message || 'Review submitted!');
-                    if (data.success) { this.innerHTML = '<i class="fas fa-check"></i> Submitted!'; }
-                    else { this.disabled = false; this.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Review'; }
-                } catch(e) { showToast('Something went wrong. Please try again.'); this.disabled = false; this.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Review'; }
+                    if (data.success) {
+                        this.innerHTML = '<i class="fas fa-check"></i> Submitted!';
+                    } else {
+                        this.disabled = false;
+                        this.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Review';
+                    }
+                } catch (e) {
+                    showToast('Something went wrong. Please try again.');
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Review';
+                }
             });
         }
 
-        const PRODUCT_ID = "{{ product.id }}";
+        // ── Wishlist button (product detail specific) ──────────
+        const wishBtn = document.getElementById('wishlistBtn');
+        if (wishBtn) {
+            wishBtn.addEventListener('click', async function () {
+                try {
+                    const response = await fetch('/wishlist/toggle/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                        body: JSON.stringify({ product_id: '{{ product.id }}' })
+                    });
+                    const data = await response.json();
+                    if (!data.success) { showToast(data.message || 'Something went wrong'); return; }
+                    const icon = this.querySelector('i');
+                    if (data.action === 'added') {
+                        this.classList.add('active');
+                        icon.classList.replace('far', 'fas');
+                    } else {
+                        this.classList.remove('active');
+                        icon.classList.replace('fas', 'far');
+                    }
+                    showToast(data.message);
+                } catch (err) {
+                    showToast('Something went wrong');
+                }
+            });
+        }
+
+        // ── Cart helpers (product detail page) ─────────────────
+        const PRODUCT_ID    = '{{ product.id }}';
         const PRODUCT_STOCK = {{ product.stock }};
 
         async function addFirstItem() {
-            const response = await fetch("/cart/add/", {
-                method: "POST",
-                headers: {
-                    "Content-Type":"application/json",
-                    "X-CSRFToken":"{{ csrf_token }}"
-                },
-                body: JSON.stringify({
-                    product_id: PRODUCT_ID,
-                    qty: 1
-                })
+            const response = await fetch('/cart/add/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ product_id: PRODUCT_ID, qty: 1 })
             });
-
             const data = await response.json();
-
-            if(!data.success){
-                showToast(data.message);
-                return;
-            }
-
+            if (!data.success) { showToast(data.message); return; }
             updateNavbarCount(data.count);
-
-            document.getElementById("cartControl").innerHTML = `
+            document.getElementById('cartControl').innerHTML = `
                 <div class="qty-selector product-cart-box">
                     <button onclick="updateCartQty(-1)">−</button>
                     <input type="text" id="cartQtyDisplay" value="1" readonly>
                     <button onclick="updateCartQty(1)">+</button>
-                </div>
-            `;
-            showToast("Added to basket!");
+                </div>`;
+            showToast('Added to basket!');
         }
 
-        async function updateCartQty(change){
-            const qtyInput = document.getElementById("cartQtyDisplay");
-            let qty = parseInt(qtyInput.value);
-            qty += change;
-
-            if(qty < 0) qty = 0;
-
-            const response = await fetch("/cart/update/",{
-                method:"POST",
-                headers:{
-                    "Content-Type":"application/json",
-                    "X-CSRFToken":"{{ csrf_token }}"
-                },
-                body:JSON.stringify({
-                    product_id:PRODUCT_ID,
-                    qty:qty
-                })
+        async function updateCartQty(change) {
+            const qtyInput = document.getElementById('cartQtyDisplay');
+            let qty = parseInt(qtyInput.value) + change;
+            if (qty < 0) qty = 0;
+            const response = await fetch('/cart/update/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ product_id: PRODUCT_ID, qty })
             });
-
             const data = await response.json();
-
-            if(!data.success){
-                showToast(data.message);
-                return;
-            }
-
+            if (!data.success) { showToast(data.message); return; }
             updateNavbarCount(data.count);
-
-            if(qty === 0){
-                document.getElementById("cartControl").innerHTML = `
+            if (qty === 0) {
+                document.getElementById('cartControl').innerHTML = `
                     <button class="btn-add-cart" id="addToCartBtn" onclick="addFirstItem()">
                         <i class="fas fa-shopping-bag"></i> Add to Basket
-                    </button>
-                `;
-                showToast("Removed from cart");
+                    </button>`;
+                showToast('Removed from cart');
                 return;
             }
-
             qtyInput.value = qty;
         }
 
-        function updateNavbarCount(count){
-            const badge = document.querySelector(".cart-count");
-            if(badge) { badge.textContent = count; }
-            const mobileBadge = document.querySelector(".mobile-cart-count");
-            if(mobileBadge) { mobileBadge.textContent = count; }
+        function updateNavbarCount(count) {
+            document.querySelectorAll('.cart-count, .mobile-cart-count').forEach(el => {
+                el.textContent = count;
+            });
         }
     </script>
 </body>

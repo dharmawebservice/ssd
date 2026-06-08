@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Hello {{ order.user.first_name }}</h2>
+
+<p>Your order status has been updated.</p>
+
+<p>
+<b>Order ID:</b> {{ order.order_number }}<br>
+<b>Previous Status:</b> {{ old_status }}<br>
+<b>Current Status:</b> {{ new_status }}
+</p>
+
+{% if order.tracking_id %}
+<p>
+<b>Tracking ID:</b> {{ order.tracking_id }}
+</p>
+{% endif %}
+
+<p>
+Thank you for shopping with SSD Nursery 🌱
+</p>
+
+</body>
+</html>

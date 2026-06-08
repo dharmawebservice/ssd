@@ -117,7 +117,7 @@
 {% include "web/_footer.html" %}
 {% csrf_token %}
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script src="{% static 'js/site.js' %}"></script>
+<script src="{% static 'js/script.js' %}"></script>
 <script>
 const CSRF = () => document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
 const RZ_KEY = "{{ razorpay_key }}";

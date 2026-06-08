@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Order Status Updated</h2>
+
+<p>
+<b>Order Number:</b> {{ order.order_number }}
+</p>
+
+<p>
+<b>Customer:</b> {{ order.user.first_name }}
+</p>
+
+<p>
+<b>Email:</b> {{ order.user.email }}
+</p>
+
+<p>
+<b>Status:</b>
+{{ old_status }} → {{ new_status }}
+</p>
+
+<p>
+<b>Amount:</b>
+₹{{ order.total_amount }}
+</p>
+
+</body>
+</html>

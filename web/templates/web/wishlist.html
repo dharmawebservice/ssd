@@ -54,7 +54,7 @@
 </div>
 {% include "web/_footer.html" %}
 {% csrf_token %}
-<script src="{% static 'js/site.js' %}"></script>
+<script src="{% static 'js/script.js' %}"></script>
 <script>
 async function handleWishlistRemove(pid, btn) {
   await toggleWishlist(pid);

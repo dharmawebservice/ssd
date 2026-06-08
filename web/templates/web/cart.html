@@ -58,14 +58,8 @@
       <h3>Order Summary</h3>
       <div class="summary-row">Subtotal <span id="cart-subtotal">₹{{ subtotal|floatformat:0 }}</span></div>
       <div class="summary-row">Delivery <span id="cart-delivery">{% if delivery == 0 %}Free{% else %}₹{{ delivery|floatformat:0 }}{% endif %}</span></div>
-      <div class="summary-row" id="discount-row" style="{% if not request.session.applied_discount %}display:none{% endif %}">
-        Discount <span class="discount" id="cart-discount">-₹0</span>
-      </div>
-      <div class="coupon-row">
-        <input type="text" class="coupon-input" id="couponCode" placeholder="Coupon code">
-        <button class="btn-apply-coupon" onclick="applyCoupon()">Apply</button>
-      </div>
-      <div class="summary-row" style="font-weight:700;font-size:1.1rem;border-top:2px solid var(--ivory-dark);padding-top:14px;margin-top:4px;">
+
+      <div class="summary-row" style="font-weight:700;font-size:1.1rem;padding-top:14px;margin-top:4px;">
         Total <strong id="cart-total">₹{{ total|floatformat:0 }}</strong>
       </div>
       <a href="{% url 'checkout' %}" class="btn-checkout-big">Proceed to Checkout <i class="fas fa-arrow-right"></i></a>
@@ -86,7 +80,7 @@
 </div>
 {% include "web/_footer.html" %}
 {% csrf_token %}
-<script src="{% static 'js/site.js' %}"></script>
+<script src="{% static 'js/script.js' %}"></script>
 <script>
 const CSRF = () => document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
 async function api(url, body) {
@@ -118,25 +112,20 @@ async function clearCart() {
   location.reload();
 }
 function refreshTotals(data) {
-  const sub = data.subtotal;
-  const del = sub >= 999 ? 0 : 49;
-  document.getElementById('cart-subtotal').textContent = '₹' + Math.round(sub);
-  document.getElementById('cart-delivery').textContent = del ? '₹' + del : 'Free';
-  document.getElementById('cart-total').textContent = '₹' + Math.round(sub + del);
-  document.querySelectorAll('.cart-count,#cartNavCount').forEach(el => el.textContent = data.count);
-}
-async function applyCoupon() {
-  const code = document.getElementById('couponCode').value.trim();
-  if (!code) return;
-  const sub = parseFloat(document.getElementById('cart-subtotal').textContent.replace('₹',''));
-  const data = await api('/coupon/apply/', { code, subtotal: sub });
-  if (data.success) {
-    document.getElementById('discount-row').style.display = 'flex';
-    document.getElementById('cart-discount').textContent = '-₹' + Math.round(data.discount);
-    document.getElementById('cart-total').textContent = '₹' + Math.round(data.total);
-    window.showToast && showToast(data.message);
-    sessionStorage.setItem('coupon_code', code);
-  } else { window.showToast && showToast(data.message || 'Invalid coupon', 'error'); }
+    const sub = data.subtotal;
+    const del = sub >= 999 ? 0 : 49;
+
+    document.getElementById('cart-subtotal').textContent =
+        '₹' + Math.round(sub);
+
+    document.getElementById('cart-delivery').textContent =
+        del ? '₹' + del : 'Free';
+
+    document.getElementById('cart-total').textContent =
+        '₹' + Math.round(sub + del);
+
+    document.querySelectorAll('.cart-count,#cartNavCount')
+        .forEach(el => el.textContent = data.count);
 }
 </script>
 </body>

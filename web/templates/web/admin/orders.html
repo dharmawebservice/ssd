@@ -1,23 +1,833 @@
 {% load static %}
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Orders | Admin</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Orders | SSD Nursery Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<link rel="stylesheet" href="{% static 'css/admin.css' %}"></head><body>
-<div class="admin-layout"><div class="sidebar-overlay" id="sidebarOverlay"></div>{% include "web/admin/_sidebar.html" %}
-<main class="main-content">
-<header class="top-header"><div class="header-left"><button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button><div><h1 class="page-title">Orders</h1><p class="page-subtitle">{{ orders.count }} total orders</p></div></div></header>
-<div class="data-card"><div class="table-responsive"><table><thead><tr><th>Order</th><th>Customer</th><th>Amount</th><th>Payment</th><th>Date</th><th>Status</th><th>Update</th></tr></thead><tbody>
-{% for o in orders %}
-<tr><td style="color:var(--text-secondary);font-weight:500">#{{ o.id }}</td>
-<td style="font-weight:600">{{ o.user.first_name|default:"Guest" }}</td>
-<td style="font-weight:700;color:var(--accent)">₹{{ o.total_amount }}</td>
-<td style="color:var(--text-secondary)">{{ o.payment_method|default:"—"|upper }}</td>
-<td style="color:var(--text-secondary)">{{ o.created_at|date:"M d, Y" }}</td>
-<td>{% if o.status == 'Pending' %}<span class="badge badge-pending">{{ o.status }}</span>{% elif o.status == 'Delivered' %}<span class="badge badge-delivered">{{ o.status }}</span>{% elif o.status == 'Cancelled' %}<span class="badge badge-cancelled">{{ o.status }}</span>{% else %}<span class="badge badge-confirmed">{{ o.status }}</span>{% endif %}</td>
-<td><form method="POST" action="{% url 'update_order_status' o.id %}" class="inline-action-form">{% csrf_token %}
-<select name="status" class="form-select-sm"><option {% if o.status == 'Pending' %}selected{% endif %}>Pending</option><option {% if o.status == 'Confirmed' %}selected{% endif %}>Confirmed</option><option {% if o.status == 'Packed' %}selected{% endif %}>Packed</option><option {% if o.status == 'Shipped' %}selected{% endif %}>Shipped</option><option {% if o.status == 'Delivered' %}selected{% endif %}>Delivered</option><option {% if o.status == 'Cancelled' %}selected{% endif %}>Cancelled</option></select>
-<button type="submit" class="btn-dark-sm">Update</button></form></td></tr>
-{% empty %}<tr class="empty-row"><td colspan="7"><i class="fa-solid fa-box-open"></i><br>No orders yet</td></tr>{% endfor %}
-</tbody></table></div></div>
-</main></div>
-<script src="{% static 'js/admin.js' %}"></script></body></html>
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+<style>
+/* ── Table tweaks ─────────────────────────────────────── */
+.btn-view-detail{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    padding:6px 10px;
+    min-width:auto;
+    font-size:.75rem;
+    font-weight:600;
+    border-radius:7px;
+    background:var(--bg-body);
+    border:1px solid var(--border);
+    color:var(--text-primary);
+    cursor:pointer;
+    transition:.2s;
+}
+
+.btn-view-detail i{
+    font-size:.75rem;
+}
+
+.btn-view-detail:hover{
+    background:var(--accent);
+    color:#fff;
+    border-color:var(--accent);
+}
+
+.tracking-id-pill {
+    font-family: monospace; background: var(--accent-light);
+    color: var(--accent); padding: 3px 9px; border-radius: 6px;
+    font-size: .82rem; font-weight: 700; letter-spacing: .5px;
+}
+.partner-tag { font-size: .78rem; color: var(--text-secondary); margin-top: 2px; }
+
+/* ── Detail Modal ─────────────────────────────────────── */
+.order-modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45);
+    backdrop-filter: blur(4px);
+    z-index: 900;
+    display: none; align-items: flex-start; justify-content: center;
+    padding: 40px 16px;
+    overflow-y: auto;
+}
+.order-modal-overlay.open { display: flex; }
+
+.order-modal {
+    background: white; border-radius: 20px;
+    box-shadow: 0 24px 80px rgba(0,0,0,.18);
+    width: 100%; max-width: 760px;
+    animation: slideUp .3s cubic-bezier(.4,0,.2,1);
+}
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 22px 28px; border-bottom: 1px solid var(--border);
+}
+.modal-header h2 { font-size: 1.15rem; font-weight: 700; color: var(--text-primary); }
+.modal-close {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--bg-body); border: 1px solid var(--border);
+    font-size: .85rem; color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: .2s;
+}
+.modal-close:hover { background: #FEE2E2; color: #DC2626; border-color: #FEE2E2; }
+
+.modal-body { padding: 24px 28px; }
+
+/* ── Info sections inside modal ───────────────────────── */
+.info-section { margin-bottom: 24px; }
+.info-section:last-child { margin-bottom: 0; }
+.info-section-title {
+    font-size: .72rem; font-weight: 700;
+    letter-spacing: 1.8px; text-transform: uppercase;
+    color: var(--text-secondary); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 7px;
+}
+.info-section-title i { color: var(--accent); font-size: .8rem; }
+
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.info-card {
+    background: var(--bg-body); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+}
+.info-card label {
+    font-size: .7rem; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--text-secondary); display: block; margin-bottom: 4px;
+}
+.info-card span { font-size: .9rem; font-weight: 600; color: var(--text-primary); }
+.info-card.full-width { grid-column: 1 / -1; }
+
+/* ── Order items inside modal ─────────────────────────── */
+.modal-items { display: flex; flex-direction: column; gap: 10px; }
+.modal-item {
+    display: flex; align-items: center; gap: 12px;
+    border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;
+    background: white;
+}
+.modal-item-img {
+    width: 48px; height: 48px; border-radius: 9px;
+    object-fit: cover; background: var(--bg-body); flex-shrink: 0;
+}
+.modal-item-img.placeholder {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; color: #9CA3AF;
+}
+.modal-item-info { flex: 1; min-width: 0; }
+.modal-item-name { font-size: .9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.modal-item-sub  { font-size: .78rem; color: var(--text-secondary); margin-top: 2px; }
+.modal-item-total{ font-size: .95rem; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+
+.modal-divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+/* ── Status Update Form inside modal ─────────────────── */
+.status-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+.status-form-grid .form-group { margin: 0; }
+.status-form-grid .form-group label {
+    font-size: .72rem; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--text-secondary);
+    display: block; margin-bottom: 6px;
+}
+.status-form-grid input,
+.status-form-grid select {
+    width: 100%; padding: 10px 13px;
+    border: 1.5px solid var(--border); border-radius: 9px;
+    font-family: var(--font); font-size: .88rem;
+    color: var(--text-primary); background: white; outline: none;
+    transition: border-color .2s;
+}
+.status-form-grid input:focus,
+.status-form-grid select:focus { border-color: var(--accent); }
+
+/* Locked / read-only shipping fields */
+.status-form-grid input[readonly],
+.status-form-grid select[disabled] {
+    background: #F9FAFB;
+    color: #6B7280;
+    cursor: not-allowed;
+    border-color: var(--border) !important;
+}
+
+/* Shipped lock banner */
+.shipped-lock-banner {
+    display: flex; align-items: center; gap: 10px;
+    background: #F0FDF4; border: 1px solid #BBF7D0;
+    color: #15803D; border-radius: 10px;
+    padding: 12px 16px; font-size: .85rem; font-weight: 600;
+    margin-bottom: 16px;
+}
+.shipped-lock-banner i { font-size: 1rem; flex-shrink: 0; }
+
+.required-hint {
+    font-size: .7rem; color: #EF4444; margin-top: 5px; display: none;
+}
+.required-hint.show { display: block; }
+
+.modal-footer {
+    padding: 18px 28px 24px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end; gap: 10px;
+}
+.btn-modal-cancel {
+    padding: 10px 20px; border-radius: 9px;
+    border: 1.5px solid var(--border); background: white;
+    color: var(--text-secondary); font-size: .88rem; font-weight: 600;
+    cursor: pointer; transition: .2s;
+}
+.btn-modal-cancel:hover { background: var(--bg-body); }
+
+.btn-modal-save {
+    padding: 10px 24px; border-radius: 9px;
+    background: var(--accent); color: white;
+    font-size: .88rem; font-weight: 600;
+    border: none; cursor: pointer; transition: .2s;
+    display: inline-flex; align-items: center; gap: 7px;
+}
+.btn-modal-save:hover { background: var(--accent-mid); }
+.btn-modal-save:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Tracking link */
+.track-link {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: .82rem; color: var(--accent); margin-top: 10px;
+    text-decoration: none;
+}
+.track-link:hover { text-decoration: underline; }
+
+/* Shipping info read-only display (post-ship) */
+.shipping-info-display {
+    background: #F0FDF4; border: 1px solid #BBF7D0;
+    border-radius: 12px; padding: 16px 18px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+}
+.shipping-info-display .si-item label {
+    font-size: .7rem; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; color: #15803D; display: block; margin-bottom: 4px;
+}
+.shipping-info-display .si-item span {
+    font-size: .9rem; font-weight: 600; color: #14532D;
+    word-break: break-all;
+}
+.shipping-info-display .si-item.full { grid-column: 1/-1; }
+
+/* ===== Orders Table Fix ===== */
+
+.data-card{
+    overflow:hidden;
+}
+
+.table-responsive{
+    overflow-x:hidden !important;
+}
+
+table{
+    width:100%;
+    table-layout:fixed;
+}
+
+table th,
+table td{
+    padding:12px 10px;
+    word-wrap:break-word;
+}
+
+/* Order ID */
+table th:nth-child(1),
+table td:nth-child(1){
+    width:140px;
+}
+
+/* Customer */
+table th:nth-child(2),
+table td:nth-child(2){
+    width:220px;
+}
+
+/* Amount */
+table th:nth-child(3),
+table td:nth-child(3){
+    width:90px;
+}
+
+/* Payment */
+table th:nth-child(4),
+table td:nth-child(4){
+    width:90px;
+}
+
+/* Date */
+table th:nth-child(5),
+table td:nth-child(5){
+    width:100px;
+}
+
+/* Status */
+table th:nth-child(6),
+table td:nth-child(6){
+    width:90px;
+}
+
+/* Action */
+table th:nth-child(7),
+table td:nth-child(7){
+    width:80px;
+    text-align:center;
+}
+
+.btn-view-detail{
+    padding:5px 8px;
+    font-size:.72rem;
+    min-width:60px;
+}
+
+@media (max-width:768px){
+
+    .top-header{
+        flex-direction:column;
+        align-items:flex-start;
+        gap:12px;
+    }
+
+    table{
+        font-size:.8rem;
+    }
+
+    .btn-view-detail{
+        padding:4px 6px;
+        font-size:.7rem;
+    }
+}
+
+.badge-returned{
+    background:#FEF3C7;
+    color:#B45309;
+    border:1px solid #FCD34D;
+}
+</style>
+</head>
+<body>
+{% for m in messages %}
+<div class="django-message" data-level="{% if m.tags == 'error' %}error{% else %}success{% endif %}" style="display:none;">{{ m }}</div>
+{% endfor %}
+
+<div class="admin-layout">
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "web/admin/_sidebar.html" %}
+
+    <main class="main-content">
+        <header class="top-header">
+            <div class="header-left">
+                <button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars-staggered"></i></button>
+                <div>
+                    <h1 class="page-title">Orders</h1>
+                    <p class="page-subtitle">{{ orders|length }} total orders</p>
+                </div>
+            </div>
+            <!-- Status filter pills -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="?" style="padding:7px 14px;border-radius:20px;font-size:.82rem;font-weight:600;text-decoration:none;background:{% if not request.GET.status %}#111{% else %}var(--bg-body){% endif %};color:{% if not request.GET.status %}white{% else %}var(--text-secondary){% endif %};">All</a>
+                {% for s in statuses %}
+                <a href="?status={{ s }}" style="padding:7px 14px;border-radius:20px;font-size:.82rem;font-weight:600;text-decoration:none;background:{% if request.GET.status == s %}#111{% else %}var(--bg-body){% endif %};color:{% if request.GET.status == s %}white{% else %}var(--text-secondary){% endif %};">{{ s }}</a>
+                {% endfor %}
+            </div>
+        </header>
+
+        <div class="data-card">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Payment</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th style="text-align:right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in orders %}
+                        <tr>
+                            <td style="color:var(--text-secondary);font-weight:500;">#{{ o.order_number }}</td>
+                            <td>
+                                <div style="font-weight:600;">{{ o.user.first_name|default:"Guest" }}</div>
+                                <div style="font-size:.78rem;color:var(--text-secondary);">{{ o.user.email }}</div>
+                            </td>
+                            <td>
+                                <div style="font-weight:700;color:var(--accent);">₹{{ o.total_amount }}</div>
+                                {% if o.discount_amount > 0 %}
+                                <div style="font-size:.75rem;color:#22C55E;">Saved ₹{{ o.discount_amount }}</div>
+                                {% endif %}
+                            </td>
+                            <td style="color:var(--text-secondary);font-size:.85rem;">{{ o.payment_method|upper|default:"—" }}</td>
+                            <td style="color:var(--text-secondary);font-size:.85rem;">{{ o.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                {% if o.status == 'Pending' %}<span class="badge badge-pending">{{ o.status }}</span>
+                                {% elif o.status == 'Delivered' %}<span class="badge badge-delivered">{{ o.status }}</span>
+                                {% elif o.status == 'Returned' %}<span class="badge badge-returned">{{ o.status }}</span>
+                                {% elif o.status == 'Cancelled' %}<span class="badge badge-cancelled">{{ o.status }}</span>
+                                {% elif o.status == 'Shipped' %}<span class="badge" style="background:#F0FDF4;color:#15803D;">{{ o.status }}</span>
+                                {% else %}<span class="badge badge-confirmed">{{ o.status }}</span>{% endif %}
+                            </td>
+                            <td style="text-align:right;">
+                                <button class="btn-view-detail" onclick="openOrderModal('{{ o.order_number }}')">
+                                    <i class="fa-solid fa-eye"></i> View
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr class="empty-row">
+                            <td colspan="7"><i class="fa-solid fa-box-open"></i><br>No orders yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     ORDER DETAIL MODAL
+     ══════════════════════════════════════════════════════ -->
+<div class="order-modal-overlay" id="orderModalOverlay" onclick="closeOrderModal(event)">
+    <div class="order-modal" id="orderModalBox">
+
+        <div class="modal-header">
+            <h2 id="modalTitle">Order Details</h2>
+            <button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="modal-body" id="modalBody">
+            <!-- injected by JS -->
+        </div>
+
+        <div class="modal-footer" id="modalFooter">
+            <button class="btn-modal-cancel" onclick="closeModal()">Close</button>
+            <button class="btn-modal-save" id="modalSaveBtn" type="button" onclick="submitModalForm()">
+                <i class="fa-solid fa-check"></i> Update Status
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Hidden order data for JS ── -->
+<script>
+const ORDER_DATA = {
+    {% for o in orders %}
+    "{{ o.order_number }}": {
+        id: "{{ o.order_number }}",
+        order_number: "{{ o.order_number }}",
+        customer_name:  "{{ o.user.first_name|default:'Guest'|escapejs }}",
+        customer_email: "{{ o.user.email|escapejs }}",
+        customer_phone: "{{ o.user.profile.phone|default:''|escapejs }}",
+        address:        "{{ o.address|escapejs }}",
+        notes:          "{{ o.notes|escapejs }}",
+        amount:         "₹{{ o.total_amount }}",
+        discount:       "{% if o.discount_amount > 0 %}₹{{ o.discount_amount }}{% else %}—{% endif %}",
+        payment:        "{{ o.payment_method|upper|default:'—'|escapejs }}",
+        payment_id:     "{{ o.payment_id|default:'—'|escapejs }}",
+        status:         "{{ o.status|escapejs }}",
+        date:           "{{ o.created_at|date:'M d, Y — h:i A'|escapejs }}",
+        tracking_id:      "{{ o.tracking_id|escapejs }}",
+        delivery_partner: "{{ o.delivery_partner|escapejs }}",
+        tracking_url:     "{{ o.tracking_url|escapejs }}",
+        partner_display:  "{{ o.delivery_partner_display|escapejs }}",
+        update_url: "{% url 'update_order_status' o.id %}",
+        /* shipped_locked = true means shipping info was already saved — CANNOT be changed */
+        shipped_locked: {% if o.tracking_id and o.delivery_partner %}true{% else %}false{% endif %},
+        items: [
+            {% for item in o.items.all %}
+            {
+                name:  "{{ item.product.name|escapejs }}",
+                qty:   {{ item.quantity }},
+                price: "₹{{ item.price }}",
+                total: "₹{{ item.subtotal }}",
+                image: "{% if item.product.image %}{{ item.product.image.url }}{% endif %}"
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+};
+
+const STATUSES = {{ statuses|safe }};
+
+const COURIERS = [
+    {val:"",           label:"— Select courier —"},
+    {val:"delhivery",  label:"Delhivery"},
+    {val:"bluedart",   label:"Blue Dart"},
+    {val:"dtdc",       label:"DTDC"},
+    {val:"ekart",      label:"Ekart Logistics"},
+    {val:"xpressbees", label:"XpressBees"},
+    {val:"shadowfax",  label:"Shadowfax"},
+    {val:"ecom",       label:"Ecom Express"},
+    {val:"amazon",     label:"Amazon Logistics"},
+    {val:"shiprocket", label:"Shiprocket"},
+    {val:"other",      label:"Other"},
+];
+
+const CSRF = () =>
+    document.querySelector("[name=csrfmiddlewaretoken]")?.value ||
+    document.cookie.match(/csrftoken=([^;]+)/)?.[1] || "";
+
+let currentOrderId = null;
+
+/* ─────────────────────────────────────────────────────────
+   openOrderModal
+───────────────────────────────────────────────────────── */
+function openOrderModal(id) {
+    const o = ORDER_DATA[String(id)];
+    if (!o) return;
+    currentOrderId = id;
+
+    document.getElementById("modalTitle").textContent = `Order #${o.order_number}`;
+
+    /* Items list */
+    const itemsHtml = o.items.map(item => `
+        <div class="modal-item">
+            ${item.image
+                ? `<img class="modal-item-img" src="${item.image}" alt="${item.name}">`
+                : `<div class="modal-item-img placeholder"><i class="fa-solid fa-seedling"></i></div>`}
+            <div class="modal-item-info">
+                <div class="modal-item-name">${item.name}</div>
+                <div class="modal-item-sub">${item.qty} × ${item.price}</div>
+            </div>
+            <div class="modal-item-total">${item.total}</div>
+        </div>`).join("");
+
+    /* Status select — if already Shipped+locked, disable further status change too */
+    const isDeliveredOrCancelled = ["Cancelled", "Returned"].includes(o.status);
+    const fullyLocked = o.shipped_locked && (o.status === "Shipped" || isDeliveredOrCancelled);
+
+    const statusOptions = STATUSES.map(s =>
+        `<option value="${s}" ${o.status === s ? "selected" : ""}>${s}</option>`
+    ).join("");
+
+    /* Courier label helper */
+    const courierLabel = (val) => {
+        const c = COURIERS.find(x => x.val === val);
+        return c ? c.label : (val || "—");
+    };
+
+    /* ── Shipping section: locked display vs editable form ── */
+    let shippingSection = "";
+
+    if (o.shipped_locked) {
+        /* Already shipped — show read-only green card */
+        const trackLink = o.tracking_url
+            ? `<a href="${o.tracking_url}" target="_blank" class="track-link" style="margin-top:10px;">
+                   <i class="fa-solid fa-external-link-alt"></i>
+                   Track on ${o.partner_display || courierLabel(o.delivery_partner)}
+               </a>`
+            : "";
+
+        shippingSection = `
+            <div class="info-section">
+                <div class="info-section-title"><i class="fa-solid fa-truck"></i> Shipping Info</div>
+                <div class="shipped-lock-banner">
+                    <i class="fa-solid fa-lock"></i>
+                    Shipping details are locked and cannot be changed after dispatch.
+                </div>
+                <div class="shipping-info-display">
+                    <div class="si-item">
+                        <label>Delivery Partner</label>
+                        <span>${o.partner_display || courierLabel(o.delivery_partner)}</span>
+                    </div>
+                    <div class="si-item">
+                        <label>Tracking ID (AWB)</label>
+                        <span style="font-family:monospace;">${o.tracking_id || "—"}</span>
+                    </div>
+                    ${trackLink ? `<div class="si-item full">${trackLink}</div>` : ""}
+                </div>
+            </div>
+            <div class="modal-divider"></div>
+            <div class="info-section">
+                <div class="info-section-title"><i class="fa-solid fa-arrows-rotate"></i> Update Order Status</div>
+                <form id="modalStatusForm" onsubmit="return false;">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="${CSRF()}">
+                    <div class="status-form-grid">
+                        <div class="form-group" style="grid-column:1/-1;">
+                            <label>Status</label>
+                            <select name="status" id="modalStatus">
+                                ${statusOptions}
+                            </select>
+                            <p style="font-size:.75rem;color:var(--text-secondary);margin-top:6px;">
+                                <i class="fa-solid fa-circle-info"></i>
+                                Shipping details are locked. You can still update the order status (e.g. mark as Delivered).
+                            </p>
+                        </div>
+                    </div>
+                </form>
+            </div>`;
+    } else {
+        /* Not yet shipped — full editable form */
+        const courierOptions = COURIERS.map(c =>
+            `<option value="${c.val}" ${o.delivery_partner === c.val ? "selected" : ""}>${c.label}</option>`
+        ).join("");
+
+        shippingSection = `
+            <div class="info-section">
+                <div class="info-section-title"><i class="fa-solid fa-truck"></i> Update Status & Shipping</div>
+                <form id="modalStatusForm" onsubmit="return false;">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="${CSRF()}">
+                    <div class="status-form-grid">
+                        <div class="form-group">
+                            <label>Status *</label>
+                            <select name="status" id="modalStatus" onchange="onStatusChange()">
+                                ${statusOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Delivery Partner <span id="courierRequired" style="color:#EF4444;"></span></label>
+                            <select name="delivery_partner" id="modalCourier" disabled>
+                                ${courierOptions}
+                            </select>
+                            <div class="required-hint" id="courierHint">Required when status is Shipped</div>
+                        </div>
+                        <div class="form-group" style="grid-column:1/-1;">
+                            <label>Tracking ID (AWB) <span id="trackingRequired" style="color:#EF4444;"></span></label>
+                            <input type="text" name="tracking_id" id="modalTracking" readonly
+                                   value="${o.tracking_id || ""}"
+                                   placeholder="e.g. 1234567890123">
+                            <div class="required-hint" id="trackingHint">Required when status is Shipped</div>
+                        </div>
+                    </div>
+                </form>
+            </div>`;
+    }
+
+    /* ── Inject full modal body ── */
+    document.getElementById("modalBody").innerHTML = `
+        <!-- Customer Info -->
+        <div class="info-section">
+            <div class="info-section-title"><i class="fa-solid fa-user"></i> Customer</div>
+            <div class="info-grid">
+                <div class="info-card">
+                    <label>Full Name</label>
+                    <span>${o.customer_name || "—"}</span>
+                </div>
+                <div class="info-card">
+                    <label>Email</label>
+                    <span style="word-break:break-all;">${o.customer_email || "—"}</span>
+                </div>
+                <div class="info-card">
+                    <label>Mobile Number</label>
+                    <span>${o.customer_phone || "—"}</span>
+                </div>
+                <div class="info-card">
+                    <label>Order Date</label>
+                    <span>${o.date}</span>
+                </div>
+                <div class="info-card full-width">
+                    <label>Delivery Address</label>
+                    <span style="white-space:pre-wrap;font-size:.88rem;">${o.address || "—"}</span>
+                </div>
+                ${o.notes ? `<div class="info-card full-width">
+                    <label>Delivery Notes</label>
+                    <span style="font-size:.88rem;color:#6B7280;">${o.notes}</span>
+                </div>` : ""}
+            </div>
+        </div>
+
+        <div class="modal-divider"></div>
+
+        <!-- Payment Info -->
+        <div class="info-section">
+            <div class="info-section-title"><i class="fa-solid fa-indian-rupee-sign"></i> Payment</div>
+            <div class="info-grid">
+                <div class="info-card">
+                    <label>Total Amount</label>
+                    <span style="color:var(--accent);font-size:1.05rem;">${o.amount}</span>
+                </div>
+                <div class="info-card">
+                    <label>Discount</label>
+                    <span style="color:#22C55E;">${o.discount}</span>
+                </div>
+                <div class="info-card">
+                    <label>Payment Method</label>
+                    <span>${o.payment}</span>
+                </div>
+                <div class="info-card">
+                    <label>Payment ID</label>
+                    <span style="font-family:monospace;font-size:.82rem;">${o.payment_id}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-divider"></div>
+
+        <!-- Items -->
+        <div class="info-section">
+            <div class="info-section-title"><i class="fa-solid fa-seedling"></i> Items Ordered</div>
+            <div class="modal-items">${itemsHtml}</div>
+        </div>
+
+        <div class="modal-divider"></div>
+
+        ${shippingSection}
+    `;
+
+    /* Apply required-field hints for the editable form */
+    if (!o.shipped_locked) onStatusChange();
+
+    /* Hide save button if order is fully terminal (Delivered / Cancelled) */
+    const saveBtn = document.getElementById("modalSaveBtn");
+    if (saveBtn) {
+        if (isDeliveredOrCancelled) {
+            saveBtn.style.display = "none";
+        } else {
+            saveBtn.style.display = "";
+        }
+    }
+
+    document.getElementById("orderModalOverlay").classList.add("open");
+    document.body.style.overflow = "hidden";
+}
+
+/* ─────────────────────────────────────────────────────────
+   onStatusChange — show/hide required hints
+───────────────────────────────────────────────────────── */
+function onStatusChange() {
+
+    const statusEl = document.getElementById("modalStatus");
+
+    if (!statusEl) return;
+
+    const isShip = statusEl.value === "Shipped";
+
+    const courierEl = document.getElementById("modalCourier");
+    const trackingEl = document.getElementById("modalTracking");
+
+    const cReq = document.getElementById("courierRequired");
+    const tReq = document.getElementById("trackingRequired");
+
+    const cHint = document.getElementById("courierHint");
+    const tHint = document.getElementById("trackingHint");
+
+    if (isShip) {
+
+        courierEl.disabled = false;
+        trackingEl.readOnly = false;
+
+        if (cReq) cReq.textContent = "*";
+        if (tReq) tReq.textContent = "*";
+
+        if (cHint) cHint.classList.add("show");
+        if (tHint) tHint.classList.add("show");
+
+    } else {
+
+        courierEl.disabled = true;
+        trackingEl.readOnly = true;
+
+        courierEl.value = "";
+        trackingEl.value = "";
+
+        if (cReq) cReq.textContent = "";
+        if (tReq) tReq.textContent = "";
+
+        if (cHint) cHint.classList.remove("show");
+        if (tHint) tHint.classList.remove("show");
+    }
+}
+
+/* ─────────────────────────────────────────────────────────
+   submitModalForm
+───────────────────────────────────────────────────────── */
+async function submitModalForm() {
+    if (!currentOrderId) return;
+    const o = ORDER_DATA[String(currentOrderId)];
+    const statusEl   = document.getElementById("modalStatus");
+    if (!statusEl) return;
+
+    const status = statusEl.value;
+
+    let delivery_partner = o.delivery_partner || "";
+    let tracking_id      = o.tracking_id      || "";
+
+    /* Only read courier/tracking from form if NOT locked */
+    if (!o.shipped_locked) {
+        const courierEl  = document.getElementById("modalCourier");
+        const trackEl    = document.getElementById("modalTracking");
+        delivery_partner = courierEl ? courierEl.value        : "";
+        tracking_id      = trackEl  ? trackEl.value.trim()   : "";
+
+        /* Validation: Shipped requires courier + tracking */
+        if (status === "Shipped") {
+            let valid = true;
+            if (!delivery_partner) {
+                if (courierEl) courierEl.style.borderColor = "#EF4444";
+                const h = document.getElementById("courierHint");
+                if (h) h.classList.add("show");
+                valid = false;
+            }
+            if (!tracking_id) {
+                if (trackEl) trackEl.style.borderColor = "#EF4444";
+                const h = document.getElementById("trackingHint");
+                if (h) h.classList.add("show");
+                valid = false;
+            }
+            if (!valid) {
+                if (typeof adminToast === "function")
+                    adminToast("Please fill Delivery Partner and Tracking ID before marking as Shipped.", "error");
+                return;
+            }
+        }
+    }
+
+    /* Submit */
+    const btn = document.getElementById("modalSaveBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = o.update_url;
+
+    const add = (name, value) => {
+        const inp = document.createElement("input");
+        inp.type = "hidden"; inp.name = name; inp.value = value;
+        form.appendChild(inp);
+    };
+
+    add("csrfmiddlewaretoken", CSRF());
+    add("status",           status);
+    add("delivery_partner", delivery_partner);
+    add("tracking_id",      tracking_id);
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
+/* ─────────────────────────────────────────────────────────
+   Modal open/close helpers
+───────────────────────────────────────────────────────── */
+function closeModal() {
+    document.getElementById("orderModalOverlay").classList.remove("open");
+    document.body.style.overflow = "";
+    currentOrderId = null;
+}
+
+function closeOrderModal(e) {
+    if (e.target === document.getElementById("orderModalOverlay")) closeModal();
+}
+
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+</script>
+
+<script src="{% static 'js/admin.js' %}"></script>
+</body>
+</html>
