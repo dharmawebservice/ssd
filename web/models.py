@@ -542,13 +542,6 @@ class ProductVariant(models.Model):
         ("1yr",  "1 year"),
         ("2yr",  "2 years"),
         ("3yr",  "3 years"),
-        ("4yr",  "4 years"),
-        ("5yr",  "5 years"),
-        ("6yr",  "6 years"),
-        ("7yr",  "7 years"),
-        ("8yr",  "8 years"),
-        ("9yr",  "9 years"),
-        ("10yr", "10 years"),
         ("custom", "Custom"),
     ]
 
