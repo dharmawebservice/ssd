@@ -14,6 +14,11 @@
     <a href="{% url 'reviews_list' %}" class="nav-link {% if 'review' in request.resolver_match.url_name %}active{% endif %}"><i class="fa-solid fa-star"></i> Reviews</a>
     <a href="{% url 'banners_list' %}" class="nav-link {% if 'banner' in request.resolver_match.url_name %}active{% endif %}"><i class="fa-solid fa-images"></i> Banners</a>
     <a href="{% url 'notifications_list' %}" class="nav-link {% if 'notification' in request.resolver_match.url_name %}active{% endif %}"><i class="fa-solid fa-bell"></i> Notifications</a>
+    <a href="{% url 'store_settings' %}"
+   class="nav-link {% if request.resolver_match.url_name == 'store_settings' %}active{% endif %}">
+    <i class="fa-solid fa-sliders"></i>
+    Store Settings
+</a>
     <a href="{% url 'analytics' %}" class="nav-link {% if request.resolver_match.url_name == 'analytics' %}active{% endif %}"><i class="fa-solid fa-chart-bar"></i> Analytics</a>
     <a href="{% url 'home' %}" class="nav-link"><i class="fa-solid fa-house"></i> View Site</a>
   </nav>

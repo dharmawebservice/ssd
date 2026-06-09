@@ -125,29 +125,36 @@ def _resolve_coupon(code: str, subtotal: Decimal):
 
 
 def _cart_items(user):
-    return CartItem.objects.filter(user=user).select_related("product__category")
+    return CartItem.objects.filter(user=user).select_related(
+        "product__category", "variant"
+    )
 
 
 def _cart_totals(items):
-    """Return (subtotal, item_count)."""
-    subtotal = sum(i.product.effective_price * i.quantity for i in items)
-    count    = sum(i.quantity for i in items)
+    subtotal = sum(
+        (i.variant.effective_price if i.variant else i.product.effective_price) * i.quantity
+        for i in items
+    )
+    count = sum(i.quantity for i in items)
     return subtotal, count
 
 
 def _cart_json_list(items):
     result = []
     for ci in items:
-        p = ci.product
+        p     = ci.product
+        price = ci.variant.effective_price if ci.variant else p.effective_price
         result.append({
-            "id":         p.id,
-            "name":       p.name,
-            "slug":       p.slug,
-            "price":      float(p.effective_price),
-            "qty":        ci.quantity,
-            "subtotal":   float(p.effective_price * ci.quantity),
-            "image":      p.image.url if p.image else "",
-            "stock":      p.stock,
+            "id":            p.id,
+            "variant_id":    ci.variant.id if ci.variant else None,
+            "variant_label": ci.variant.display_label if ci.variant else None,
+            "name":          p.name,
+            "slug":          p.slug,
+            "price":         float(price),
+            "qty":           ci.quantity,
+            "subtotal":      float(price * ci.quantity),
+            "image":         p.image.url if p.image else "",
+            "stock":         ci.variant.stock if ci.variant else p.stock,
         })
     return result
 
@@ -489,54 +496,51 @@ def search_suggestions(request):
 # ══════════════════════════════════════════════════════════════
 
 def product_detail(request, slug):
-    product    = get_object_or_404(Product, slug=slug, is_active=True)
-
-    reviews    = Review.objects.filter(product=product).select_related("user")
-
-    related    = Product.objects.filter(
-        category=product.category,
-        is_active=True
+    product  = get_object_or_404(Product, slug=slug, is_active=True)
+    variants = product.variants.filter(is_active=True)
+    reviews  = Review.objects.filter(product=product).select_related("user")
+    related  = Product.objects.filter(
+        category=product.category, is_active=True
     ).exclude(id=product.id).order_by("-id")[:4]
-
+ 
     avg_rating = reviews.aggregate(avg=Avg("rating"))["avg"] or 0
-
-    user_review  = None
-    in_wishlist  = False
-    cart_qty     = 0
-    has_purchased = False
+ 
+    user_review   = None
+    in_wishlist   = False
+    cart_qty      = 0
+    cart_items_by_variant = {}   # variant_id -> qty  (for JS)
+ 
     if request.user.is_authenticated:
-
+ 
         user_review = Review.objects.filter(
-            product=product,
-            user=request.user
+            product=product, user=request.user
         ).first()
-
-        has_purchased = OrderItem.objects.filter(
-            order__user=request.user,
-            order__status="Delivered",
-            product=product
-        ).exists()
-
+ 
         in_wishlist = Wishlist.objects.filter(
-            user=request.user,
-            product=product
+            user=request.user, product=product
         ).exists()
-
-        ci = CartItem.objects.filter(
-            user=request.user,
-            product=product
-        ).first()
-
-        cart_qty = ci.quantity if ci else 0
-
+ 
+        # Fetch ALL cart items for this product (each variant is a separate row)
+        cart_rows = CartItem.objects.filter(
+            user=request.user, product=product
+        ).select_related("variant")
+ 
+        for ci in cart_rows:
+            if ci.variant_id:
+                cart_items_by_variant[ci.variant_id] = ci.quantity
+            else:
+                cart_qty = ci.quantity   # no-variant qty
+ 
     return render(request, "web/Product_detail.html", {
-        "product":     product,
-        "reviews":     reviews,
-        "related":     related,
-        "avg_rating":  round(avg_rating, 1),
-        "user_review": user_review,
-        "in_wishlist": in_wishlist,
-        "cart_qty":    cart_qty,
+        "product":              product,
+        "reviews":              reviews,
+        "related":              related,
+        "avg_rating":           round(avg_rating, 1),
+        "user_review":          user_review,
+        "in_wishlist":          in_wishlist,
+        "cart_qty":             cart_qty,
+        "variants":             variants,
+        "cart_items_by_variant": cart_items_by_variant,  # NEW
     })
 
 
@@ -859,50 +863,65 @@ def cart_add(request):
     if not request.user.is_authenticated:
         return JsonResponse({"success": False, "message": "login_required"})
     try:
+        from .models import ProductVariant
         data    = json.loads(request.body)
         product = get_object_or_404(Product, id=data["product_id"], is_active=True)
         qty     = max(1, int(data.get("qty", 1)))
-        if product.stock == 0:
-            return JsonResponse({"success": False, "message": "Out of stock"})
-        ci, _       = CartItem.objects.get_or_create(user=request.user, product=product, defaults={"quantity": 0})
-        ci.quantity = min(ci.quantity + qty, product.stock)
-        ci.save()
-        items = _cart_items(request.user)
-        _, count = _cart_totals(items)
-        subtotal, count = _cart_totals(items)
 
+        # Resolve variant
+        variant    = None
+        variant_id = data.get("variant_id")
+        if variant_id:
+            variant = get_object_or_404(ProductVariant, id=variant_id, product=product, is_active=True)
+            if variant.stock == 0:
+                return JsonResponse({"success": False, "message": "This variant is out of stock"})
+        else:
+            if product.stock == 0:
+                return JsonResponse({"success": False, "message": "Out of stock"})
+
+        ci, _ = CartItem.objects.get_or_create(
+            user=request.user, product=product, variant=variant,
+            defaults={"quantity": 0}
+        )
+        max_stock = variant.stock if variant else product.stock
+        ci.quantity = min(ci.quantity + qty, max_stock)
+        ci.save()
+
+        items = _cart_items(request.user)
+        subtotal, count = _cart_totals(items)
         return JsonResponse({
-            "success": True,
-            "message": f"{product.name} added to cart!",
-            "cart": _cart_json_list(items),
+            "success":  True,
+            "message":  f"{product.name} added to cart!",
+            "cart":     _cart_json_list(items),
             "subtotal": float(subtotal),
-            "count": count,
+            "count":    count,
         })
     except Exception as e:
         return JsonResponse({"success": False, "message": str(e)})
-
 
 @require_POST
 def cart_update(request):
     if not request.user.is_authenticated:
         return JsonResponse({"success": False, "message": "login_required"})
     try:
-        data = json.loads(request.body)
-        ci   = get_object_or_404(CartItem, user=request.user, product_id=data["product_id"])
-        qty  = int(data.get("qty", 1))
+        data       = json.loads(request.body)
+        variant_id = data.get("variant_id")
+        qs = CartItem.objects.filter(user=request.user, product_id=data["product_id"])
+        if variant_id:
+            qs = qs.filter(variant_id=variant_id)
+        else:
+            qs = qs.filter(variant__isnull=True)
+        ci  = get_object_or_404(qs)
+        qty = int(data.get("qty", 1))
         if qty <= 0:
             ci.delete()
         else:
-            ci.quantity = min(qty, ci.product.stock)
+            max_stock = ci.variant.stock if ci.variant else ci.product.stock
+            ci.quantity = min(qty, max_stock)
             ci.save()
         items = _cart_items(request.user)
         subtotal, count = _cart_totals(items)
-        return JsonResponse({
-            "success":  True,
-            "cart":     _cart_json_list(items),
-            "subtotal": float(subtotal),
-            "count":    count,
-        })
+        return JsonResponse({"success": True, "cart": _cart_json_list(items), "subtotal": float(subtotal), "count": count})
     except Exception as e:
         return JsonResponse({"success": False, "message": str(e)})
 
@@ -912,20 +931,20 @@ def cart_remove(request):
     if not request.user.is_authenticated:
         return JsonResponse({"success": False, "message": "login_required"})
     try:
-        data = json.loads(request.body)
-        CartItem.objects.filter(user=request.user, product_id=data["product_id"]).delete()
+        data       = json.loads(request.body)
+        variant_id = data.get("variant_id")
+        qs = CartItem.objects.filter(user=request.user, product_id=data["product_id"])
+        if variant_id:
+            qs = qs.filter(variant_id=variant_id)
+        else:
+            qs = qs.filter(variant__isnull=True)
+        qs.delete()
         items = _cart_items(request.user)
         subtotal, count = _cart_totals(items)
-        return JsonResponse({
-            "success":  True,
-            "cart":     _cart_json_list(items),
-            "subtotal": float(subtotal),
-            "count":    count,
-        })
+        return JsonResponse({"success": True, "cart": _cart_json_list(items), "subtotal": float(subtotal), "count": count})
     except Exception as e:
         return JsonResponse({"success": False, "message": str(e)})
-
-
+    
 def cart_data(request):
     if not request.user.is_authenticated:
         return JsonResponse({"cart": [], "subtotal": 0, "count": 0})
@@ -1026,6 +1045,10 @@ def checkout(request):
         "total":        total,
         "profile":      profile,
         "razorpay_key": settings.RAZORPAY_KEY_ID,
+        "cod_enabled": (
+            request.user.is_superuser or
+            _cod_allowed()
+        ),
     })
 
 
@@ -1196,6 +1219,13 @@ def verify_razorpay_payment(request):
 @require_POST
 @login_required
 def place_cod_order(request):
+    cod_enabled = _cod_allowed()
+
+    if not (request.user.is_superuser or cod_enabled):
+        return JsonResponse({
+            "success": False,
+            "message": "Cash on Delivery is currently unavailable."
+        })
     try:
         data  = json.loads(request.body)
         items = _cart_items(request.user)
@@ -1287,6 +1317,9 @@ def admin_dashboard(request):
         "total_products":   Product.objects.count(),
         "total_orders":     Order.objects.count(),
         "pending_orders":   Order.objects.filter(status="Pending").count(),
+        "waiting_shipment_orders": Order.objects.filter(
+            status__in=["Confirmed", "Packed"]
+        ).count(),
         "completed_orders": Order.objects.filter(status="Delivered").count(),
         "total_revenue":    total_revenue,
         "recent_orders":    Order.objects.select_related("user").order_by("-id")[:5],
@@ -1373,11 +1406,11 @@ def product_list(request):
 @_admin_required
 def add_product(request):
     if request.method == "POST":
+        from .models import ProductVariant
         cat  = get_object_or_404(Category, id=request.POST.get("category"))
         name = request.POST.get("name", "").strip()
-        # Fix Issue 7: unique slug
         slug = _unique_slug(Product, name)
-        Product.objects.create(
+        product = Product.objects.create(
             category=cat, name=name, slug=slug,
             price=request.POST.get("price"),
             offer_price=request.POST.get("offer_price") or None,
@@ -1386,9 +1419,26 @@ def add_product(request):
             care_guide=request.POST.get("care_guide", ""),
             image=request.FILES.get("image"),
         )
+        # Save variants submitted from the modal
+        labels  = request.POST.getlist("variant_label[]")
+        customs = request.POST.getlist("variant_custom[]")
+        prices  = request.POST.getlist("variant_price[]")
+        offer_prices = request.POST.getlist("variant_offer_price[]") 
+        stocks  = request.POST.getlist("variant_stock[]")
+        for i, label in enumerate(labels):
+            if not label or not prices[i]:
+                continue
+            ProductVariant.objects.create(
+                product      = product,
+                label        = label,
+                custom_label = customs[i] if i < len(customs) else "",
+                price        = prices[i],
+                offer_price  = offer_prices[i] if i < len(offer_prices) and offer_prices[i] else None,
+                stock        = stocks[i] if i < len(stocks) else 0,
+                sort_order   = i,
+            )
         messages.success(request, f"Product '{name}' added.")
     return redirect("product_list")
-
 
 @login_required
 @_admin_required
@@ -1452,7 +1502,12 @@ def order_list(request):
 
     selected_status = request.GET.get("status", "").strip()
 
-    if selected_status:
+    if selected_status == "waiting_shipment":
+        orders = orders.filter(
+            status__in=["Confirmed", "Packed"]
+        )
+
+    elif selected_status:
         orders = orders.filter(
             status__iexact=selected_status
         )
@@ -1863,3 +1918,459 @@ def contact_submit(request):
             "success": False,
             "message": str(e)
         })
+    
+# ══════════════════════════════════════════════════════════════
+# STORE SETTINGS
+# ══════════════════════════════════════════════════════════════
+
+@login_required
+@_admin_required
+def store_settings(request):
+    from .models import StoreSettings, OrderModificationRequest
+
+    settings_obj = StoreSettings.get()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "toggle_cod":
+            settings_obj.cod_enabled = not settings_obj.cod_enabled
+            settings_obj.save()
+            state = "enabled" if settings_obj.cod_enabled else "disabled"
+            messages.success(request, f"Cash on Delivery {state}.")
+
+        elif action == "toggle_mod":
+            settings_obj.order_modification_enabled = not settings_obj.order_modification_enabled
+            settings_obj.save()
+            state = "enabled" if settings_obj.order_modification_enabled else "disabled"
+            messages.success(request, f"Order Modification Requests {state}.")
+
+        return redirect("store_settings")
+
+    mod_requests  = OrderModificationRequest.objects.select_related("order__user").all()
+    pending_count = mod_requests.filter(status="pending").count()
+
+    return render(request, "web/admin/store_settings.html", {
+        "settings":      settings_obj,
+        "mod_requests":  mod_requests,
+        "pending_count": pending_count,
+    })
+
+
+# ══════════════════════════════════════════════════════════════
+# SEND ORDER MODIFICATION REQUEST  (admin → customer email)
+# ══════════════════════════════════════════════════════════════
+
+@login_required
+@_admin_required
+@require_POST
+def send_modification_request(request):
+    from .models import StoreSettings, OrderModificationRequest
+
+    settings_obj = StoreSettings.get()
+    if not settings_obj.order_modification_enabled:
+        messages.error(request, "Order modification requests are disabled in Store Settings.")
+        return redirect("order_list")
+
+    order_id         = request.POST.get("order_id")
+    proposed_changes = request.POST.get("proposed_changes", "").strip()
+    admin_note       = request.POST.get("admin_note", "").strip()
+
+    if not proposed_changes or not admin_note:
+        messages.error(request, "Please fill in both the proposed change and the customer message.")
+        return redirect("order_list")
+
+    order = get_object_or_404(Order, id=order_id)
+
+    # Cancel any existing pending request for this order first
+    OrderModificationRequest.objects.filter(order=order, status="pending").update(status="cancelled")
+
+    mod_req = OrderModificationRequest.objects.create(
+        order=order,
+        proposed_changes=proposed_changes,
+        admin_note=admin_note,
+        status="pending",
+    )
+
+    # Send email to customer
+    send_email_background(_send_modification_email, order, mod_req)
+
+    messages.success(request, f"Modification request sent to {order.user.email}.")
+    return redirect("order_list")
+
+
+def _send_modification_email(order, mod_req):
+    """Email the customer with Accept / Decline links."""
+    try:
+        accept_url  = f"{settings.SITE_URL}/order/modification/{mod_req.token}/accept/"
+        decline_url = f"{settings.SITE_URL}/order/modification/{mod_req.token}/decline/"
+
+        context = {
+            "order":          order,
+            "mod_req":        mod_req,
+            "accept_url":     accept_url,
+            "decline_url":    decline_url,
+        }
+
+        html_body = render_to_string(
+            "web/emails/order_modification_customer.html",
+            context
+        )
+
+        msg = EmailMultiAlternatives(
+            subject=f"Order #{order.order_number} — Proposed Change from SSD Nursery",
+            body=(
+                f"Hi {order.user.first_name or order.user.username},\n\n"
+                f"We'd like to propose a change to your order #{order.order_number}.\n\n"
+                f"Proposed: {mod_req.proposed_changes}\n\n"
+                f"Note: {mod_req.admin_note}\n\n"
+                f"To accept: {accept_url}\n"
+                f"To decline: {decline_url}\n\n"
+                f"— SSD Nursery Team"
+            ),
+            from_email=settings.EMAIL_HOST_USER,
+            to=[order.user.email],
+        )
+        msg.attach_alternative(html_body, "text/html")
+        msg.send()
+    except Exception as e:
+        print("MODIFICATION EMAIL ERROR:", e)
+
+
+# ══════════════════════════════════════════════════════════════
+# CUSTOMER RESPONDS TO MODIFICATION (tokenised public URL)
+# ══════════════════════════════════════════════════════════════
+
+def modification_response(request, token, action):
+    """
+    Public view — no login required.
+    action: 'accept' or 'decline'
+    """
+    from .models import OrderModificationRequest
+
+    mod_req = get_object_or_404(OrderModificationRequest, token=token)
+
+    if mod_req.status != "pending":
+        return render(request, "web/modification_already_resolved.html", {
+            "mod_req": mod_req,
+        })
+
+    if action == "accept":
+        mod_req.status       = "accepted"
+        mod_req.responded_at = timezone.now()
+        mod_req.save()
+
+        # Notify admin
+        send_email_background(
+            _send_mod_response_admin_email,
+            mod_req.order,
+            mod_req,
+            accepted=True
+        )
+        return render(request, "web/modification_accepted.html", {"mod_req": mod_req})
+
+    elif action == "decline":
+        mod_req.status       = "declined"
+        mod_req.responded_at = timezone.now()
+        mod_req.save()
+
+        # Notify admin
+        send_email_background(
+            _send_mod_response_admin_email,
+            mod_req.order,
+            mod_req,
+            accepted=False
+        )
+        return render(request, "web/modification_declined.html", {"mod_req": mod_req})
+
+    return redirect("/")
+
+
+def _send_mod_response_admin_email(order, mod_req, accepted):
+    """Alert admin that the customer responded."""
+    try:
+        verb = "ACCEPTED" if accepted else "DECLINED"
+        msg  = EmailMultiAlternatives(
+            subject=f"Order #{order.order_number} — Modification {verb} by Customer",
+            body=(
+                f"Customer {order.user.first_name} ({order.user.email}) "
+                f"has {verb.lower()} the modification for order #{order.order_number}.\n\n"
+                f"Proposed: {mod_req.proposed_changes}\n\n"
+                f"{'Go to admin panel to apply the change.' if accepted else 'No action needed.'}"
+            ),
+            from_email=settings.EMAIL_HOST_USER,
+            to=["ssdnurserygarden@gmail.com"],
+        )
+        msg.send()
+    except Exception as e:
+        print("MOD RESPONSE ADMIN MAIL ERROR:", e)
+
+
+# ══════════════════════════════════════════════════════════════
+# APPLY ACCEPTED MODIFICATION  (admin confirms the change)
+# ══════════════════════════════════════════════════════════════
+
+@login_required
+@_admin_required
+@require_POST
+def apply_order_modification(request, req_id):
+    from .models import OrderModificationRequest
+
+    mod_req = get_object_or_404(OrderModificationRequest, id=req_id, status="accepted")
+    mod_req.status = "applied"
+    mod_req.save()
+
+    messages.success(
+        request,
+        f"Modification for order #{mod_req.order.order_number} marked as applied. "
+        f"Update the order items manually from the Orders page."
+    )
+    return redirect("store_settings")
+
+
+# ══════════════════════════════════════════════════════════════
+# CANCEL MODIFICATION REQUEST  (AJAX)
+# ══════════════════════════════════════════════════════════════
+
+@login_required
+@_admin_required
+@require_POST
+def cancel_modification_request(request, req_id):
+    from .models import OrderModificationRequest
+
+    mod_req = get_object_or_404(OrderModificationRequest, id=req_id)
+    mod_req.status = "cancelled"
+    mod_req.save()
+    return JsonResponse({"success": True})
+
+
+# ══════════════════════════════════════════════════════════════
+# COD HELPER  — import this in place_cod_order
+# ══════════════════════════════════════════════════════════════
+
+def _cod_allowed():
+    from .models import StoreSettings
+    return StoreSettings.get().cod_enabled
+
+ 
+@login_required
+@_admin_required
+def emergency_order_lookup(request):
+    """
+    GET /admin-panel/emergency-order/lookup/?q=<order_number_or_id>
+    Returns order info + customer contact details as JSON.
+    """
+    q = request.GET.get("q", "").strip()
+    if not q:
+        return JsonResponse({"success": False, "message": "Please enter an order number or ID."})
+ 
+    # Try by order_number first, then by pk
+    order = (
+        Order.objects.select_related("user__profile")
+        .prefetch_related("items__product")
+        .filter(order_number__iexact=q)
+        .first()
+    )
+    if not order and q.isdigit():
+        order = (
+            Order.objects.select_related("user__profile")
+            .prefetch_related("items__product")
+            .filter(pk=int(q))
+            .first()
+        )
+ 
+    if not order:
+        return JsonResponse({"success": False, "message": f'No order found for "{q}".'})
+ 
+    # Customer phone from UserProfile
+    phone = ""
+    try:
+        phone = order.user.profile.phone or ""
+    except Exception:
+        pass
+ 
+    items = [
+        {
+            "item_id":      item.id,
+            "product_id":   item.product.id,
+            "product_name": item.product.name,
+            "price":        float(item.price),
+            "quantity":     item.quantity,
+        }
+        for item in order.items.all()
+    ]
+ 
+    return JsonResponse({
+        "success":        True,
+        "order_id":       order.id,
+        "order_number":   order.order_number,
+        "total":          float(order.total_amount),
+        "customer_name":  order.user.get_full_name() or order.user.username,
+        "customer_email": order.user.email,
+        "customer_phone": phone,
+        "items":          items,
+    })
+ 
+ 
+# ── 3. NEW: Emergency order update (AJAX POST) ───────────────
+ 
+@login_required
+@_admin_required
+@require_POST
+def emergency_order_update(request):
+    """
+    POST /admin-panel/emergency-order/update/
+    Body: { order_id, items: [{product_id, quantity, price, item_id}], admin_note }
+ 
+    - Deletes all existing OrderItems for the order
+    - Creates new ones from the submitted list
+    - Recalculates total_amount (keeping original delivery/discount)
+    - Appends the admin_note to order.notes
+    """
+    try:
+        data       = json.loads(request.body)
+        order_id   = data.get("order_id")
+        new_items  = data.get("items", [])
+        admin_note = data.get("admin_note", "").strip()
+ 
+        if not new_items:
+            return JsonResponse({"success": False, "message": "Order must have at least one item."})
+        if not admin_note:
+            return JsonResponse({"success": False, "message": "A note is required."})
+ 
+        order = get_object_or_404(Order, id=order_id)
+ 
+        with transaction.atomic():
+            # Restore stock for existing items before deleting them
+            for old_item in order.items.select_for_update().select_related("product"):
+                old_item.product.stock = old_item.product.stock + old_item.quantity
+                old_item.product.save(update_fields=["stock"])
+            order.items.all().delete()
+ 
+            new_subtotal = Decimal("0")
+            saved_items  = []
+ 
+            for it in new_items:
+                product  = get_object_or_404(Product, id=it["product_id"])
+                qty      = max(1, int(it.get("quantity", 1)))
+                # Use submitted price (admin may have agreed a different price with customer)
+                # Fall back to product's current effective price if not provided
+                price    = Decimal(str(it.get("price", product.effective_price)))
+ 
+                # Deduct stock (allow below 0 — this is an emergency override)
+                product.stock = max(0, product.stock - qty)
+                product.save(update_fields=["stock"])
+ 
+                oi = OrderItem.objects.create(
+                    order=order, product=product, quantity=qty, price=price
+                )
+                new_subtotal += price * qty
+                saved_items.append({
+                    "item_id":      oi.id,
+                    "product_id":   product.id,
+                    "product_name": product.name,
+                    "price":        float(price),
+                    "quantity":     qty,
+                })
+ 
+            # Recalculate total: keep original delivery charge logic, keep discount
+            delivery     = _delivery_charge(new_subtotal)
+            new_total    = new_subtotal + delivery - order.discount_amount
+            order.total_amount = new_total
+ 
+            # Append note with timestamp
+            timestamp = timezone.now().strftime("%d %b %Y %H:%M")
+            sep       = "\n\n" if order.notes else ""
+            order.notes = (order.notes or "") + f"{sep}[Emergency Update — {timestamp} by admin]\n{admin_note}"
+            order.save(update_fields=["total_amount", "notes"])
+ 
+        return JsonResponse({
+            "success":   True,
+            "new_total": float(new_total),
+            "items":     saved_items,
+        })
+ 
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)})
+ 
+@login_required
+@_admin_required
+def emergency_product_search(request):
+
+    q = request.GET.get("q", "").strip()
+
+    if len(q) < 2:
+        return JsonResponse({"products": []})
+
+    products = Product.objects.filter(
+        is_active=True,
+        name__icontains=q
+    )[:20]
+
+    return JsonResponse({
+        "products": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "price": float(p.effective_price),
+                "stock": p.stock
+            }
+            for p in products
+        ]
+    })
+
+def get_variant_price(request, product_id):
+    variant_id = request.GET.get("variant_id")
+    if not variant_id:
+        return JsonResponse({"success": False})
+    from .models import ProductVariant
+    v = get_object_or_404(ProductVariant, id=variant_id, product_id=product_id, is_active=True)
+    return JsonResponse({
+        "success":          True,
+        "price":            float(v.price),
+        "offer_price":      float(v.offer_price) if v.offer_price else None,
+        "effective_price":  float(v.effective_price),
+        "discount_percent": v.discount_percent,
+        "stock":            v.stock,
+        "label":            v.display_label,
+    })
+
+@login_required
+@_admin_required
+def manage_variants(request, product_id):
+    from .models import ProductVariant
+    product  = get_object_or_404(Product, id=product_id)
+    variants = product.variants.all()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "add":
+            label        = request.POST.get("label")
+            custom_label = request.POST.get("custom_label", "").strip()
+            price        = request.POST.get("price")
+            offer_price  = request.POST.get("offer_price") or None 
+            stock        = request.POST.get("stock", 0)
+            ProductVariant.objects.create(
+                product=product, label=label,
+                custom_label=custom_label,
+                price=price, 
+                offer_price=offer_price, 
+                stock=stock,
+            )
+            messages.success(request, "Variant added.")
+
+        elif action == "delete":
+            ProductVariant.objects.filter(
+                id=request.POST.get("variant_id"), product=product
+            ).delete()
+            messages.success(request, "Variant deleted.")
+
+        return redirect("manage_variants", product_id=product_id)
+
+    PRESET_LABELS = ProductVariant.PRESET_LABELS
+    return render(request, "web/admin/manage_variants.html", {
+        "product":       product,
+        "variants":      variants,
+        "preset_labels": PRESET_LABELS,
+    })

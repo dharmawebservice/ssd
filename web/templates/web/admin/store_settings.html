@@ -1,0 +1,649 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Store Settings — SSD Nursery Admin</title>
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+  <style>
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 900px) { .settings-grid { grid-template-columns: 1fr; } }
+
+    .setting-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeUp 0.5s var(--t) forwards;
+    }
+
+    .setting-card-header {
+      display: flex; align-items: flex-start; gap: 16px;
+    }
+    .setting-icon {
+      width: 46px; height: 46px; border-radius: 12px;
+      background: var(--accent-light); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; flex-shrink: 0;
+    }
+    .setting-icon.warn   { background: var(--warn-light);   color: var(--warn);   }
+    .setting-icon.danger { background: var(--danger-light); color: var(--danger); }
+
+    .setting-card-header-text h3 {
+      font-size: 1rem; font-weight: 700;
+      color: var(--text-primary); letter-spacing: -0.2px; margin-bottom: 4px;
+    }
+    .setting-card-header-text p {
+      font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5;
+    }
+
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px;
+      background: var(--bg-body); border-radius: 10px; border: 1px solid var(--border);
+    }
+    .toggle-row-label { display: flex; flex-direction: column; gap: 3px; }
+    .toggle-row-label span  { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+    .toggle-row-label small { font-size: 0.78rem; color: var(--text-secondary); }
+    .toggle-switch { position: relative; display: inline-block; width: 48px; height: 26px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: #D1D5DB;
+      border-radius: 100px; cursor: pointer; transition: background 0.25s ease;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 20px; height: 20px; left: 3px; top: 3px;
+      background: #fff; border-radius: 50%;
+      transition: transform 0.25s ease; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(22px); }
+    .toggle-status {
+      font-size: 0.78rem; font-weight: 600;
+      padding: 3px 10px; border-radius: 100px; margin-left: 10px;
+    }
+    .toggle-status.on  { background: var(--success-light); color: var(--success); }
+    .toggle-status.off { background: #F3F4F6; color: #6B7280; }
+    .setting-actions {
+      display: flex; align-items: center; gap: 12px;
+      padding-top: 4px; border-top: 1px solid var(--border);
+    }
+
+    /* ── Emergency Order Update ── */
+    .eu-lookup-row {
+      display: flex; gap: 10px; align-items: flex-end;
+    }
+    .eu-lookup-row .fg { flex: 1; }
+    .eu-lookup-row label {
+      font-size: 0.82rem; font-weight: 600;
+      color: var(--text-secondary); margin-bottom: 6px; display: block;
+    }
+    .eu-lookup-row input {
+      width: 100%; padding: 10px 14px;
+      border: 1px solid var(--border); border-radius: 10px;
+      background: var(--bg-body); font-size: 0.9rem;
+      color: var(--text-primary); outline: none;
+      transition: border-color 0.2s;
+    }
+    .eu-lookup-row input:focus { border-color: var(--accent); }
+    .btn-lookup {
+      padding: 10px 20px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: opacity 0.2s;
+    }
+    .btn-lookup:hover { opacity: 0.88; }
+    .btn-lookup:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .eu-order-box {
+      display: none; flex-direction: column; gap: 16px;
+      background: var(--bg-body); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px;
+    }
+    .eu-order-box.visible { display: flex; }
+
+    .eu-customer-row {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px;
+    }
+    .eu-avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: var(--accent-light); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: 700; flex-shrink: 0;
+    }
+    .eu-customer-info { flex: 1; }
+    .eu-customer-info strong { font-size: 0.95rem; color: var(--text-primary); display: block; }
+    .eu-customer-info span   { font-size: 0.82rem; color: var(--text-secondary); }
+    .btn-call {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 9px 18px;
+      background: var(--success-light); color: var(--success);
+      border: 1px solid var(--success); border-radius: 10px;
+      font-size: 0.88rem; font-weight: 700;
+      text-decoration: none; white-space: nowrap; transition: background 0.2s;
+    }
+    .btn-call:hover { background: var(--success); color: #fff; }
+
+    .eu-items-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .eu-items-table th {
+      text-align: left; padding: 8px 10px;
+      font-size: 0.75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-secondary); border-bottom: 1px solid var(--border);
+    }
+    .eu-items-table td {
+      padding: 10px; color: var(--text-primary);
+      border-bottom: 1px solid var(--border); vertical-align: middle;
+    }
+    .eu-items-table tr:last-child td { border-bottom: none; }
+
+    .qty-input {
+      width: 64px; padding: 6px 8px;
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.85rem; text-align: center;
+      background: var(--bg-surface); color: var(--text-primary);
+    }
+    .qty-input:focus { border-color: var(--accent); outline: none; }
+
+    .btn-remove-item {
+      background: none; border: none; cursor: pointer;
+      color: var(--danger); font-size: 0.9rem;
+      padding: 4px 8px; border-radius: 6px; transition: background 0.15s;
+    }
+    .btn-remove-item:hover { background: var(--danger-light); }
+
+    .eu-add-row {
+      display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap;
+    }
+    .eu-add-row label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px; }
+    .eu-add-row select,
+    .eu-add-row input[type="number"] {
+      padding: 9px 12px; border: 1px solid var(--border);
+      border-radius: 9px; background: var(--bg-surface);
+      font-size: 0.85rem; color: var(--text-primary); outline: none;
+    }
+    .eu-add-row select:focus,
+    .eu-add-row input[type="number"]:focus { border-color: var(--accent); }
+    .btn-add-item {
+      padding: 9px 16px;
+      background: var(--accent-light); color: var(--accent);
+      border: 1px solid var(--accent); border-radius: 9px;
+      font-size: 0.84rem; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: background 0.2s;
+    }
+    .btn-add-item:hover { background: var(--accent); color: #fff; }
+
+    .eu-warn-banner {
+      display: flex; gap: 10px; align-items: flex-start;
+      background: #FEF3C7; border: 1px solid #FDE68A;
+      border-radius: 10px; padding: 12px 14px;
+      font-size: 0.82rem; color: #92400E; line-height: 1.5;
+    }
+
+    .btn-confirm-update {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 13px;
+      background: var(--danger); color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-confirm-update:hover { opacity: 0.88; }
+    .btn-confirm-update:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .eu-error   { color: var(--danger);  font-size: 0.84rem; font-weight: 500; display: none; margin-top: 6px; }
+    .eu-success { color: var(--success); font-size: 0.84rem; font-weight: 500; display: none; }
+
+    .section-label {
+      font-size: 0.75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.7px;
+      color: var(--text-secondary); margin-bottom: 8px; display: block;
+    }
+  </style>
+</head>
+<body>
+
+{% for message in messages %}
+  <div class="django-message" data-level="{{ message.tags }}" style="display:none">{{ message }}</div>
+{% endfor %}
+
+<div class="admin-layout">
+  {% include 'web/admin/_sidebar.html' %}
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <main class="main-content">
+
+    <div class="top-header">
+      <div class="header-left">
+        <button class="mobile-toggle" id="openSidebar"><i class="fa-solid fa-bars"></i></button>
+        <div>
+          <h1 class="page-title">Store Settings</h1>
+          <p class="page-subtitle">Manage payment options and emergency order updates</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-grid">
+
+      <!-- ── COD Toggle ── -->
+      <div class="setting-card">
+        <div class="setting-card-header">
+          <div class="setting-icon warn"><i class="fa-solid fa-money-bill-wave"></i></div>
+          <div class="setting-card-header-text">
+            <h3>Cash on Delivery</h3>
+            <p>Allow customers to pay in cash when their order is delivered. Toggle on when your team is ready to handle COD orders.</p>
+          </div>
+        </div>
+
+        <form method="POST" action="{% url 'store_settings' %}" id="codForm">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="toggle_cod">
+          <div class="toggle-row">
+            <div class="toggle-row-label">
+              <span>Cash on Delivery</span>
+              <small>Currently: <strong>{% if settings.cod_enabled %}Enabled{% else %}Disabled{% endif %}</strong></small>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="toggle-status {% if settings.cod_enabled %}on{% else %}off{% endif %}">
+                {% if settings.cod_enabled %}ON{% else %}OFF{% endif %}
+              </span>
+              <label class="toggle-switch">
+                <input type="checkbox" name="cod_enabled" {% if settings.cod_enabled %}checked{% endif %}
+                       onchange="document.getElementById('codForm').submit()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </form>
+
+        <div class="setting-actions">
+          <i class="fa-solid fa-circle-info" style="color:var(--text-secondary);font-size:0.85rem;"></i>
+          <span style="font-size:0.82rem;color:var(--text-secondary);">
+            When OFF, the Cash on Delivery option is hidden from customers at checkout.
+          </span>
+        </div>
+      </div>
+
+      <!-- ── Emergency Order Update ── -->
+      <div class="setting-card" style="grid-column:1/-1;animation-delay:0.1s;">
+        <div class="setting-card-header">
+          <div class="setting-icon danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div class="setting-card-header-text">
+            <h3>Emergency Order Update</h3>
+            <p>Item out of stock after an order was placed? Look up the order, call the customer, and update the items directly once they agree over the phone.</p>
+          </div>
+        </div>
+
+        <!-- Step 1 -->
+        <div>
+          <span class="section-label">Step 1 — Find the Order</span>
+          <div class="eu-lookup-row">
+            <div class="fg">
+              <label>Order Number or ID</label>
+              <input type="text" id="euOrderInput" placeholder="e.g. SSD-2506-1234 or order ID 42"
+                     onkeydown="if(event.key==='Enter') lookupOrder()">
+            </div>
+            <button class="btn-lookup" id="euLookupBtn" onclick="lookupOrder()">
+              <i class="fa-solid fa-magnifying-glass"></i> Look Up
+            </button>
+          </div>
+          <p class="eu-error" id="euError"></p>
+        </div>
+
+        <!-- Order box (shown after lookup) -->
+        <div class="eu-order-box" id="euOrderBox">
+
+          <!-- Step 2: Call customer -->
+          <div>
+            <span class="section-label">Step 2 — Call the Customer</span>
+            <div class="eu-customer-row">
+              <div class="eu-avatar" id="euAvatar">?</div>
+              <div class="eu-customer-info">
+                <strong id="euCustomerName">—</strong>
+                <span id="euCustomerEmail">—</span>
+              </div>
+              <a class="btn-call" id="euCallBtn" href="#">
+                <i class="fa-solid fa-phone"></i>
+                <span id="euPhoneDisplay">—</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Step 3: Edit items -->
+          <div>
+            <span class="section-label">Step 3 — Edit Order Items (after customer agrees)</span>
+            <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+              <table class="eu-items-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th style="width:100px;">Price (₹)</th>
+                    <th style="width:80px;">Qty</th>
+                    <th style="width:46px;"></th>
+                  </tr>
+                </thead>
+                <tbody id="euItemsBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Add replacement item -->
+          <div>
+            <span class="section-label" style="margin-bottom:10px;">Add a Replacement Item</span>
+            <div class="eu-add-row">
+              <div style="position:relative;min-width:320px;">
+  <label>Product</label>
+
+  <input
+      type="text"
+      id="euProductSearch"
+      placeholder="Search product..."
+      autocomplete="off"
+      style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;"
+  >
+
+  <input type="hidden" id="euAddProduct">
+
+  <div id="euProductResults"
+       style="
+         display:none;
+         position:absolute;
+         top:100%;
+         left:0;
+         right:0;
+         background:#fff;
+         border:1px solid var(--border);
+         border-radius:10px;
+         max-height:250px;
+         overflow-y:auto;
+         z-index:9999;
+         box-shadow:0 10px 20px rgba(0,0,0,.08);
+       ">
+  </div>
+</div>
+              <div>
+                <label>Qty</label>
+                <input type="number" id="euAddQty" value="1" min="1" style="width:70px;">
+              </div>
+              <button class="btn-add-item" onclick="addItemRow()">
+                <i class="fa-solid fa-plus"></i> Add
+              </button>
+            </div>
+          </div>
+
+          <!-- Warning -->
+          <div class="eu-warn-banner">
+            <i class="fa-solid fa-triangle-exclamation" style="margin-top:2px;flex-shrink:0;"></i>
+            <div>
+              <strong>Only update after verbal confirmation from the customer.</strong>
+              This permanently changes the order items and recalculates the total. A note is saved on the order.
+            </div>
+          </div>
+
+          <!-- Note -->
+          <div>
+            <label style="font-size:0.82rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">
+              Update Note <span style="color:var(--danger);">*</span>
+              <span style="font-weight:400;">(reason — saved on the order)</span>
+            </label>
+            <textarea id="euAdminNote" rows="2"
+              style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:0.85rem;background:var(--bg-body);color:var(--text-primary);resize:vertical;outline:none;box-sizing:border-box;"
+              placeholder="e.g. Money Plant Large out of stock — customer agreed to Pothos Medium (called at 2:30 PM)"></textarea>
+          </div>
+
+          <p class="eu-success" id="euSuccess"></p>
+
+          <button class="btn-confirm-update" id="euConfirmBtn" onclick="submitUpdate()">
+            <i class="fa-solid fa-pen-to-square"></i> Confirm &amp; Update Order
+          </button>
+
+        </div><!-- /eu-order-box -->
+      </div><!-- /emergency card -->
+
+    </div><!-- /settings-grid -->
+  </main>
+</div>
+
+<script src="{% static 'js/admin.js' %}"></script>
+<script>
+let currentOrderId = null;
+let currentItems   = [];
+
+async function lookupOrder() {
+  const val = document.getElementById('euOrderInput').value.trim();
+  if (!val) return;
+  const btn = document.getElementById('euLookupBtn');
+  const err = document.getElementById('euError');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Looking up…';
+  err.style.display = 'none';
+  document.getElementById('euOrderBox').classList.remove('visible');
+
+  try {
+    const r = await fetch('/admin-panel/emergency-order/lookup/?q=' + encodeURIComponent(val), {
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    });
+    const data = await r.json();
+    if (!data.success) {
+      err.textContent = data.message || 'Order not found.';
+      err.style.display = 'block';
+    } else {
+      populateOrder(data);
+    }
+  } catch(e) {
+    err.textContent = 'Network error. Please try again.';
+    err.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Look Up';
+  }
+}
+
+function populateOrder(data) {
+  currentOrderId = data.order_id;
+  currentItems   = data.items.map(i => ({ ...i }));
+
+  const name = data.customer_name || '—';
+  document.getElementById('euAvatar').textContent       = name.charAt(0).toUpperCase();
+  document.getElementById('euCustomerName').textContent = name + '  •  Order ' + data.order_number + '  •  ₹' + data.total;
+  document.getElementById('euCustomerEmail').textContent = data.customer_email || '—';
+
+  const phone = data.customer_phone || '';
+  document.getElementById('euPhoneDisplay').textContent = phone || 'No phone on file';
+  const callBtn = document.getElementById('euCallBtn');
+  callBtn.href = phone ? 'tel:' + phone : '#';
+  callBtn.style.opacity = phone ? '1' : '0.5';
+
+  renderItems();
+  document.getElementById('euOrderBox').classList.add('visible');
+  document.getElementById('euSuccess').style.display = 'none';
+  document.getElementById('euAdminNote').value = '';
+}
+
+function renderItems() {
+  const tbody = document.getElementById('euItemsBody');
+  if (!currentItems.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary);padding:16px;">No items. Add at least one replacement item.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = currentItems.map((it, idx) => `
+    <tr>
+      <td style="font-weight:600;">${it.product_name}</td>
+      <td>₹${parseFloat(it.price).toFixed(0)}</td>
+      <td><input class="qty-input" type="number" min="1" value="${it.quantity}" onchange="updateQty(${idx}, this.value)"></td>
+      <td><button class="btn-remove-item" onclick="removeItem(${idx})" title="Remove"><i class="fa-solid fa-xmark"></i></button></td>
+    </tr>
+  `).join('');
+}
+
+function updateQty(idx, val) {
+  currentItems[idx].quantity = Math.max(1, parseInt(val) || 1);
+}
+
+function removeItem(idx) {
+  currentItems.splice(idx, 1);
+  renderItems();
+}
+
+function addItemRow() {
+
+    const qty = Math.max(
+        1,
+        parseInt(document.getElementById('euAddQty').value) || 1
+    );
+
+    if (!selectedProduct) {
+        adminToast('Please select a product.', 'error');
+        return;
+    }
+
+    const existing = currentItems.find(
+        i => i.product_id == selectedProduct.id
+    );
+
+    if (existing) {
+
+        existing.quantity += qty;
+
+    } else {
+
+        currentItems.push({
+            item_id: null,
+            product_id: selectedProduct.id,
+            product_name: selectedProduct.name,
+            price: selectedProduct.price,
+            quantity: qty
+        });
+
+    }
+
+    renderItems();
+
+    // Reset fields
+    selectedProduct = null;
+
+    document.getElementById('euAddProduct').value = '';
+
+    document.getElementById('euProductSearch').value = '';
+
+    document.getElementById('euAddQty').value = 1;
+}
+
+async function submitUpdate() {
+  if (!currentOrderId) return;
+  const note = document.getElementById('euAdminNote').value.trim();
+  if (!note) { adminToast('Please add a note explaining the change.', 'error'); return; }
+  if (!currentItems.length) { adminToast('Order must have at least one item.', 'error'); return; }
+  if (!confirm('Update this order permanently? Make sure the customer has agreed over the phone.')) return;
+
+  const btn = document.getElementById('euConfirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating…';
+
+  try {
+    const r = await fetch('/admin-panel/emergency-order/update/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+      body: JSON.stringify({ order_id: currentOrderId, items: currentItems, admin_note: note })
+    });
+    const data = await r.json();
+    if (data.success) {
+      const s = document.getElementById('euSuccess');
+      s.textContent = '✓ Order updated successfully! New total: ₹' + data.new_total;
+      s.style.display = 'block';
+      adminToast('Order updated successfully.', 'success');
+      currentItems = data.items;
+      renderItems();
+    } else {
+      adminToast(data.message || 'Update failed.', 'error');
+    }
+  } catch(e) {
+    adminToast('Network error.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Confirm &amp; Update Order';
+  }
+}
+const searchInput = document.getElementById('euProductSearch');
+const resultsBox  = document.getElementById('euProductResults');
+const hiddenInput = document.getElementById('euAddProduct');
+
+let selectedProduct = null;
+
+searchInput.addEventListener('input', async function(){
+
+    const q = this.value.trim();
+
+    if(q.length < 2){
+        resultsBox.style.display = 'none';
+        return;
+    }
+
+    const r = await fetch(
+        '/admin-panel/emergency-product-search/?q=' +
+        encodeURIComponent(q)
+    );
+
+    const data = await r.json();
+
+    resultsBox.innerHTML = '';
+
+    data.products.forEach(p => {
+
+        const row = document.createElement('div');
+
+        row.style.padding = '10px 12px';
+        row.style.cursor = 'pointer';
+        row.style.borderBottom = '1px solid #eee';
+
+        row.innerHTML = `
+            <strong>${p.name}</strong><br>
+            ₹${p.price} • Stock: ${p.stock}
+        `;
+
+        row.onclick = () => {
+
+            selectedProduct = p;
+
+            hiddenInput.value = p.id;
+
+            searchInput.value = p.name;
+
+            resultsBox.style.display = 'none';
+        };
+
+        resultsBox.appendChild(row);
+    });
+
+    resultsBox.style.display =
+        data.products.length ? 'block' : 'none';
+});
+
+document.addEventListener('click', function(e){
+
+    if(!resultsBox.contains(e.target) &&
+       e.target !== searchInput){
+
+        resultsBox.style.display = 'none';
+    }
+});
+</script>
+</body>
+</html>

@@ -241,6 +241,7 @@ urlpatterns = [
         views.users_list,
         name="users_list"
     ),
+    
 
     # =========================
     # Categories
@@ -449,4 +450,52 @@ path(
                 permanent=True
             ),
         ),
+
+# ════════════════════════════════════════
+# STORE SETTINGS
+# ════════════════════════════════════════
+
+path(
+    "dashboard/store-settings/",
+    views.store_settings,
+    name="store_settings"
+),
+
+path(
+    "dashboard/store-settings/send-modification-request/",
+    views.send_modification_request,
+    name="send_modification_request"
+),
+
+path(
+    "dashboard/store-settings/apply-order-modification/<int:req_id>/",
+    views.apply_order_modification,
+    name="apply_order_modification"
+),
+
+path(
+    "dashboard/store-settings/cancel-modification-request/<int:req_id>/",
+    views.cancel_modification_request,
+    name="cancel_modification_request"
+),
+# ════════════════════════════════════════
+# CUSTOMER ACCEPT / DECLINE LINKS
+# ════════════════════════════════════════
+
+path(
+    "order/modification/<str:token>/<str:action>/",
+    views.modification_response,
+    name="modification_response"
+),
+
+path('admin-panel/emergency-order/lookup/', views.emergency_order_lookup, name='emergency_order_lookup'),
+path('admin-panel/emergency-order/update/', views.emergency_order_update, name='emergency_order_update'),
+path(
+    "admin-panel/emergency-product-search/",
+    views.emergency_product_search,
+    name="emergency_product_search"
+),
+
+path("product/<int:product_id>/variant-price/", views.get_variant_price, name="get_variant_price"),
+path("admin-panel/products/<int:product_id>/variants/", views.manage_variants, name="manage_variants"),
 ]

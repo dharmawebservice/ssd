@@ -540,7 +540,10 @@ table{
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <a href="?" style="padding:7px 14px;border-radius:20px;font-size:.82rem;font-weight:600;text-decoration:none;background:{% if not selected_status %}#111{% else %}var(--bg-body){% endif %};color:{% if not selected_status %}white{% else %}var(--text-secondary){% endif %};">All</a>
                 {% for s in statuses %}
-                <a href="?status={{ s }}" style="padding:7px 14px;border-radius:20px;font-size:.82rem;font-weight:600;text-decoration:none;background:{% if selected_status == s %}#111{% else %}var(--bg-body){% endif %};color:{% if selected_status == s %}white{% else %}var(--text-secondary){% endif %};">{{ s }}</a>
+                <a href="?status={{ s|urlencode }}"
+                style="padding:7px 14px;border-radius:20px;font-size:.82rem;font-weight:600;text-decoration:none;background:{% if selected_status == s %}#111{% else %}var(--bg-body){% endif %};color:{% if selected_status == s %}white{% else %}var(--text-secondary){% endif %};">
+                {{ s }}
+                </a>
                 {% endfor %}
             </div>
         </header>

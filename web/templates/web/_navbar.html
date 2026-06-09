@@ -75,6 +75,23 @@
         font-family:'DM Serif Display', serif;
     }
 }
+
+.has-drop{
+    position:relative;
+}
+
+.has-drop::after{
+    content:'';
+    position:absolute;
+    left:0;
+    right:0;
+    top:100%;
+    height:20px;
+}
+
+.mega-drop{
+    top:calc(100% + 10px);
+}
 </style>
 {% if notifications %}
 

@@ -651,3 +651,22 @@ textarea.form-control{resize:vertical;min-height:85px}
   .action-group{flex-wrap:wrap}
 }
 @media(max-width:480px){.metrics-grid{grid-template-columns:1fr}.modal-card{max-height:95vh;border-radius:var(--r-md)}.top-header{flex-direction:column;align-items:flex-start;gap:10px}}
+
+/* Clickable metric cards */
+a.metric-card--link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+a.metric-card--link:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: var(--accent);
+}
+
+a.metric-card--link:active {
+  transform: translateY(-1px);
+}

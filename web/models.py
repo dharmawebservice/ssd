@@ -417,22 +417,22 @@ class Wishlist(models.Model):
 # ══════════════════════════════════════════════════════════════
 
 class CartItem(models.Model):
-    user     = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="cart_items"
-    )
+    user     = models.ForeignKey(User, on_delete=models.CASCADE, related_name="cart_items")
     product  = models.ForeignKey(Product, on_delete=models.CASCADE)
+    variant  = models.ForeignKey(                                   # ← ADD
+        "ProductVariant", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="cart_items"
+    )
     quantity = models.PositiveIntegerField(default=1)
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("user", "product")
-
-    def __str__(self):
-        return f"{self.user.username} — {self.product.name} × {self.quantity}"
+        unique_together = ("user", "product", "variant")           # ← UPDATED
 
     @property
     def subtotal(self):
-        return self.product.effective_price * self.quantity
+        price = self.variant.price if self.variant else self.product.effective_price
+        return price * self.quantity
 
 
 # ══════════════════════════════════════════════════════════════
@@ -463,3 +463,131 @@ class ContactMessage(models.Model):
 
     def __str__(self):
         return f"{self.name} — {self.subject}"
+    
+# ══════════════════════════════════════════════════════════════
+# STORE SETTINGS  (singleton — always pk=1)
+# ══════════════════════════════════════════════════════════════
+
+class StoreSettings(models.Model):
+    cod_enabled                = models.BooleanField(
+        default=False,
+        help_text="Allow Cash on Delivery for new orders."
+    )
+    order_modification_enabled = models.BooleanField(
+        default=False,
+        help_text="Allow admin to send order-modification proposals to customers."
+    )
+    updated_at                 = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name        = "Store Settings"
+        verbose_name_plural = "Store Settings"
+
+    def __str__(self):
+        return "Store Settings"
+
+    @classmethod
+    def get(cls):
+        """Always return the single settings row, creating it if needed."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
+# ══════════════════════════════════════════════════════════════
+# ORDER MODIFICATION REQUEST
+# ══════════════════════════════════════════════════════════════
+
+class OrderModificationRequest(models.Model):
+    STATUS_CHOICES = [
+        ("pending",  "Pending"),
+        ("accepted", "Accepted"),
+        ("declined", "Declined"),
+        ("applied",  "Applied"),
+        ("cancelled","Cancelled"),
+    ]
+
+    order            = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name="modification_requests"
+    )
+    proposed_changes = models.TextField(
+        help_text="Human-readable description of what will change in the order."
+    )
+    admin_note       = models.TextField(
+        blank=True,
+        help_text="Message shown to the customer in the email."
+    )
+    status           = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="pending"
+    )
+    # Token sent in the email so the customer can accept/decline without logging in
+    token            = models.CharField(max_length=64, unique=True, blank=True)
+    created_at       = models.DateTimeField(auto_now_add=True)
+    responded_at     = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"ModReq #{self.pk} — Order {self.order.order_number} [{self.status}]"
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            import secrets
+            self.token = secrets.token_urlsafe(32)
+        super().save(*args, **kwargs)
+
+class ProductVariant(models.Model):
+    PRESET_LABELS = [
+        ("lt1",  "Less than 1 year"),
+        ("1yr",  "1 year"),
+        ("2yr",  "2 years"),
+        ("3yr",  "3 years"),
+        ("4yr",  "4 years"),
+        ("5yr",  "5 years"),
+        ("6yr",  "6 years"),
+        ("7yr",  "7 years"),
+        ("8yr",  "8 years"),
+        ("9yr",  "9 years"),
+        ("10yr", "10 years"),
+        ("custom", "Custom"),
+    ]
+
+    product      = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="variants"
+    )
+    label        = models.CharField(max_length=20, choices=PRESET_LABELS)
+    custom_label = models.CharField(
+        max_length=100, blank=True,
+        help_text="Only used when label = 'custom'"
+    )
+    price        = models.DecimalField(max_digits=10, decimal_places=2)
+    offer_price  = models.DecimalField(           # ← NEW
+        max_digits=10, decimal_places=2,
+        blank=True, null=True,
+        help_text="Leave blank for no offer on this variant"
+    )
+    stock        = models.PositiveIntegerField(default=0)
+    is_active    = models.BooleanField(default=True)
+    sort_order   = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "id"]
+
+    def __str__(self):
+        return f"{self.product.name} — {self.display_label}"
+
+    @property
+    def display_label(self):
+        if self.label == "custom" and self.custom_label:
+            return self.custom_label
+        return dict(self.PRESET_LABELS).get(self.label, self.label)
+
+    @property
+    def effective_price(self):                    # ← NEW
+        return self.offer_price if self.offer_price else self.price
+
+    @property
+    def discount_percent(self):                   # ← NEW
+        if self.offer_price and self.price:
+            return int(((self.price - self.offer_price) / self.price) * 100)
+        return 0

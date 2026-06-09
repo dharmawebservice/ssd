@@ -569,6 +569,45 @@
             .btn-add-cart { padding: 0 14px; font-size: 0.9rem; gap: 7px; }
             .btn-add-cart i { font-size: 0.9rem; }
         }
+
+        /* ── Variant pills ── */
+.variant-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+.variant-pill {
+    padding: 9px 20px;
+    border: 1.5px solid var(--ivory-dark);
+    border-radius: 30px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    color: var(--text-mid);
+    background: white;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.variant-pill:hover {
+    border-color: var(--forest);
+    color: var(--forest);
+}
+.variant-pill.selected {
+    background: var(--forest);
+    color: white;
+    border-color: var(--forest);
+}
+.variant-pill.oos {
+    opacity: 0.4;
+    cursor: not-allowed;
+    text-decoration: line-through;
+}
+{% comment %}        {% endcomment %}
+@keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25%      { transform: translateX(-6px); }
+    75%      { transform: translateX(6px); }
+}
     </style>
 </head>
 <body data-auth="{% if request.user.is_authenticated %}1{% else %}0{% endif %}">
@@ -622,13 +661,41 @@
                 <!-- Price -->
                 <div class="product-price-block">
                     {% if product.offer_price %}
-                        <span class="product-price">₹{{ product.offer_price }}</span>
-                        <span class="product-old-price">₹{{ product.price }}</span>
+                        <span class="product-price">₹{{ product.offer_price|floatformat:2 }}</span>
+                        <span class="product-old-price">₹{{ product.price|floatformat:2 }}</span>
                         <span class="discount-pill">{{ product.discount_percent }}% OFF</span>
                     {% else %}
-                        <span class="product-price">₹{{ product.price }}</span>
+                        <span class="product-price">₹{{ product.price|floatformat:2 }}</span>
                     {% endif %}
                 </div>
+
+                {% if variants %}
+<div class="variant-selector" style="margin-bottom:24px;">
+  <span class="info-label">Select Age / Size</span>
+  <div class="variant-pills" id="variantPills">
+    {% for v in variants %}
+<button
+  type="button"
+  class="variant-pill {% if v.stock == 0 %}oos{% endif %}"
+  data-id="{{ v.id }}"
+  data-price="{{ v.price }}"
+  data-offer-price="{{ v.offer_price|default:'' }}"
+  data-effective-price="{{ v.effective_price }}"
+  data-discount="{{ v.discount_percent }}"
+  data-stock="{{ v.stock }}"
+  data-label="{{ v.display_label }}"
+>{{ v.display_label }}</button>
+{% endfor %}
+  </div>
+  <p id="variantNote" style="
+    font-family:'Cormorant Garamond',serif;
+    font-size:0.9rem;
+    color:var(--terracotta);
+    margin-top:8px;
+    min-height:20px;
+  "></p>
+</div>
+{% endif %}
 
                 <!-- Stock -->
                 <div class="stock-status">
@@ -970,6 +1037,94 @@
                 el.textContent = count;
             });
         }
+
+        // ── Variant selection ──────────────────────────────────────
+let selectedVariantId   = null;
+let selectedVariantStock = {{ product.stock }};  // fallback to product stock
+
+document.querySelectorAll('.variant-pill').forEach(pill => {
+    if (parseInt(pill.dataset.stock) === 0) pill.classList.add('oos');
+
+    pill.addEventListener('click', function () {
+    if (this.classList.contains('oos')) return;
+
+    document.querySelectorAll('.variant-pill').forEach(p => p.classList.remove('selected'));
+    this.classList.add('selected');
+
+    selectedVariantId    = this.dataset.id;
+    selectedVariantStock = parseInt(this.dataset.stock);
+
+    // Update displayed price — show offer price if present, strike through MRP
+    const effectivePrice = parseFloat(this.dataset.effectivePrice);
+    const mrpPrice       = parseFloat(this.dataset.price);
+    const discountPct    = parseInt(this.dataset.discount || '0');
+    const priceEl        = document.querySelector('.product-price');
+    const oldPriceEl     = document.querySelector('.product-old-price');
+    const discPillEl     = document.querySelector('.discount-pill');
+
+    if (priceEl) priceEl.textContent = '₹' + effectivePrice.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+    if (this.dataset.offerPrice && oldPriceEl && discPillEl) {
+        oldPriceEl.textContent  = '₹' + mrpPrice.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        oldPriceEl.style.display = 'inline';
+        discPillEl.textContent   = discountPct + '% OFF';
+        discPillEl.style.display = 'inline-block';
+    } else if (oldPriceEl && discPillEl) {
+        oldPriceEl.style.display = 'none';
+        discPillEl.style.display = 'none';
+    }
+
+    // Stock note
+    const note = document.getElementById('variantNote');
+    if (note) {
+        if (selectedVariantStock === 0) {
+            note.textContent = 'Out of stock for this variant';
+        } else if (selectedVariantStock < 5) {
+            note.textContent = `Only ${selectedVariantStock} left!`;
+        } else {
+            note.textContent = '';
+        }
+    }
+
+    // Reset cart button when variant changes
+    document.getElementById('cartControl').innerHTML = `
+        <button class="btn-add-cart" id="addToCartBtn" onclick="addFirstItem()">
+            <i class="fas fa-shopping-bag"></i> Add to Basket
+        </button>`;
+});
+});
+
+// ── Override addFirstItem to include variant ───────────────
+async function addFirstItem() {
+    {% if variants %}
+    if (!selectedVariantId) {
+        showToast('Please select an age / size variant first.');
+        document.getElementById('variantPills').style.animation = 'shake 0.4s ease';
+        setTimeout(() => document.getElementById('variantPills').style.animation = '', 500);
+        return;
+    }
+    {% endif %}
+
+    const response = await fetch('/cart/add/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({
+            product_id: PRODUCT_ID,
+            qty: 1,
+            variant_id: selectedVariantId   // null if no variants
+        })
+    });
+    const data = await response.json();
+    if (!data.success) { showToast(data.message); return; }
+    updateNavbarCount(data.count);
+    document.getElementById('cartControl').innerHTML = `
+        <div class="qty-selector product-cart-box">
+            <button onclick="updateCartQty(-1)">−</button>
+            <input type="text" id="cartQtyDisplay" value="1" readonly>
+            <button onclick="updateCartQty(1)">+</button>
+        </div>`;
+    showToast('Added to basket!');
+}
     </script>
 </body>
 </html>

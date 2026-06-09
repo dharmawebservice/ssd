@@ -7,6 +7,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+<style>
+  a.metric-card {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  a.metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    border-color: var(--accent);
+  }
+  a.metric-card:active {
+    transform: translateY(-1px);
+  }
+  a.metric-card .metric-header,
+  a.metric-card .metric-value {
+    pointer-events: none;
+  }
+</style>
 </head>
 <body>
 {% for m in messages %}<div class="django-message" data-level="{% if m.tags == 'error' %}error{% else %}success{% endif %}" style="display:none;">{{ m }}</div>{% endfor %}
@@ -21,14 +42,60 @@
       </div>
       <a href="{% url 'shop' %}" class="btn-accent" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> View Store</a>
     </header>
+
     <section class="metrics-grid">
-      <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-users"></i></div>Users</div><div class="metric-value">{{ total_users }}</div></div>
-      <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-seedling"></i></div>Products</div><div class="metric-value">{{ total_products }}</div></div>
-      <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-box"></i></div>Orders</div><div class="metric-value">{{ total_orders }}</div></div>
-      <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-clock"></i></div>Pending</div><div class="metric-value" style="color:var(--warn)">{{ pending_orders }}</div></div>
-      <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-check-circle"></i></div>Delivered</div><div class="metric-value" style="color:var(--success)">{{ completed_orders }}</div></div>
-      <div class="metric-card"><div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-indian-rupee-sign"></i></div>Revenue</div><div class="metric-value">₹{{ total_revenue|floatformat:0 }}</div></div>
+
+      <!-- Users — no link -->
+      <a href="{% url 'users_list' %}" class="metric-card">
+        <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-users"></i></div>Users</div>
+        <div class="metric-value">{{ total_users }}</div>
+      </a>
+
+      <!-- Products — no link -->
+      <a href="{% url 'product_list' %}" class="metric-card">
+        <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-seedling"></i></div>Products</div>
+        <div class="metric-value">{{ total_products }}</div>
+      </a>
+
+      <!-- All Orders — links to order list -->
+      <a href="{% url 'order_list' %}" class="metric-card">
+        <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-box"></i></div>Orders</div>
+        <div class="metric-value">{{ total_orders }}</div>
+      </a>
+
+      <!-- Pending — links to filtered order list -->
+      <a href="{% url 'order_list' %}?status=Pending" class="metric-card">
+        <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-clock"></i></div>Pending</div>
+        <div class="metric-value" style="color:var(--warn)">{{ pending_orders }}</div>
+      </a>
+
+      <!-- Waiting for Shipment — links to Shipped status -->
+      <a href="{% url 'order_list' %}" class="metric-card">
+          <div class="metric-header">
+              <div class="metric-icon">
+                  <i class="fa-solid fa-truck"></i>
+              </div>
+              Waiting for Shipment
+          </div>
+          <div class="metric-value" style="color:#f59e0b">
+              {{ waiting_shipment_orders }}
+          </div>
+      </a>
+
+      <!-- Delivered — links to filtered order list -->
+      <a href="{% url 'order_list' %}?status=Delivered" class="metric-card">
+        <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-check-circle"></i></div>Delivered</div>
+        <div class="metric-value" style="color:var(--success)">{{ completed_orders }}</div>
+      </a>
+
+      <!-- Revenue — no link, stays in place -->
+      <div class="metric-card">
+        <div class="metric-header"><div class="metric-icon"><i class="fa-solid fa-indian-rupee-sign"></i></div>Revenue</div>
+        <div class="metric-value">₹{{ total_revenue|floatformat:0 }}</div>
+      </div>
+
     </section>
+
     <div class="data-card">
       <div style="padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
         <span style="font-size:1rem;font-weight:700;">Recent Orders</span>
@@ -44,7 +111,14 @@
               <td style="font-weight:600;">{{ o.user.first_name|default:"Guest" }}</td>
               <td style="font-weight:700;color:var(--accent);">₹{{ o.total_amount }}</td>
               <td style="color:var(--text-secondary);">{{ o.created_at|date:"M d, Y" }}</td>
-              <td>{% if o.status == 'Pending' %}<span class="badge badge-pending">{{ o.status }}</span>{% elif o.status == 'Delivered' %}<span class="badge badge-delivered">{{ o.status }}</span>{% elif o.status == 'Cancelled' %}<span class="badge badge-cancelled">{{ o.status }}</span>{% else %}<span class="badge badge-confirmed">{{ o.status }}</span>{% endif %}</td>
+              <td>
+                {% if o.status == 'Pending' %}<span class="badge badge-pending">{{ o.status }}</span>
+                {% elif o.status == 'Delivered' %}<span class="badge badge-delivered">{{ o.status }}</span>
+                {% elif o.status == 'Cancelled' %}<span class="badge badge-cancelled">{{ o.status }}</span>
+                {% elif o.status == 'Shipped' %}<span class="badge badge-confirmed">{{ o.status }}</span>
+                {% else %}<span class="badge badge-confirmed">{{ o.status }}</span>
+                {% endif %}
+              </td>
             </tr>
             {% empty %}<tr class="empty-row"><td colspan="5"><i class="fa-solid fa-box-open"></i><br>No orders yet</td></tr>{% endfor %}
           </tbody>

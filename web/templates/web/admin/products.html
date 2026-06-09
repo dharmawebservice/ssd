@@ -20,6 +20,9 @@
 <td>{% if p.is_active %}<span class="badge badge-active">Active</span>{% else %}<span class="badge badge-disabled">Hidden</span>{% endif %}</td>
 <td><div class="action-group">
 <button class="btn-icon btn-icon-edit" title="Edit" onclick="openEditModal('editProductModal',{name:'{{ p.name|escapejs }}',price:'{{ p.price }}',offer_price:'{{ p.offer_price|default:'' }}',stock:'{{ p.stock }}',description:'{{ p.description|escapejs }}',care_guide:'{{ p.care_guide|escapejs }}'});document.getElementById('editProductForm').action='{% url "edit_product" p.id %}';document.getElementById('editCatSel').value='{{ p.category.id }}'"><i class="fa-solid fa-pen"></i></button>
+<a href="{% url 'manage_variants' p.id %}" class="btn-icon btn-icon-toggle" title="Variants">
+  <i class="fa-solid fa-tags"></i>
+</a>
 <a href="{% url 'toggle_product' p.id %}" class="btn-icon btn-icon-toggle" title="Toggle"><i class="fa-solid fa-{% if p.is_active %}eye-slash{% else %}eye{% endif %}"></i></a>
 <a href="{% url 'delete_product' p.id %}" class="btn-icon btn-icon-danger" data-confirm="Delete '{{ p.name }}'?"><i class="fa-solid fa-trash"></i></a>
 </div></td></tr>
@@ -28,7 +31,7 @@
 </main></div>
 <!-- ADD -->
 <div class="modal-overlay" id="addProductModal"><div class="modal-card"><div class="modal-header"><h2>Add Product</h2><button class="close-modal"><i class="fa-solid fa-xmark"></i></button></div>
-<form method="POST" action="{% url 'add_product' %}" enctype="multipart/form-data">{% csrf_token %}
+<form method="POST" action="{% url 'add_product' %}" enctype="multipart/form-data" id="addProductForm">{% csrf_token %}
 <div class="modal-body">
 <div class="form-group"><label>Category *</label><select name="category" class="form-control" required><option value="">Select…</option>{% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
 <div class="form-group"><label>Name *</label><input type="text" name="name" class="form-control" required placeholder="e.g. Monstera Deliciosa"></div>
@@ -39,6 +42,15 @@
 <div class="form-group"><label>Stock *</label><input type="number" name="stock" class="form-control" required min="0" value="0"></div>
 <div class="form-group"><label>Description</label><textarea name="description" class="form-control" placeholder="Product description…"></textarea></div>
 <div class="form-group"><label>Care Guide</label><textarea name="care_guide" class="form-control" placeholder="Watering, sunlight, soil tips…"></textarea></div>
+<!-- ── AGE VARIANTS ── -->
+<div class="form-group">
+  <label>Age Variants <span style="font-weight:400;color:var(--text-secondary);font-size:.8rem;">— optional, add one per age group</span></label>
+  
+  <div id="addVariantRows" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;"></div>
+  <button type="button" class="btn-dark-sm" onclick="addVariantRow('addVariantRows')">
+    <i class="fa-solid fa-plus"></i> Add Age Variant
+  </button>
+</div>
 <div class="form-group"><label>Image</label><div class="file-drop-area"><i class="fa-solid fa-cloud-arrow-up"></i><div class="file-name">Click to upload</div><div class="file-hint">PNG, JPG, WEBP</div><input type="file" name="image" accept="image/*"></div></div>
 </div><div class="modal-footer"><button type="button" class="btn-cancel">Cancel</button><button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Save Product</button></div>
 </form></div></div>
@@ -55,7 +67,128 @@
 <div class="form-group"><label>Stock *</label><input type="number" name="stock" class="form-control" required min="0"></div>
 <div class="form-group"><label>Description</label><textarea name="description" class="form-control"></textarea></div>
 <div class="form-group"><label>Care Guide</label><textarea name="care_guide" class="form-control"></textarea></div>
+<div class="form-group">
+  <label>Age Variants <span style="font-weight:400;color:var(--text-secondary)">(optional)</span></label>
+  <div id="variantList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;"></div>
+  <button type="button" class="btn-dark-sm" onclick="addVariantRow()">
+    <i class="fa-solid fa-plus"></i> Add Variant
+  </button>
+  <!-- Hidden container for variant POST data — built by JS -->
+  <div id="variantInputs"></div>
+</div>
 <div class="form-group"><label>New Image</label><div class="file-drop-area"><i class="fa-solid fa-cloud-arrow-up"></i><div class="file-name">Click to replace</div><div class="file-hint">Leave blank to keep current</div><input type="file" name="image" accept="image/*"></div></div>
 </div><div class="modal-footer"><button type="button" class="btn-cancel">Cancel</button><button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Update</button></div>
 </form></div></div>
-<script src="{% static 'js/admin.js' %}"></script></body></html>
+<script src="{% static 'js/admin.js' %}"></script>
+<script>
+const VARIANT_PRESETS = [
+  {value:"lt1",  label:"Less than 1 year"},
+  {value:"1yr",  label:"1 year"},
+  {value:"2yr",  label:"2 years"},
+  {value:"3yr",  label:"3 years"},
+  {value:"4yr",  label:"4 years"},
+  {value:"5yr",  label:"5 years"},
+  {value:"6yr",  label:"6 years"},
+  {value:"7yr",  label:"7 years"},
+  {value:"8yr",  label:"8 years"},
+  {value:"9yr",  label:"9 years"},
+  {value:"10yr", label:"10 years"},
+  {value:"custom",label:"Custom…"},
+];
+
+function addVariantRow(containerId) {
+  const container = document.getElementById(containerId || 'addVariantRows');
+  if (!container) return;
+
+  const row = document.createElement('div');
+  row.style.cssText = 'display:grid;grid-template-columns:1.4fr 1fr 1fr 70px 36px;gap:8px;align-items:flex-start;';
+
+  // Label select
+  const sel = document.createElement('select');
+  sel.name = 'variant_label[]';
+  sel.className = 'form-control';
+  sel.innerHTML = '<option value="">Age / Size…</option>' +
+    VARIANT_PRESETS.map(p => `<option value="${p.value}">${p.label}</option>`).join('');
+  sel.style.fontSize = '.88rem';
+
+  const customWrap = document.createElement('div');
+  customWrap.style.cssText = 'display:none;margin-top:6px;';
+  const customInp = document.createElement('input');
+  customInp.type = 'text';
+  customInp.name = 'variant_custom[]';
+  customInp.className = 'form-control';
+  customInp.placeholder = 'e.g. 15 years';
+  customInp.style.fontSize = '.88rem';
+  customWrap.appendChild(customInp);
+
+  const normalWrap = document.createElement('div');
+  const normalInp = document.createElement('input');
+  normalInp.type = 'hidden';
+  normalInp.name = 'variant_custom[]';
+  normalInp.value = '';
+  normalWrap.appendChild(normalInp);
+
+  sel.addEventListener('change', function() {
+    if (this.value === 'custom') {
+      customWrap.style.display = 'block';
+      normalWrap.style.display = 'none';
+      customInp.required = true;
+    } else {
+      customWrap.style.display = 'none';
+      normalWrap.style.display = 'block';
+      customInp.required = false;
+    }
+  });
+
+  const labelCol = document.createElement('div');
+  labelCol.appendChild(sel);
+  labelCol.appendChild(customWrap);
+  labelCol.appendChild(normalWrap);
+
+  // Price (MRP)
+  const priceInp = document.createElement('input');
+  priceInp.type = 'number';
+  priceInp.name = 'variant_price[]';
+  priceInp.className = 'form-control';
+  priceInp.placeholder = 'MRP ₹';
+  priceInp.min = '0';
+  priceInp.style.fontSize = '.88rem';
+  priceInp.required = true;
+
+  // Offer Price  ← NEW
+  const offerInp = document.createElement('input');
+  offerInp.type = 'number';
+  offerInp.name = 'variant_offer_price[]';
+  offerInp.className = 'form-control';
+  offerInp.placeholder = 'Offer ₹';
+  offerInp.min = '0';
+  offerInp.style.fontSize = '.88rem';
+  // no required — it's optional
+
+  // Stock
+  const stockInp = document.createElement('input');
+  stockInp.type = 'number';
+  stockInp.name = 'variant_stock[]';
+  stockInp.className = 'form-control';
+  stockInp.placeholder = 'Qty';
+  stockInp.min = '0';
+  stockInp.value = '10';
+  stockInp.style.fontSize = '.88rem';
+
+  // Remove button
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'btn-icon btn-icon-danger';
+  removeBtn.style.cssText = 'height:40px;margin-top:2px;flex-shrink:0;';
+  removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+  removeBtn.onclick = () => row.remove();
+
+  row.appendChild(labelCol);
+  row.appendChild(priceInp);
+  row.appendChild(offerInp);   // ← NEW
+  row.appendChild(stockInp);
+  row.appendChild(removeBtn);
+  container.appendChild(row);
+}
+</script>
+</body></html>

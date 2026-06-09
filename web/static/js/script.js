@@ -72,21 +72,14 @@
       });
     });
     document.querySelectorAll(".has-drop > a").forEach(link => {
-
-    link.addEventListener("click", function(e){
-
+      link.addEventListener("click", function(e){
         if(window.innerWidth > 768) return;
-
         e.preventDefault();
-
         const parent = this.closest(".has-drop");
-
         parent.classList.toggle("open");
-
         console.log("dropdown toggled");
+      });
     });
-
-});
   }
 
   // Profile dropdown
@@ -284,6 +277,46 @@
   // ══════════════════════════════════════════════════════════
   let cartData = { cart: [], subtotal: 0, count: 0 };
 
+  // ── CHANGE 1: updated cart item renderer with variant tag ──
+  function buildDrawerItem(item) {
+    const variantTag = item.variant_label
+      ? `<span style="
+            display:inline-block;
+            background:#E8F0EA;
+            color:#1F5132;
+            font-size:0.72rem;
+            font-weight:600;
+            padding:2px 9px;
+            border-radius:20px;
+            font-family:sans-serif;
+            margin-top:3px;
+            letter-spacing:0.3px;
+          ">${item.variant_label}</span>`
+      : '';
+
+    const imgHTML = item.image
+      ? `<img src="${item.image}" alt="${item.name}" class="drawer-item-img">`
+      : `<div class="drawer-item-img" style="display:flex;align-items:center;justify-content:center;color:var(--sage)"><i class="fas fa-seedling"></i></div>`;
+
+    return `
+      <div class="drawer-item" data-pid="${item.id}" data-vid="${item.variant_id || ''}">
+        ${imgHTML}
+        <div class="drawer-item-info">
+          <h4>${item.name}</h4>
+          ${variantTag}
+          <div class="item-price">₹${item.price}</div>
+          <div class="drawer-qty">
+            <button class="dqty-btn" data-pid="${item.id}" data-vid="${item.variant_id || ''}" data-action="dec">−</button>
+            <span class="dqty-num">${item.qty}</span>
+            <button class="dqty-btn" data-pid="${item.id}" data-vid="${item.variant_id || ''}" data-action="inc">+</button>
+          </div>
+        </div>
+        <button class="drawer-remove" data-pid="${item.id}" data-vid="${item.variant_id || ''}">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>`;
+  }
+
   function updateCartUI() {
     const { cart, subtotal, count } = cartData;
     document.querySelectorAll(".cart-count, #cartNavCount").forEach(el => {
@@ -302,36 +335,33 @@
       return;
     }
     if (footer) footer.style.display = "flex";
-    body.innerHTML = cart.map(item => `
-      <div class="drawer-item">
-        ${item.image
-          ? `<img src="${item.image}" alt="${item.name}" class="drawer-item-img">`
-          : `<div class="drawer-item-img" style="display:flex;align-items:center;justify-content:center;color:var(--sage)"><i class="fas fa-seedling"></i></div>`}
-        <div class="drawer-item-info">
-          <h4>${item.name}</h4>
-          <div class="item-price">₹${item.price}</div>
-          <div class="drawer-qty">
-            <button class="dqty-btn" data-pid="${item.id}" data-action="dec">−</button>
-            <span class="dqty-num">${item.qty}</span>
-            <button class="dqty-btn" data-pid="${item.id}" data-action="inc">+</button>
-          </div>
-        </div>
-        <button class="drawer-remove" data-pid="${item.id}"><i class="fas fa-times"></i></button>
-      </div>`).join("");
 
+    // ── CHANGE 2: use buildDrawerItem for each cart item ──
+    body.innerHTML = cart.map(item => buildDrawerItem(item)).join("");
+
+    // ── CHANGE 3: qty buttons now pass variant_id ──
     body.querySelectorAll(".dqty-btn").forEach(btn => {
       btn.addEventListener("click", async () => {
-        const pid  = +btn.dataset.pid;
-        const item = cart.find(i => i.id === pid);
+        const pid     = +btn.dataset.pid;
+        const vid     = btn.dataset.vid ? +btn.dataset.vid : null;
+        const item    = cart.find(i => i.id === pid &&
+                          (vid ? i.variant_id === vid : true));
         if (!item) return;
-        const newQty = btn.dataset.action === "inc" ? item.qty + 1 : item.qty - 1;
-        const data   = await api("/cart/update/", { product_id: pid, qty: newQty });
+        const newQty  = btn.dataset.action === "inc" ? item.qty + 1 : item.qty - 1;
+        const body_   = { product_id: pid, qty: newQty };
+        if (vid) body_.variant_id = vid;
+        const data    = await api("/cart/update/", body_);
         if (data.success) { cartData = data; updateCartUI(); }
       });
     });
+
     body.querySelectorAll(".drawer-remove").forEach(btn => {
       btn.addEventListener("click", async () => {
-        const data = await api("/cart/remove/", { product_id: +btn.dataset.pid });
+        const pid  = +btn.dataset.pid;
+        const vid  = btn.dataset.vid ? +btn.dataset.vid : null;
+        const body_= { product_id: pid, qty: 0 };
+        if (vid) body_.variant_id = vid;
+        const data = await api("/cart/remove/", body_);
         if (data.success) { cartData = data; updateCartUI(); showToast("Item removed"); }
       });
     });
@@ -368,13 +398,15 @@
   cartOverlay && cartOverlay.addEventListener("click", closeCart);
 
   // Add to cart (product cards)
-  async function addToCart(productId, qty = 1) {
+  async function addToCart(productId, qty = 1, variantId = null) {
     if (!IS_AUTH) {
       showToast("Please login to add to cart", "error");
       setTimeout(() => window.location.href = "/auth/?tab=login", 1200);
       return;
     }
-    const data = await api("/cart/add/", { product_id: +productId, qty });
+    const body = { product_id: +productId, qty };
+    if (variantId) body.variant_id = +variantId;
+    const data = await api("/cart/add/", body);
     if (data.success) {
       cartData = data;
       updateCartUI();
@@ -391,23 +423,30 @@
       e.preventDefault();
       e.stopPropagation();
       const pid = btn.dataset.product;
-      if (pid) addToCart(+pid, 1);
+      const vid = btn.dataset.variant || null;
+      if (pid) addToCart(+pid, 1, vid);
     });
   });
 
   // ── Cart qty helpers (used by product detail page inline scripts) ──
-  window.updateQty = async function (productId, change) {
+  window.updateQty = async function (productId, change, variantId = null) {
     const currentResponse = await fetch("/cart/data/");
     const currentData     = await currentResponse.json();
-    const item            = currentData.cart.find(i => i.id == productId);
+    const item            = currentData.cart.find(i =>
+      i.id == productId && (variantId ? i.variant_id == variantId : true)
+    );
     if (!item) return;
-    const newQty = item.qty + change;
-    const data   = await api("/cart/update/", { product_id: productId, qty: newQty });
+    const newQty  = item.qty + change;
+    const body    = { product_id: productId, qty: newQty };
+    if (variantId) body.variant_id = variantId;
+    const data    = await api("/cart/update/", body);
     if (data.success) { cartData = data; updateCartUI(); }
   };
 
-  window.removeFromCart = async function (productId) {
-    const data = await api("/cart/update/", { product_id: productId, qty: 0 });
+  window.removeFromCart = async function (productId, variantId = null) {
+    const body = { product_id: productId, qty: 0 };
+    if (variantId) body.variant_id = variantId;
+    const data = await api("/cart/update/", body);
     if (data.success) { cartData = data; updateCartUI(); }
   };
 
@@ -592,11 +631,7 @@
   document.querySelectorAll('a[href^="#"]').forEach(a => {
     a.addEventListener("click", function (e) {
       const href = this.getAttribute("href");
-
-      if (!href || href === "#") {
-          return;
-      }
-
+      if (!href || href === "#") { return; }
       const t = document.querySelector(href);
       if (t) { e.preventDefault(); t.scrollIntoView({ behavior: "smooth" }); }
     });

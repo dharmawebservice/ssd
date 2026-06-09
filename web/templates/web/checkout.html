@@ -7,7 +7,8 @@
 <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="{% static 'css/style.css' %}"><link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
 </head>
 <body data-auth="1">
 {% with nav_solid=True %}{% include "web/_navbar.html" %}{% endwith %}
@@ -49,6 +50,8 @@
       <div class="checkout-card">
         <h3><i class="fas fa-credit-card" style="color:var(--terracotta);margin-right:8px;"></i>Payment Method</h3>
         <div class="payment-methods">
+
+          <!-- Online Payment — always visible -->
           <label class="pay-option selected" id="opt-online">
             <input type="radio" name="payment" value="online" checked onchange="selectPayment('online')">
             <div>
@@ -57,6 +60,9 @@
             </div>
             <i class="fas fa-bolt pay-option-icon"></i>
           </label>
+
+          <!-- COD — only shown when store setting is ON -->
+          {% if cod_enabled %}
           <label class="pay-option" id="opt-cod">
             <input type="radio" name="payment" value="cod" onchange="selectPayment('cod')">
             <div>
@@ -65,6 +71,8 @@
             </div>
             <i class="fas fa-money-bill pay-option-icon"></i>
           </label>
+          {% endif %}
+
         </div>
       </div>
     </div>
@@ -80,6 +88,19 @@
             {% else %}<div style="width:52px;height:52px;border-radius:8px;background:var(--ivory);display:flex;align-items:center;justify-content:center;color:var(--sage);"><i class="fas fa-seedling"></i></div>{% endif %}
             <div class="order-item-mini-info">
               <h4>{{ item.product.name }}</h4>
+              {% if item.variant %}
+              <span style="
+                display:inline-block;
+                background:#E8F0EA;
+                color:#1F5132;
+                font-size:0.68rem;
+                font-weight:600;
+                padding:1px 8px;
+                border-radius:20px;
+                font-family:sans-serif;
+                letter-spacing:0.3px;
+              ">{{ item.variant.display_label }}</span>
+              {% endif %}
               <span>Qty: {{ item.quantity }}</span>
             </div>
             <div class="order-item-mini-price">₹{{ item.subtotal|floatformat:0 }}</div>
@@ -89,7 +110,7 @@
 
         <!-- Coupon -->
         <div class="coupon-row" style="margin-top:8px;">
-          <input type="text" class="coupon-input" id="couponCode" placeholder="Coupon code" value="{{ request.session.coupon_code|default:'' }}">
+          <input type="text" class="coupon-input" id="couponCode" placeholder="Coupon code">
           <button class="btn-apply-coupon" onclick="applyCoupon()">Apply</button>
         </div>
         <div id="coupon-msg" style="font-size:.82rem;margin-top:6px;font-family:'Cormorant Garamond',serif;"></div>
@@ -114,6 +135,7 @@
     </div>
   </div>
 </div>
+
 {% include "web/_footer.html" %}
 {% csrf_token %}
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -131,12 +153,17 @@ let baseDelivery = {{ delivery|floatformat:0 }};
 function selectPayment(m) {
   payMethod = m;
   document.getElementById('opt-online').classList.toggle('selected', m === 'online');
-  document.getElementById('opt-cod').classList.toggle('selected', m === 'cod');
+  const codOpt = document.getElementById('opt-cod');
+  if (codOpt) codOpt.classList.toggle('selected', m === 'cod');
   document.getElementById('rzBadge').style.display = m === 'online' ? 'flex' : 'none';
 }
 
 async function api(url, body) {
-  const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':CSRF()}, body:JSON.stringify(body) });
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF() },
+    body: JSON.stringify(body)
+  });
   return r.json();
 }
 
@@ -163,7 +190,7 @@ function getAddress() {
   const addr = el.value.trim();
   const city = document.getElementById('delivCity')?.value || '';
   const pin  = document.getElementById('delivPin')?.value || '';
-  return `${addr}${city ? ', '+city : ''}${pin ? ' - '+pin : ''}`;
+  return `${addr}${city ? ', ' + city : ''}${pin ? ' - ' + pin : ''}`;
 }
 
 async function placeOrder() {
@@ -171,20 +198,38 @@ async function placeOrder() {
   const txt  = document.getElementById('placeOrderText');
   const spin = document.getElementById('placeOrderSpinner');
   const addr = getAddress();
-  if (!addr || addr.length < 10) { window.showToast && showToast('Please enter a valid delivery address', 'error'); return; }
-  btn.disabled = true; txt.style.display = 'none'; spin.style.display = 'inline-flex';
-  const payload = { address: addr, notes: document.getElementById('orderNotes')?.value || '', coupon_code: appliedCoupon };
+  if (!addr || addr.length < 10) {
+    window.showToast && showToast('Please enter a valid delivery address', 'error');
+    return;
+  }
+  btn.disabled = true;
+  txt.style.display = 'none';
+  spin.style.display = 'inline-flex';
+
+  const payload = {
+    address: addr,
+    notes: document.getElementById('orderNotes')?.value || '',
+    coupon_code: appliedCoupon
+  };
 
   if (payMethod === 'cod') {
     const data = await api('/checkout/cod/', payload);
-    if (data.success) window.location.href = '/order/success/' + data.order_id + '/';
-    else { showToast(data.message || 'Error placing order', 'error'); btn.disabled=false; txt.style.display='inline-flex'; spin.style.display='none'; }
+    if (data.success) {
+      window.location.href = '/order/success/' + data.order_id + '/';
+    } else {
+      showToast(data.message || 'Error placing order', 'error');
+      btn.disabled = false; txt.style.display = 'inline-flex'; spin.style.display = 'none';
+    }
     return;
   }
 
   // Razorpay
   const data = await api('/checkout/create-order/', payload);
-  if (!data.success) { showToast(data.message || 'Could not create order', 'error'); btn.disabled=false; txt.style.display='inline-flex'; spin.style.display='none'; return; }
+  if (!data.success) {
+    showToast(data.message || 'Could not create order', 'error');
+    btn.disabled = false; txt.style.display = 'inline-flex'; spin.style.display = 'none';
+    return;
+  }
 
   const rz = new Razorpay({
     key: RZ_KEY,
@@ -199,13 +244,19 @@ async function placeOrder() {
         razorpay_order_id: resp.razorpay_order_id,
         razorpay_signature: resp.razorpay_signature,
       });
-      if (vData.success) window.location.href = '/order/success/' + vData.order_id + '/';
-      else { showToast('Payment verification failed. Contact support.', 'error'); btn.disabled=false; txt.style.display='inline-flex'; spin.style.display='none'; }
+      if (vData.success) {
+        window.location.href = '/order/success/' + vData.order_id + '/';
+      } else {
+        showToast('Payment verification failed. Contact support.', 'error');
+        btn.disabled = false; txt.style.display = 'inline-flex'; spin.style.display = 'none';
+      }
     },
     prefill: { name: '{{ request.user.first_name|escapejs }}', email: '{{ request.user.email|escapejs }}' },
     theme: { color: '#1C3A2B' },
     modal: {
-      ondismiss: function() { btn.disabled=false; txt.style.display='inline-flex'; spin.style.display='none'; }
+      ondismiss: function() {
+        btn.disabled = false; txt.style.display = 'inline-flex'; spin.style.display = 'none';
+      }
     }
   });
   rz.open();

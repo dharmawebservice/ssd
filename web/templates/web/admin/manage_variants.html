@@ -1,0 +1,317 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Variants — {{ product.name }}</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+</head>
+
+<body>
+
+{% for m in messages %}
+<div class="django-message"
+     data-level="{% if m.tags == 'error' %}error{% else %}success{% endif %}"
+     style="display:none;">
+    {{ m }}
+</div>
+{% endfor %}
+
+<div class="admin-layout">
+
+    {% include "web/admin/_sidebar.html" %}
+
+    <main class="main-content">
+
+        <header class="top-header">
+            <div class="header-left">
+                <a href="{% url 'product_list' %}"
+                   style="color:var(--text-secondary);font-size:1.2rem;padding:6px;">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+
+                <div>
+                    <h1 class="page-title">Age Variants</h1>
+                    <p class="page-subtitle">{{ product.name }}</p>
+                </div>
+            </div>
+
+            <button class="btn-primary" data-modal-open="addVariantModal">
+                <i class="fa-solid fa-plus"></i>
+                Add Variant
+            </button>
+        </header>
+
+        <div class="data-card">
+
+            <div class="table-responsive">
+
+                <table>
+
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Label</th>
+                        <th>MRP (₹)</th>
+                        <th>Offer (₹)</th>
+                        <th>Stock</th>
+                        <th>Status</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+
+                    {% for v in variants %}
+                    <tr>
+
+                        <td style="color:var(--text-secondary)">
+                            {{ v.id }}
+                        </td>
+
+                        <td style="font-weight:600">
+                            {{ v.display_label }}
+                        </td>
+
+                        <!-- MRP -->
+                        <td style="font-weight:600">
+                            ₹{{ v.price }}
+                        </td>
+
+                        <!-- Offer Price -->
+                        <td>
+                            {% if v.offer_price %}
+                                <span class="badge badge-sale">
+                                    ₹{{ v.offer_price }}
+                                </span>
+
+                            {% else %}
+                                <span style="color:var(--text-secondary)">
+                                    —
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Stock -->
+                        <td>
+                            {% if v.stock == 0 %}
+                                <span style="color:var(--danger);font-weight:700">
+                                    0
+                                </span>
+
+                            {% elif v.stock < 5 %}
+                                <span style="color:var(--warn);font-weight:700">
+                                    {{ v.stock }}
+                                </span>
+
+                            {% else %}
+                                <span style="color:var(--success);font-weight:700">
+                                    {{ v.stock }}
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Status -->
+                        <td>
+                            {% if v.is_active %}
+                                <span class="badge badge-active">
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="badge badge-disabled">
+                                    Hidden
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Actions -->
+                        <td>
+                            <div class="action-group">
+
+                                <form method="POST" style="display:inline;">
+                                    {% csrf_token %}
+
+                                    <input type="hidden"
+                                           name="action"
+                                           value="delete">
+
+                                    <input type="hidden"
+                                           name="variant_id"
+                                           value="{{ v.id }}">
+
+                                    <button type="submit"
+                                            class="btn-icon btn-icon-danger"
+                                            data-confirm="Delete this variant?">
+
+                                        <i class="fa-solid fa-trash"></i>
+
+                                    </button>
+                                </form>
+
+                            </div>
+                        </td>
+
+                    </tr>
+
+                    {% empty %}
+
+                    <tr class="empty-row">
+                        <td colspan="7">
+                            <i class="fa-solid fa-tags"></i>
+                            <br>
+                            No variants yet. Add one above.
+                        </td>
+                    </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+<!-- ADD VARIANT MODAL -->
+
+<div class="modal-overlay" id="addVariantModal">
+
+    <div class="modal-card">
+
+        <div class="modal-header">
+            <h2>Add Age Variant</h2>
+
+            <button class="close-modal">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <input type="hidden"
+                   name="action"
+                   value="add">
+
+            <div class="modal-body">
+
+                <div class="form-group">
+                    <label>Age / Size *</label>
+
+                    <select name="label"
+                            id="variantLabelSel"
+                            class="form-control"
+                            required
+                            onchange="toggleCustom(this.value)">
+
+                        <option value="">Select…</option>
+
+                        {% for key, display in preset_labels %}
+                            <option value="{{ key }}">
+                                {{ display }}
+                            </option>
+                        {% endfor %}
+
+                    </select>
+                </div>
+
+                <div class="form-group"
+                     id="customLabelGroup"
+                     style="display:none;">
+
+                    <label>Custom Label *</label>
+
+                    <input type="text"
+                           name="custom_label"
+                           id="customLabelInput"
+                           class="form-control"
+                           placeholder="e.g. 15 years, Mature specimen…">
+                </div>
+
+                <div class="row-inputs"
+                     style="grid-template-columns:1fr 1fr 1fr;">
+
+                    <div class="form-group">
+                        <label>MRP (₹) *</label>
+
+                        <input type="number"
+                               name="price"
+                               class="form-control"
+                               required
+                               min="0"
+                               step="0.01">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Offer Price (₹)</label>
+
+                        <input type="number"
+                               name="offer_price"
+                               class="form-control"
+                               min="0"
+                               step="0.01"
+                               placeholder="Leave blank for none">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Stock *</label>
+
+                        <input type="number"
+                               name="stock"
+                               class="form-control"
+                               required
+                               min="0"
+                               value="10">
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button type="button" class="btn-cancel">
+                    Cancel
+                </button>
+
+                <button type="submit" class="btn-accent">
+                    <i class="fa-solid fa-check"></i>
+                    Save Variant
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<script src="{% static 'js/admin.js' %}"></script>
+
+<script>
+function toggleCustom(val) {
+
+    const grp = document.getElementById('customLabelGroup');
+    const input = document.getElementById('customLabelInput');
+
+    if (val === 'custom') {
+        grp.style.display = 'flex';
+        input.required = true;
+    } else {
+        grp.style.display = 'none';
+        input.required = false;
+    }
+}
+</script>
+
+</body>
+</html>
