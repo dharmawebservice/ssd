@@ -2539,15 +2539,13 @@ from django.conf import settings
 
 from django.http import HttpResponse
 
+from django.http import HttpResponse
+from django.conf import settings
+
 def test_email(request):
-    success = send_brevo_email(
-        subject="Brevo Test Email",
-        html_content="""
-            <h2>SSD Nursery</h2>
-            <p>This is a Brevo test email from Render.</p>
-        """,
-        to_email="dharmu17reddy@gmail.com",
-        to_name="Dharmendra"
+    return HttpResponse(
+        f"BREVO_API_KEY exists: {bool(settings.BREVO_API_KEY)}<br>"
+        f"DEFAULT_FROM_EMAIL: {settings.DEFAULT_FROM_EMAIL}"
     )
 
     if success:
