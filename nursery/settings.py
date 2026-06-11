@@ -184,18 +184,16 @@ CLOUDINARY_STORAGE = {
 
 # ==================================================
 # STORAGE BACKENDS
-# Django 4.2 uses DEFAULT_FILE_STORAGE and
-# STATICFILES_STORAGE (not the STORAGES dict)
+# Django 4.2 style — NOT the STORAGES dict
+# django-cloudinary-storage 0.3.0 reads these old-style settings
 # ==================================================
 
 if DEBUG:
-    # Local development — files stored on disk
-    DEFAULT_FILE_STORAGE   = "django.core.files.storage.FileSystemStorage"
-    STATICFILES_STORAGE    = "django.contrib.staticfiles.storage.StaticFilesStorage"
+    DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+    STATICFILES_STORAGE  = "django.contrib.staticfiles.storage.StaticFilesStorage"
 else:
-    # Production — media on Cloudinary, static via WhiteNoise
-    DEFAULT_FILE_STORAGE   = "cloudinary_storage.storage.MediaCloudinaryStorage"
-    STATICFILES_STORAGE    = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+    STATICFILES_STORAGE  = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # ==================================================
 # EMAIL  (Brevo SMTP)
