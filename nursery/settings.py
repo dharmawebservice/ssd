@@ -37,9 +37,9 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "cloudinary_storage",          # must be BEFORE staticfiles
+    # "cloudinary_storage",          # must be BEFORE staticfiles
     "django.contrib.staticfiles",
-    "cloudinary",
+    # "cloudinary",
     "web",
 ]
 
@@ -156,16 +156,12 @@ USE_TZ = True
 # ==================================================
 
 STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
-STATICFILES_DIRS = [
-    BASE_DIR / "web" / "static",
-]
+# Do NOT define STATICFILES_DIRS
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Ignore duplicate file warnings and missing manifest entries
-WHITENOISE_MANIFEST_STRICT = False
-WHITENOISE_AUTOREFRESH     = True
 
 # ==================================================
 # MEDIA FILES
@@ -178,11 +174,11 @@ MEDIA_ROOT = BASE_DIR / "media"
 # CLOUDINARY
 # ==================================================
 
-CLOUDINARY_STORAGE = {
-    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME"),
-    "API_KEY":    os.getenv("CLOUDINARY_API_KEY"),
-    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET"),
-}
+# CLOUDINARY_STORAGE = {
+#     "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME"),
+#     "API_KEY":    os.getenv("CLOUDINARY_API_KEY"),
+#     "API_SECRET": os.getenv("CLOUDINARY_API_SECRET"),
+# }
 
 # ==================================================
 # STORAGE BACKENDS  (Django 4.2 style)
@@ -192,13 +188,27 @@ CLOUDINARY_STORAGE = {
 # files efficiently without needing the manifest storage.
 # ==================================================
 
-DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
-STATICFILES_STORAGE  = "django.contrib.staticfiles.storage.StaticFilesStorage"
+# STORAGES = {
+#     "default": {
+#         "BACKEND": (
+#             "cloudinary_storage.storage.MediaCloudinaryStorage"
+#             if not DEBUG
+#             else "django.core.files.storage.FileSystemStorage"
+#         ),
+#     },
+#     "staticfiles": {
+#         "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+#     },
+# }
 
-if not DEBUG:
-    # In production, media uploads go to Cloudinary
-    DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
-
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
 # ==================================================
 # EMAIL  (Brevo SMTP)
 # ==================================================
