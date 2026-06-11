@@ -163,7 +163,11 @@ STATICFILES_DIRS = [
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# Use simple WhiteNoise storage — no manifest hashing
+# CompressedManifestStaticFilesStorage crashes when cloudinary's
+# JS files are referenced in the manifest but missing from disk
 WHITENOISE_MANIFEST_STRICT = False
+WHITENOISE_AUTOREFRESH = True
 
 # ==================================================
 # MEDIA FILES
@@ -185,7 +189,8 @@ CLOUDINARY_STORAGE = {
 # ==================================================
 # STORAGE BACKENDS
 # Django 4.2 style — NOT the STORAGES dict
-# django-cloudinary-storage 0.3.0 reads these old-style settings
+# Using CompressedStaticFilesStorage (no manifest) avoids
+# the WhiteNoise crash caused by missing cloudinary JS files
 # ==================================================
 
 if DEBUG:
@@ -193,7 +198,7 @@ if DEBUG:
     STATICFILES_STORAGE  = "django.contrib.staticfiles.storage.StaticFilesStorage"
 else:
     DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
-    STATICFILES_STORAGE  = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    STATICFILES_STORAGE  = "whitenoise.storage.CompressedStaticFilesStorage"
 
 # ==================================================
 # EMAIL  (Brevo SMTP)
