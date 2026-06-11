@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-
+import cloudinary
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -38,10 +38,37 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
+    "cloudinary_storage",  # BEFORE django.contrib.staticfiles
+    "django.contrib.staticfiles",
+    "cloudinary",
     "web",
 ]
 
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME"),
+    "API_KEY":    os.getenv("CLOUDINARY_API_KEY"),
+    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET"),
+}
+
+if DEBUG:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+else:
+    STORAGES = {
+        "default": {
+            # All uploaded media goes to Cloudinary in production
+            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 # ==================================================
 # MIDDLEWARE
 # ==================================================
