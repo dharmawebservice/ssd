@@ -187,21 +187,13 @@ def _send_order_confirmation(order):
         pass   # never crash on email failure
 
 def send_email_background(func, *args, **kwargs):
-    """
-    Execute email functions in background thread.
-    Never block order placement.
-    """
-
     def runner():
         try:
             func(*args, **kwargs)
         except Exception as e:
             logger.error(f"Background email error: {e}")
-
-    Thread(
-        target=runner,
-        daemon=True
-    ).start()
+            print(f"BACKGROUND EMAIL ERROR: {e}")  # visible in Render logs
+    Thread(target=runner, daemon=True).start()
 
 def send_order_status_email(order, old_status, new_status):
     """
@@ -2537,7 +2529,7 @@ def send_brevo_email(subject, html_content, to_email, to_name="Customer"):
         print("BREVO ERROR:", e)
         return False
     
-    
+
 from django.http import HttpResponse
 from django.core.mail import send_mail
 from django.conf import settings
