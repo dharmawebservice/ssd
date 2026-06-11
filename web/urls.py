@@ -443,13 +443,13 @@ views.contact_submit,
 name="contact_submit"
 ),
 
-path(
-        'favicon.ico',
-            RedirectView.as_view(
-                url=staticfiles_storage.url('favicon.ico'),
-                permanent=True
-            ),
-        ),
+# path(
+#         'favicon.ico',
+#             RedirectView.as_view(
+#                 url=staticfiles_storage.url('web/static/favicon.ico'),
+#                 permanent=True
+#             ),
+#         ),
 
 # ════════════════════════════════════════
 # STORE SETTINGS

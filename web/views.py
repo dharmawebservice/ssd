@@ -709,19 +709,37 @@ def send_signup_otp(request):
         request.session["verify_email"] = email
 
         # Send OTP in background (non-blocking)
-        send_email_background(
-            send_mail,
-            subject="SSD Nursery — Verify Your Email",
-            message=(
-                f"Hi {fullname},\n\n"
-                f"Your OTP is: {otp}\n\n"
-                f"Valid for 5 minutes.\n\n"
-                f"— SSD Nursery"
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=False,
+        html = f"""
+        <h2>SSD Nursery</h2>
+
+        <p>Hi {fullname},</p>
+
+        <p>Your OTP is:</p>
+
+        <h1>{otp}</h1>
+
+        <p>Valid for 5 minutes.</p>
+
+        <p>— SSD Nursery</p>
+        """
+
+        success = send_brevo_html_email(
+            "SSD Nursery — Verify Your Email",
+            html,
+            email,
+            fullname,
         )
+
+        if not success:
+            return JsonResponse({
+                "success": False,
+                "message": "Unable to send OTP. Please try again."
+            })
+
+        return JsonResponse({
+            "success": True,
+            "message": "OTP sent successfully!"
+        })
 
         # Return immediately
         return JsonResponse({
@@ -797,14 +815,23 @@ def resend_otp(request):
             f"— SSD Nursery"
         )
         try:
-            send_email_background(
-                send_mail,
-                subject="SSD Nursery — Verify Your Email",
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                fail_silently=False,
+            html = f"""
+                <h2>SSD Nursery</h2>
+                <p>Your OTP is:</p>
+                <h1>{otp}</h1>
+                <p>Valid for 5 minutes.</p>
+            """
+
+            success = send_brevo_html_email(
+                "SSD Nursery — Verify Your Email",
+                html,
+                email,
             )
+            if not success:
+                return JsonResponse({
+                    "success": False,
+                    "message": "Unable to send OTP."
+                })
         except Exception as e:
             print("RESEND OTP ERROR:", str(e))
 
@@ -2488,3 +2515,39 @@ def test_email(request):
         return HttpResponse("Email sent successfully")
     except Exception as e:
         return HttpResponse(f"Email failed: {str(e)}")
+    
+import requests
+
+def send_brevo_html_email(subject, html_content, to_email, to_name="Customer"):
+    try:
+        response = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "accept": "application/json",
+                "api-key": settings.BREVO_API_KEY,
+                "content-type": "application/json",
+            },
+            json={
+                "sender": {
+                    "name": "SSD Nursery",
+                    "email": settings.DEFAULT_FROM_EMAIL,
+                },
+                "to": [
+                    {
+                        "email": to_email,
+                        "name": to_name,
+                    }
+                ],
+                "subject": subject,
+                "htmlContent": html_content,
+            },
+            timeout=15,
+        )
+
+        response.raise_for_status()
+
+        return True
+
+    except Exception as e:
+        logger.exception("BREVO EMAIL ERROR")
+        return False
