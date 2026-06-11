@@ -2525,7 +2525,11 @@ def send_brevo_email(subject, html_content, to_email, to_name="Customer"):
             timeout=15,
         )
 
+        print("BREVO STATUS:", response.status_code)
+        print("BREVO RESPONSE:", response.text)
+
         response.raise_for_status()
+
         return True
 
     except Exception as e:
@@ -2533,19 +2537,22 @@ def send_brevo_email(subject, html_content, to_email, to_name="Customer"):
         print("BREVO ERROR:", e)
         return False
     
+    
 from django.http import HttpResponse
 from django.core.mail import send_mail
 from django.conf import settings
 
 from django.http import HttpResponse
 
-from django.http import HttpResponse
-from django.conf import settings
-
 def test_email(request):
-    return HttpResponse(
-        f"BREVO_API_KEY exists: {bool(settings.BREVO_API_KEY)}<br>"
-        f"DEFAULT_FROM_EMAIL: {settings.DEFAULT_FROM_EMAIL}"
+    success = send_brevo_email(
+        subject="Brevo Test Email",
+        html_content="""
+            <h2>SSD Nursery</h2>
+            <p>This is a Brevo test email from Render.</p>
+        """,
+        to_email="dharmu17reddy@gmail.com",
+        to_name="Dharmendra",
     )
 
     if success:
@@ -2553,6 +2560,7 @@ def test_email(request):
     else:
         return HttpResponse("Brevo email failed")
     
+
 import requests
 
 def send_brevo_html_email(subject, html_content, to_email, to_name="Customer"):
