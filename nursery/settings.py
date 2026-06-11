@@ -1,6 +1,5 @@
 from pathlib import Path
 import os
-import cloudinary
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -39,7 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "cloudinary_storage",          # must be BEFORE staticfiles
-    "django.contrib.staticfiles",  # only once
+    "django.contrib.staticfiles",
     "cloudinary",
     "web",
 ]
@@ -184,43 +183,33 @@ CLOUDINARY_STORAGE = {
 }
 
 # ==================================================
-# STORAGE BACKENDS  (single definition)
+# STORAGE BACKENDS
+# Django 4.2 uses DEFAULT_FILE_STORAGE and
+# STATICFILES_STORAGE (not the STORAGES dict)
 # ==================================================
 
 if DEBUG:
-    STORAGES = {
-        "default": {
-            # Local filesystem in development
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        },
-    }
+    # Local development — files stored on disk
+    DEFAULT_FILE_STORAGE   = "django.core.files.storage.FileSystemStorage"
+    STATICFILES_STORAGE    = "django.contrib.staticfiles.storage.StaticFilesStorage"
 else:
-    STORAGES = {
-        "default": {
-            # Cloudinary in production — survives Render redeploys
-            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-        },
-    }
+    # Production — media on Cloudinary, static via WhiteNoise
+    DEFAULT_FILE_STORAGE   = "cloudinary_storage.storage.MediaCloudinaryStorage"
+    STATICFILES_STORAGE    = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # ==================================================
 # EMAIL  (Brevo SMTP)
 # ==================================================
 
-EMAIL_BACKEND      = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST         = os.getenv("EMAIL_HOST", "smtp-relay.brevo.com")
-EMAIL_PORT         = int(os.getenv("EMAIL_PORT", 587))
-EMAIL_HOST_USER    = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_BACKEND       = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST          = os.getenv("EMAIL_HOST", "smtp-relay.brevo.com")
+EMAIL_PORT          = int(os.getenv("EMAIL_PORT", 587))
+EMAIL_HOST_USER     = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS      = os.getenv("EMAIL_USE_TLS", "True") == "True"
-EMAIL_USE_SSL      = os.getenv("EMAIL_USE_SSL", "False") == "True"
+EMAIL_USE_TLS       = os.getenv("EMAIL_USE_TLS", "True") == "True"
+EMAIL_USE_SSL       = os.getenv("EMAIL_USE_SSL", "False") == "True"
 
-DEFAULT_FROM_EMAIL = os.getenv(
+DEFAULT_FROM_EMAIL  = os.getenv(
     "DEFAULT_FROM_EMAIL",
     "ssdnurserygarden@gmail.com"
 )
@@ -228,7 +217,7 @@ DEFAULT_FROM_EMAIL = os.getenv(
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
 # ==================================================
-# SITE URL  (used in modification-request emails)
+# SITE URL  (used in order modification emails)
 # ==================================================
 
 SITE_URL = os.getenv("SITE_URL", "https://ssd-524c.onrender.com")
