@@ -1,7 +1,8 @@
 from pathlib import Path
 import os
-from dotenv import load_dotenv
 import cloudinary
+from dotenv import load_dotenv
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,47 +38,19 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "django.contrib.staticfiles",
-    "cloudinary_storage",  # BEFORE django.contrib.staticfiles
-    "django.contrib.staticfiles",
+    "cloudinary_storage",          # must be BEFORE staticfiles
+    "django.contrib.staticfiles",  # only once
     "cloudinary",
     "web",
 ]
 
-CLOUDINARY_STORAGE = {
-    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME"),
-    "API_KEY":    os.getenv("CLOUDINARY_API_KEY"),
-    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET"),
-}
-
-if DEBUG:
-    STORAGES = {
-        "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        },
-    }
-else:
-    STORAGES = {
-        "default": {
-            # All uploaded media goes to Cloudinary in production
-            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-        },
-    }
 # ==================================================
 # MIDDLEWARE
 # ==================================================
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-
     "whitenoise.middleware.WhiteNoiseMiddleware",
-
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -105,7 +78,6 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-
                 "web.context_processors.user_profile",
                 "web.context_processors.cart_count",
             ],
@@ -176,9 +148,7 @@ CACHES = {
 # ==================================================
 
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "Asia/Kolkata"
-
 USE_I18N = True
 USE_TZ = True
 
@@ -194,29 +164,6 @@ STATICFILES_DIRS = [
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# IMPORTANT:
-# Use normal static storage in development.
-# Use WhiteNoise manifest storage only in production.
-
-if DEBUG:
-    STORAGES = {
-        "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        },
-    }
-else:
-    STORAGES = {
-        "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-        },
-    }
-
 WHITENOISE_MANIFEST_STRICT = False
 
 # ==================================================
@@ -227,27 +174,72 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # ==================================================
-# EMAIL
+# CLOUDINARY
 # ==================================================
+
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME"),
+    "API_KEY":    os.getenv("CLOUDINARY_API_KEY"),
+    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET"),
+}
+
 # ==================================================
-# EMAIL
+# STORAGE BACKENDS  (single definition)
 # ==================================================
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp-relay.brevo.com")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+
+if DEBUG:
+    STORAGES = {
+        "default": {
+            # Local filesystem in development
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+else:
+    STORAGES = {
+        "default": {
+            # Cloudinary in production — survives Render redeploys
+            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+
+# ==================================================
+# EMAIL  (Brevo SMTP)
+# ==================================================
+
+EMAIL_BACKEND      = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST         = os.getenv("EMAIL_HOST", "smtp-relay.brevo.com")
+EMAIL_PORT         = int(os.getenv("EMAIL_PORT", 587))
+EMAIL_HOST_USER    = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
-EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False") == "True"
+EMAIL_USE_TLS      = os.getenv("EMAIL_USE_TLS", "True") == "True"
+EMAIL_USE_SSL      = os.getenv("EMAIL_USE_SSL", "False") == "True"
 
 DEFAULT_FROM_EMAIL = os.getenv(
     "DEFAULT_FROM_EMAIL",
     "ssdnurserygarden@gmail.com"
 )
+
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
-# settings.py
+# ==================================================
+# SITE URL  (used in modification-request emails)
+# ==================================================
+
 SITE_URL = os.getenv("SITE_URL", "https://ssd-524c.onrender.com")
+
+# ==================================================
+# PAYMENTS
+# ==================================================
+
+RAZORPAY_KEY_ID     = os.getenv("RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
+
 # ==================================================
 # DEFAULT PRIMARY KEY
 # ==================================================
@@ -261,18 +253,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
         },
     },
-
     "root": {
         "handlers": ["console"],
         "level": "WARNING",
     },
-
     "loggers": {
         "web": {
             "handlers": ["console"],
@@ -281,6 +270,3 @@ LOGGING = {
         },
     },
 }
-
-RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
-RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
