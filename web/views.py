@@ -1,3 +1,4 @@
+from email import message
 from threading import Thread
 import logging
 
@@ -665,13 +666,20 @@ def send_signup_otp(request):
                 message=(
                     f"Hi {fullname},\n\n"
                     f"Your OTP is: {otp}\n\n"
-                    f"Valid for 5 minutes.\n\n— SSD Nursery"
+                    f"Valid for 5 minutes.\n\n"
+                    f"— SSD Nursery"
                 ),
-                from_email=None,
+                from_email=settings.EMAIL_HOST_USER,
                 recipient_list=[email],
+                fail_silently=False,
             )
-        except Exception:
-            return JsonResponse({"success": False, "message": "Unable to send OTP email. Please try again."})
+        except Exception as e:
+            print("OTP EMAIL ERROR:", str(e))
+
+            return JsonResponse({
+                "success": False,
+                "message": str(e)
+            })
 
         return JsonResponse({"success": True, "message": "OTP sent successfully!"})
 
@@ -735,13 +743,19 @@ def resend_otp(request):
         EmailOTP.objects.update_or_create(email=email, defaults={"otp": otp})
         try:
             send_mail(
-                subject="SSD Nursery OTP",
-                message=f"Your new OTP is: {otp}",
-                from_email=None,
+                subject="SSD Nursery — Verify Your Email",
+                message=message,
+                from_email=settings.EMAIL_HOST_USER,
                 recipient_list=[email],
+                fail_silently=False,
             )
-        except Exception:
-            return JsonResponse({"success": False, "message": "Could not send OTP email."})
+        except Exception as e:
+            print("RESEND OTP ERROR:", str(e))
+
+            return JsonResponse({
+                "success": False,
+                "message": str(e)
+            })
         return JsonResponse({"success": True, "message": "OTP resent!"})
     except Exception as e:
         return JsonResponse({"success": False, "message": str(e)})
@@ -2374,3 +2388,30 @@ def manage_variants(request, product_id):
         "variants":      variants,
         "preset_labels": PRESET_LABELS,
     })
+
+from django.core.mail import EmailMultiAlternatives
+from django.conf import settings
+import logging
+
+logger = logging.getLogger(__name__)
+
+def send_email(subject, body, recipients, html=None):
+    try:
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=body,
+            from_email=settings.EMAIL_HOST_USER,
+            to=recipients,
+        )
+
+        if html:
+            msg.attach_alternative(html, "text/html")
+
+        msg.send(fail_silently=False)
+
+        return True
+
+    except Exception as e:
+        logger.exception("EMAIL ERROR")
+        print("EMAIL ERROR:", str(e))
+        return False
