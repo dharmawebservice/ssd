@@ -2498,23 +2498,62 @@ def send_email(subject, body, recipients, html=None):
         logger.exception("EMAIL ERROR")
         print("EMAIL ERROR:", str(e))
         return False
+
+import requests
+
+def send_brevo_email(subject, html_content, to_email, to_name="Customer"):
+    try:
+        response = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "accept": "application/json",
+                "api-key": settings.BREVO_API_KEY,
+                "content-type": "application/json",
+            },
+            json={
+                "sender": {
+                    "name": "SSD Nursery",
+                    "email": settings.DEFAULT_FROM_EMAIL,
+                },
+                "to": [{
+                    "email": to_email,
+                    "name": to_name,
+                }],
+                "subject": subject,
+                "htmlContent": html_content,
+            },
+            timeout=15,
+        )
+
+        response.raise_for_status()
+        return True
+
+    except Exception as e:
+        logger.exception("BREVO EMAIL ERROR")
+        print("BREVO ERROR:", e)
+        return False
     
 from django.http import HttpResponse
 from django.core.mail import send_mail
 from django.conf import settings
 
+from django.http import HttpResponse
+
 def test_email(request):
-    try:
-        send_mail(
-            "Test Email",
-            "This is a test email.",
-            settings.DEFAULT_FROM_EMAIL,
-            ["yourgmail@gmail.com"],
-            fail_silently=False,
-        )
-        return HttpResponse("Email sent successfully")
-    except Exception as e:
-        return HttpResponse(f"Email failed: {str(e)}")
+    success = send_brevo_email(
+        subject="Brevo Test Email",
+        html_content="""
+            <h2>SSD Nursery</h2>
+            <p>This is a Brevo test email from Render.</p>
+        """,
+        to_email="dharmu17reddy@gmail.com",
+        to_name="Dharmendra"
+    )
+
+    if success:
+        return HttpResponse("Brevo email sent successfully")
+    else:
+        return HttpResponse("Brevo email failed")
     
 import requests
 
