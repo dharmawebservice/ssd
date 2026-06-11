@@ -622,71 +622,121 @@ def auth_page(request):
 
 def send_signup_otp(request):
     if request.method != "POST":
-        return JsonResponse({"success": False, "message": "Invalid request"})
+        return JsonResponse({
+            "success": False,
+            "message": "Invalid request"
+        })
+
     try:
-        data     = json.loads(request.body)
+        data = json.loads(request.body)
+
         fullname = data.get("fullname", "").strip()
-        email    = data.get("email", "").strip().lower()
-        phone    = data.get("phone", "").strip()
+        email = data.get("email", "").strip().lower()
+        phone = data.get("phone", "").strip()
         password = data.get("password", "")
 
-        # Validate
+        # Validate name
         if len(fullname) < 3:
-            return JsonResponse({"success": False, "message": "Name must be at least 3 characters."})
-        if not re.match(r"^[A-Za-z ]+$", fullname):
-            return JsonResponse({"success": False, "message": "Name should contain only letters."})
-        if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
-            return JsonResponse({"success": False, "message": "Enter a valid email address."})
-        if User.objects.filter(email__iexact=email).exists():
-            return JsonResponse({"success": False, "message": "Email already registered."})
-        if not phone.isdigit() or len(phone) != 10:
-            return JsonResponse({"success": False, "message": "Phone must be exactly 10 digits."})
-        if UserProfile.objects.filter(phone=phone).exists():
-            return JsonResponse({"success": False, "message": "Phone already registered."})
-        if (len(password) < 8
-                or not re.search(r"[A-Z]", password)
-                or not re.search(r"[a-z]", password)
-                or not re.search(r"\d", password)
-                or not re.search(r"[!@#$%^&*()_+=\-{}[\]:;'<>,.?/]", password)):
-            return JsonResponse({"success": False,
-                "message": "Password needs 8+ chars, uppercase, lowercase, digit and special character."})
-
-        otp = str(random.randint(100000, 999999))
-        EmailOTP.objects.update_or_create(email=email, defaults={"otp": otp})
-        request.session["signup_data"]  = {
-            "fullname": fullname, "email": email,
-            "phone":    phone,    "password": password,
-        }
-        request.session["verify_email"] = email
-
-        # Wrap mail so a bad SMTP config never kills signup flow
-        try:
-            send_mail(
-                subject="SSD Nursery — Verify Your Email",
-                message=(
-                    f"Hi {fullname},\n\n"
-                    f"Your OTP is: {otp}\n\n"
-                    f"Valid for 5 minutes.\n\n"
-                    f"— SSD Nursery"
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                fail_silently=False,
-            )
-        except Exception as e:
-            print("OTP EMAIL ERROR:", str(e))
-
             return JsonResponse({
                 "success": False,
-                "message": str(e)
+                "message": "Name must be at least 3 characters."
             })
 
-        return JsonResponse({"success": True, "message": "OTP sent successfully!"})
+        if not re.match(r"^[A-Za-z ]+$", fullname):
+            return JsonResponse({
+                "success": False,
+                "message": "Name should contain only letters."
+            })
+
+        # Validate email
+        if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
+            return JsonResponse({
+                "success": False,
+                "message": "Enter a valid email address."
+            })
+
+        if User.objects.filter(email__iexact=email).exists():
+            return JsonResponse({
+                "success": False,
+                "message": "Email already registered."
+            })
+
+        # Validate phone
+        if not phone.isdigit() or len(phone) != 10:
+            return JsonResponse({
+                "success": False,
+                "message": "Phone must be exactly 10 digits."
+            })
+
+        if UserProfile.objects.filter(phone=phone).exists():
+            return JsonResponse({
+                "success": False,
+                "message": "Phone already registered."
+            })
+
+        # Validate password
+        if (
+            len(password) < 8
+            or not re.search(r"[A-Z]", password)
+            or not re.search(r"[a-z]", password)
+            or not re.search(r"\d", password)
+            or not re.search(r"[!@#$%^&*()_+=\-{}\[\]:;'<>,.?/]", password)
+        ):
+            return JsonResponse({
+                "success": False,
+                "message": (
+                    "Password needs 8+ chars, uppercase, "
+                    "lowercase, digit and special character."
+                )
+            })
+
+        # Generate OTP
+        otp = str(random.randint(100000, 999999))
+
+        EmailOTP.objects.update_or_create(
+            email=email,
+            defaults={"otp": otp}
+        )
+
+        # Save signup data in session
+        request.session["signup_data"] = {
+            "fullname": fullname,
+            "email": email,
+            "phone": phone,
+            "password": password,
+        }
+
+        request.session["verify_email"] = email
+
+        # Send OTP in background (non-blocking)
+        send_email_background(
+            send_mail,
+            subject="SSD Nursery — Verify Your Email",
+            message=(
+                f"Hi {fullname},\n\n"
+                f"Your OTP is: {otp}\n\n"
+                f"Valid for 5 minutes.\n\n"
+                f"— SSD Nursery"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+
+        # Return immediately
+        return JsonResponse({
+            "success": True,
+            "message": "OTP sent successfully!"
+        })
 
     except Exception as e:
-        return JsonResponse({"success": False, "message": str(e)})
+        logger.exception("SEND SIGNUP OTP ERROR")
 
-
+        return JsonResponse({
+            "success": False,
+            "message": str(e)
+        })
+    
 def verify_signup_otp(request):
     if request.method != "POST":
         return JsonResponse({"success": False, "message": "Invalid request"})
@@ -747,7 +797,8 @@ def resend_otp(request):
             f"— SSD Nursery"
         )
         try:
-            send_mail(
+            send_email_background(
+                send_mail,
                 subject="SSD Nursery — Verify Your Email",
                 message=message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
@@ -2420,3 +2471,20 @@ def send_email(subject, body, recipients, html=None):
         logger.exception("EMAIL ERROR")
         print("EMAIL ERROR:", str(e))
         return False
+    
+from django.http import HttpResponse
+from django.core.mail import send_mail
+from django.conf import settings
+
+def test_email(request):
+    try:
+        send_mail(
+            "Test Email",
+            "This is a test email.",
+            settings.DEFAULT_FROM_EMAIL,
+            ["yourgmail@gmail.com"],
+            fail_silently=False,
+        )
+        return HttpResponse("Email sent successfully")
+    except Exception as e:
+        return HttpResponse(f"Email failed: {str(e)}")

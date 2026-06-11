@@ -217,6 +217,8 @@ DEFAULT_FROM_EMAIL = os.getenv(
     "DEFAULT_FROM_EMAIL",
     EMAIL_HOST_USER
 )
+
+EMAIL_TIMEOUT = 20
 # ==================================================
 # DEFAULT PRIMARY KEY
 # ==================================================
