@@ -1,4 +1,4 @@
-from email import message
+
 from threading import Thread
 import logging
 
@@ -180,7 +180,7 @@ def _send_order_confirmation(order):
                 f"Delivery to:\n{order.address}\n\n"
                 f"Thank you for shopping with SSD Nursery!\n— Team SSD Nursery"
             ),
-            from_email=None,
+            from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[order.user.email],
         )
     except Exception:
@@ -239,7 +239,7 @@ def send_order_status_email(order, old_status, new_status):
         customer_msg = EmailMultiAlternatives(
             subject=subject,
             body=f"Your order #{order.order_number} status: {new_status}",
-            from_email=settings.EMAIL_HOST_USER,
+            from_email=settings.DEFAULT_FROM_EMAIL,
             to=[order.user.email],
         )
 
@@ -261,7 +261,7 @@ def send_order_status_email(order, old_status, new_status):
             admin_msg = EmailMultiAlternatives(
                 subject=f"🛒 New Order #{order.order_number} — ₹{order.total_amount}",
                 body=f"New order #{order.order_number} placed by {order.user.first_name}.",
-                from_email=settings.EMAIL_HOST_USER,
+                from_email=settings.DEFAULT_FROM_EMAIL,
                 to=["ssdnurserygarden@gmail.com"],
             )
 
@@ -669,7 +669,7 @@ def send_signup_otp(request):
                     f"Valid for 5 minutes.\n\n"
                     f"— SSD Nursery"
                 ),
-                from_email=settings.EMAIL_HOST_USER,
+                from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],
                 fail_silently=False,
             )
@@ -741,11 +741,16 @@ def resend_otp(request):
             return JsonResponse({"success": False, "message": "Session expired."})
         otp = str(random.randint(100000, 999999))
         EmailOTP.objects.update_or_create(email=email, defaults={"otp": otp})
+        message = (
+            f"Your OTP is: {otp}\n\n"
+            f"Valid for 5 minutes.\n\n"
+            f"— SSD Nursery"
+        )
         try:
             send_mail(
                 subject="SSD Nursery — Verify Your Email",
                 message=message,
-                from_email=settings.EMAIL_HOST_USER,
+                from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],
                 fail_silently=False,
             )
@@ -1886,7 +1891,7 @@ def contact_submit(request):
         admin_email = EmailMultiAlternatives(
             subject=f"SSD Nursery Contact - {subject}",
             body="New Contact Form Submission",
-            from_email=settings.EMAIL_HOST_USER,
+            from_email=settings.DEFAULT_FROM_EMAIL,
             to=["ssdnurserygarden@gmail.com"]
         )
 
@@ -1909,7 +1914,7 @@ def contact_submit(request):
         user_email = EmailMultiAlternatives(
             subject="We Received Your Message 🌱",
             body="Thank you for contacting SSD Nursery",
-            from_email=settings.EMAIL_HOST_USER,
+            from_email=settings.DEFAULT_FROM_EMAIL,
             to=[email]
         )
 
@@ -2042,7 +2047,7 @@ def _send_modification_email(order, mod_req):
                 f"To decline: {decline_url}\n\n"
                 f"— SSD Nursery Team"
             ),
-            from_email=settings.EMAIL_HOST_USER,
+            from_email=settings.DEFAULT_FROM_EMAIL,
             to=[order.user.email],
         )
         msg.attach_alternative(html_body, "text/html")
@@ -2112,7 +2117,7 @@ def _send_mod_response_admin_email(order, mod_req, accepted):
                 f"Proposed: {mod_req.proposed_changes}\n\n"
                 f"{'Go to admin panel to apply the change.' if accepted else 'No action needed.'}"
             ),
-            from_email=settings.EMAIL_HOST_USER,
+            from_email=settings.DEFAULT_FROM_EMAIL,
             to=["ssdnurserygarden@gmail.com"],
         )
         msg.send()
@@ -2400,7 +2405,7 @@ def send_email(subject, body, recipients, html=None):
         msg = EmailMultiAlternatives(
             subject=subject,
             body=body,
-            from_email=settings.EMAIL_HOST_USER,
+            from_email=settings.DEFAULT_FROM_EMAIL,
             to=recipients,
         )
 
