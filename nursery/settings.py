@@ -205,6 +205,7 @@ STORAGES = {
     },
 }
 
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 # ==================================================
 # EMAIL  (Brevo SMTP)
 # ==================================================
