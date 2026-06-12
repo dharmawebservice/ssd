@@ -240,7 +240,10 @@ def send_order_status_email(order, old_status, new_status):
             "text/html"
         )
 
-        customer_msg.send()
+        try:
+            customer_msg.send()
+        except Exception as e:
+            print("CUSTOMER EMAIL ERROR:", e)
 
         # Admin email ONLY for newly placed orders
         if old_status == "New":
@@ -262,7 +265,10 @@ def send_order_status_email(order, old_status, new_status):
                 "text/html"
             )
 
-            admin_msg.send()
+            try:
+                admin_msg.send()
+            except Exception as e:
+                print("ADMIN EMAIL ERROR:", e)
 
     except Exception as e:
         print("ORDER STATUS MAIL ERROR:", e)
@@ -767,11 +773,27 @@ def verify_signup_otp(request):
         if User.objects.filter(email__iexact=email).exists():
             return JsonResponse({"success": False, "message": "Account already exists."})
 
+        print("VERIFY OTP START")
+
         user = User.objects.create_user(
-            username=email, email=email,
+            username=email,
+            email=email,
             password=signup_data["password"],
             first_name=signup_data["fullname"],
         )
+
+        print("USER CREATED:", user.id, user.email)
+
+        UserProfile.objects.create(
+            user=user,
+            phone=signup_data["phone"]
+        )
+
+        print("PROFILE CREATED")
+
+        login(request, user)
+
+        print("LOGIN SUCCESS")
         UserProfile.objects.create(user=user, phone=signup_data["phone"])
         saved.delete()
 
