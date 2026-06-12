@@ -1,4 +1,3 @@
-
 from threading import Thread
 import logging
 
@@ -195,10 +194,51 @@ def send_email_background(func, *args, **kwargs):
             print(f"BACKGROUND EMAIL ERROR: {e}")  # visible in Render logs
     Thread(target=runner, daemon=True).start()
 
+
+# ══════════════════════════════════════════════════════════════
+# BREVO EMAIL HELPERS
+# ══════════════════════════════════════════════════════════════
+
+import requests as _requests
+
+def send_brevo_html_email(subject, html_content, to_email, to_name="Customer"):
+    try:
+        response = _requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "accept": "application/json",
+                "api-key": settings.BREVO_API_KEY,
+                "content-type": "application/json",
+            },
+            json={
+                "sender": {
+                    "name": "SSD Nursery",
+                    "email": settings.DEFAULT_FROM_EMAIL,
+                },
+                "to": [
+                    {
+                        "email": to_email,
+                        "name": to_name,
+                    }
+                ],
+                "subject": subject,
+                "htmlContent": html_content,
+            },
+            timeout=15,
+        )
+        response.raise_for_status()
+        return True
+    except Exception as e:
+        logger.exception("BREVO EMAIL ERROR")
+        print("BREVO ERROR:", e)
+        return False
+
+
 def send_order_status_email(order, old_status, new_status):
     """
     Sends a status update email to the customer for every transition.
     Sends an admin alert ONLY when a brand-new order is placed (old_status == "New").
+    Uses Brevo API instead of Django SMTP.
     """
     try:
         subject_map = {
@@ -222,56 +262,37 @@ def send_order_status_email(order, old_status, new_status):
             "new_status": new_status,
         }
 
-        # Customer Email
+        # ── Customer email ────────────────────────────────────
         customer_html = render_to_string(
             "web/emails/order_status_customer.html",
             context
         )
 
-        customer_msg = EmailMultiAlternatives(
-            subject=subject,
-            body=f"Your order #{order.order_number} status: {new_status}",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[order.user.email],
-        )
-
-        customer_msg.attach_alternative(
+        send_brevo_html_email(
+            subject,
             customer_html,
-            "text/html"
+            order.user.email,
+            order.user.first_name or "Customer",
         )
 
-        try:
-            customer_msg.send()
-        except Exception as e:
-            print("CUSTOMER EMAIL ERROR:", e)
-
-        # Admin email ONLY for newly placed orders
+        # ── Admin email — only for brand-new orders ───────────
         if old_status == "New":
-
             admin_html = render_to_string(
                 "web/emails/order_status_admin.html",
                 context
             )
 
-            admin_msg = EmailMultiAlternatives(
-                subject=f"🛒 New Order #{order.order_number} — ₹{order.total_amount}",
-                body=f"New order #{order.order_number} placed by {order.user.first_name}.",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=["ssdnurserygarden@gmail.com"],
-            )
-
-            admin_msg.attach_alternative(
+            send_brevo_html_email(
+                f"🛒 New Order #{order.order_number} — ₹{order.total_amount}",
                 admin_html,
-                "text/html"
+                "ssdnurserygarden@gmail.com",
+                "SSD Nursery Admin",
             )
-
-            try:
-                admin_msg.send()
-            except Exception as e:
-                print("ADMIN EMAIL ERROR:", e)
 
     except Exception as e:
         print("ORDER STATUS MAIL ERROR:", e)
+
+
 # ══════════════════════════════════════════════════════════════
 # HOME
 # ══════════════════════════════════════════════════════════════
@@ -539,7 +560,7 @@ def product_detail(request, slug):
         "in_wishlist":          in_wishlist,
         "cart_qty":             cart_qty,
         "variants":             variants,
-        "cart_items_by_variant": cart_items_by_variant,  # NEW
+        "cart_items_by_variant": cart_items_by_variant,
     })
 
 
@@ -708,7 +729,6 @@ def send_signup_otp(request):
 
         request.session["verify_email"] = email
 
-        # Send OTP in background (non-blocking)
         html = f"""
         <h2>SSD Nursery</h2>
 
@@ -794,14 +814,13 @@ def verify_signup_otp(request):
         login(request, user)
 
         print("LOGIN SUCCESS")
-        UserProfile.objects.create(user=user, phone=signup_data["phone"])
+
         saved.delete()
 
-        # Fix Issue 13: clean session after verified
+        # Clean session after verified
         request.session.pop("signup_data", None)
         request.session.pop("verify_email", None)
 
-        login(request, user)
         return JsonResponse({"success": True, "message": "OTP verified!"})
 
     except EmailOTP.DoesNotExist:
@@ -819,11 +838,6 @@ def resend_otp(request):
             return JsonResponse({"success": False, "message": "Session expired."})
         otp = str(random.randint(100000, 999999))
         EmailOTP.objects.update_or_create(email=email, defaults={"otp": otp})
-        message = (
-            f"Your OTP is: {otp}\n\n"
-            f"Valid for 5 minutes.\n\n"
-            f"— SSD Nursery"
-        )
         try:
             html = f"""
                 <h2>SSD Nursery</h2>
@@ -928,7 +942,6 @@ def reverse_geocode(request):
     try:
         if not lat or not lon:
             return JsonResponse({"success": False, "message": "Lat/Lon required."})
-        # Fix Issue 9: geopy timeout
         geo      = Nominatim(user_agent="ssd_nursery", timeout=10)
         location = geo.reverse(f"{lat}, {lon}", exactly_one=True, language="en")
         if not location:
@@ -1175,7 +1188,7 @@ def create_razorpay_order(request):
         subtotal, _ = _cart_totals(items)
         delivery    = _delivery_charge(subtotal)
 
-        # Fix Issue 6: stock validation before payment
+        # Stock validation before payment
         for ci in items:
             if ci.quantity > ci.product.stock:
                 return JsonResponse({
@@ -1202,7 +1215,6 @@ def create_razorpay_order(request):
             "receipt":  f"ssd_{request.user.id}_{int(timezone.now().timestamp())}",
         })
 
-        # Fix Issue 2: store as string not float
         request.session["pending_checkout"] = {
             "subtotal":    str(subtotal),
             "delivery":    str(delivery),
@@ -1245,7 +1257,7 @@ def verify_razorpay_payment(request):
         rz_payment_id = data.get("razorpay_payment_id", "")
         rz_signature  = data.get("razorpay_signature", "")
 
-        # Fix Issue 4: official Razorpay signature verification
+        # Official Razorpay signature verification
         client = _razorpay_client()
         try:
             client.utility.verify_payment_signature({
@@ -1256,7 +1268,7 @@ def verify_razorpay_payment(request):
         except razorpay.errors.SignatureVerificationError:
             return JsonResponse({"success": False, "message": "Payment verification failed."})
 
-        # Fix Issue 3: idempotency — block duplicate order for same payment
+        # Idempotency — block duplicate order for same payment
         if Order.objects.filter(payment_id=rz_payment_id).exists():
             existing = Order.objects.get(payment_id=rz_payment_id)
             return JsonResponse({"success": True, "order_id": existing.id})
@@ -1265,12 +1277,10 @@ def verify_razorpay_payment(request):
         if not items.exists():
             return JsonResponse({"success": False, "message": "Cart is empty."})
 
-        # Fix Issue 2: Decimal from session strings
         total    = Decimal(pending["total"])
         discount = Decimal(pending["discount"])
         coupon   = Coupon.objects.filter(id=pending["coupon_id"]).first() if pending["coupon_id"] else None
 
-        # Fix Issue 5: transaction.atomic + SELECT FOR UPDATE
         with transaction.atomic():
             order = Order.objects.create(
                 user            = request.user,
@@ -1285,7 +1295,6 @@ def verify_razorpay_payment(request):
                 coupon          = coupon,
             )
             for ci in items.select_for_update():
-                # Fix Issue 6: final stock re-check inside transaction
                 if ci.quantity > ci.product.stock:
                     raise ValueError(f"'{ci.product.name}' ran out of stock.")
                 OrderItem.objects.create(
@@ -1302,8 +1311,7 @@ def verify_razorpay_payment(request):
         if "pending_checkout" in request.session:
             del request.session["pending_checkout"]
 
-
-        # Customer + Admin HTML email
+        # Customer + Admin HTML email via Brevo
         send_email_background(
             send_order_status_email,
             order,
@@ -1555,7 +1563,7 @@ def edit_product(request, id):
     if request.method == "POST":
         p.category    = get_object_or_404(Category, id=request.POST.get("category"))
         p.name        = request.POST.get("name", p.name).strip()
-        p.slug        = _unique_slug(Product, p.name, exclude_id=p.id)   # Fix Issue 7
+        p.slug        = _unique_slug(Product, p.name, exclude_id=p.id)
         p.price       = request.POST.get("price", p.price)
         p.offer_price = request.POST.get("offer_price") or None
         p.stock       = request.POST.get("stock", p.stock)
@@ -1735,8 +1743,6 @@ def reviews_list(request):
     })
 
 
-
-
 @login_required
 @_admin_required
 def delete_review(request, id):
@@ -1890,7 +1896,6 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 
 def about(request):
-    # Pass 'active_nav' if you want to highlight the dropdown in your navbar
     context = {'active_nav': 'more'} 
     return render(request, 'web/about.html', context)
 
@@ -1900,16 +1905,10 @@ def faq(request):
 
 def contact(request):
     if request.method == 'POST':
-        # Retrieve form data
         name = request.POST.get('name')
         email = request.POST.get('email')
         subject = request.POST.get('subject')
         message = request.POST.get('message')
-        
-        # TODO: Save to your database or send an email here
-        # Example: ContactMessage.objects.create(...)
-        
-        # Show a success message to the user
         messages.success(request, "Thank you! Your message has been sent. We'll get back to you soon.")
         return redirect('contact')
         
@@ -2253,7 +2252,7 @@ def cancel_modification_request(request, req_id):
 
 
 # ══════════════════════════════════════════════════════════════
-# COD HELPER  — import this in place_cod_order
+# COD HELPER
 # ══════════════════════════════════════════════════════════════
 
 def _cod_allowed():
@@ -2264,15 +2263,10 @@ def _cod_allowed():
 @login_required
 @_admin_required
 def emergency_order_lookup(request):
-    """
-    GET /admin-panel/emergency-order/lookup/?q=<order_number_or_id>
-    Returns order info + customer contact details as JSON.
-    """
     q = request.GET.get("q", "").strip()
     if not q:
         return JsonResponse({"success": False, "message": "Please enter an order number or ID."})
  
-    # Try by order_number first, then by pk
     order = (
         Order.objects.select_related("user__profile")
         .prefetch_related("items__product")
@@ -2290,7 +2284,6 @@ def emergency_order_lookup(request):
     if not order:
         return JsonResponse({"success": False, "message": f'No order found for "{q}".'})
  
-    # Customer phone from UserProfile
     phone = ""
     try:
         phone = order.user.profile.phone or ""
@@ -2320,21 +2313,10 @@ def emergency_order_lookup(request):
     })
  
  
-# ── 3. NEW: Emergency order update (AJAX POST) ───────────────
- 
 @login_required
 @_admin_required
 @require_POST
 def emergency_order_update(request):
-    """
-    POST /admin-panel/emergency-order/update/
-    Body: { order_id, items: [{product_id, quantity, price, item_id}], admin_note }
- 
-    - Deletes all existing OrderItems for the order
-    - Creates new ones from the submitted list
-    - Recalculates total_amount (keeping original delivery/discount)
-    - Appends the admin_note to order.notes
-    """
     try:
         data       = json.loads(request.body)
         order_id   = data.get("order_id")
@@ -2349,7 +2331,6 @@ def emergency_order_update(request):
         order = get_object_or_404(Order, id=order_id)
  
         with transaction.atomic():
-            # Restore stock for existing items before deleting them
             for old_item in order.items.select_for_update().select_related("product"):
                 old_item.product.stock = old_item.product.stock + old_item.quantity
                 old_item.product.save(update_fields=["stock"])
@@ -2361,11 +2342,8 @@ def emergency_order_update(request):
             for it in new_items:
                 product  = get_object_or_404(Product, id=it["product_id"])
                 qty      = max(1, int(it.get("quantity", 1)))
-                # Use submitted price (admin may have agreed a different price with customer)
-                # Fall back to product's current effective price if not provided
                 price    = Decimal(str(it.get("price", product.effective_price)))
  
-                # Deduct stock (allow below 0 — this is an emergency override)
                 product.stock = max(0, product.stock - qty)
                 product.save(update_fields=["stock"])
  
@@ -2381,12 +2359,10 @@ def emergency_order_update(request):
                     "quantity":     qty,
                 })
  
-            # Recalculate total: keep original delivery charge logic, keep discount
             delivery     = _delivery_charge(new_subtotal)
             new_total    = new_subtotal + delivery - order.discount_amount
             order.total_amount = new_total
  
-            # Append note with timestamp
             timestamp = timezone.now().strftime("%d %b %Y %H:%M")
             sep       = "\n\n" if order.notes else ""
             order.notes = (order.notes or "") + f"{sep}[Emergency Update — {timestamp} by admin]\n{admin_note}"
@@ -2510,43 +2486,9 @@ def send_email(subject, body, recipients, html=None):
         print("EMAIL ERROR:", str(e))
         return False
 
-import requests
-
+# NOTE: send_brevo_email kept for backward compatibility with any external callers
 def send_brevo_email(subject, html_content, to_email, to_name="Customer"):
-    try:
-        response = requests.post(
-            "https://api.brevo.com/v3/smtp/email",
-            headers={
-                "accept": "application/json",
-                "api-key": settings.BREVO_API_KEY,
-                "content-type": "application/json",
-            },
-            json={
-                "sender": {
-                    "name": "SSD Nursery",
-                    "email": settings.DEFAULT_FROM_EMAIL,
-                },
-                "to": [{
-                    "email": to_email,
-                    "name": to_name,
-                }],
-                "subject": subject,
-                "htmlContent": html_content,
-            },
-            timeout=15,
-        )
-
-        print("BREVO STATUS:", response.status_code)
-        print("BREVO RESPONSE:", response.text)
-
-        response.raise_for_status()
-
-        return True
-
-    except Exception as e:
-        logger.exception("BREVO EMAIL ERROR")
-        print("BREVO ERROR:", e)
-        return False
+    return send_brevo_html_email(subject, html_content, to_email, to_name)
     
 
 from django.http import HttpResponse
@@ -2556,7 +2498,7 @@ from django.conf import settings
 from django.http import HttpResponse
 
 def test_email(request):
-    success = send_brevo_email(
+    success = send_brevo_html_email(
         subject="Brevo Test Email",
         html_content="""
             <h2>SSD Nursery</h2>
@@ -2570,44 +2512,7 @@ def test_email(request):
         return HttpResponse("Brevo email sent successfully")
     else:
         return HttpResponse("Brevo email failed")
-    
 
-import requests
-
-def send_brevo_html_email(subject, html_content, to_email, to_name="Customer"):
-    try:
-        response = requests.post(
-            "https://api.brevo.com/v3/smtp/email",
-            headers={
-                "accept": "application/json",
-                "api-key": settings.BREVO_API_KEY,
-                "content-type": "application/json",
-            },
-            json={
-                "sender": {
-                    "name": "SSD Nursery",
-                    "email": settings.DEFAULT_FROM_EMAIL,
-                },
-                "to": [
-                    {
-                        "email": to_email,
-                        "name": to_name,
-                    }
-                ],
-                "subject": subject,
-                "htmlContent": html_content,
-            },
-            timeout=15,
-        )
-
-        response.raise_for_status()
-
-        return True
-
-    except Exception as e:
-        logger.exception("BREVO EMAIL ERROR")
-        return False
-    
 from django.http import JsonResponse
 
 def csrf_debug(request):
