@@ -735,12 +735,6 @@ def send_signup_otp(request):
             "message": "OTP sent successfully!"
         })
 
-        # Return immediately
-        return JsonResponse({
-            "success": True,
-            "message": "OTP sent successfully!"
-        })
-
     except Exception as e:
         logger.exception("SEND SIGNUP OTP ERROR")
 
@@ -1288,8 +1282,7 @@ def verify_razorpay_payment(request):
 
 
         # Customer + Admin HTML email
-        send_email_background(
-            send_order_status_email,
+        send_order_status_email(
             order,
             "New",
             "Pending"
@@ -1367,8 +1360,8 @@ def place_cod_order(request):
                 ci.product.save(update_fields=["stock"])
 
             items.delete()
-        send_email_background(
-            send_order_status_email,
+
+        send_order_status_email(
             order,
             "New",
             "Pending"
@@ -1662,8 +1655,8 @@ def update_order_status(request, order_id):
         order.save()
 
         if old_status != new_status:
-            send_email_background(
-                send_order_status_email,
+
+            send_order_status_email(
                 order,
                 old_status,
                 new_status
