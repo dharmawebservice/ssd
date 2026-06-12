@@ -37,9 +37,9 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    # "cloudinary_storage",          # must be BEFORE staticfiles
+    "cloudinary",
+    "cloudinary_storage",
     "django.contrib.staticfiles",
-    # "cloudinary",
     "web",
 ]
 
@@ -170,6 +170,14 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+import cloudinary
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True,
+)
 # ==================================================
 # CLOUDINARY
 # ==================================================
@@ -188,27 +196,15 @@ MEDIA_ROOT = BASE_DIR / "media"
 # files efficiently without needing the manifest storage.
 # ==================================================
 
-# STORAGES = {
-#     "default": {
-#         "BACKEND": (
-#             "cloudinary_storage.storage.MediaCloudinaryStorage"
-#             if not DEBUG
-#             else "django.core.files.storage.FileSystemStorage"
-#         ),
-#     },
-#     "staticfiles": {
-#         "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
-#     },
-# }
-
 STORAGES = {
     "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
+
 # ==================================================
 # EMAIL  (Brevo SMTP)
 # ==================================================
