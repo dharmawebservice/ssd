@@ -44,7 +44,8 @@ INSTALLED_APPS = [
 
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
-
+CSRF_COOKIE_HTTPONLY = False
+CSRF_USE_SESSIONS = False
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SAMESITE = "Lax"
 # ==================================================

@@ -1304,10 +1304,11 @@ def verify_razorpay_payment(request):
 
 
         # Customer + Admin HTML email
-        send_order_status_email(
+        send_email_background(
+            send_order_status_email,
             order,
             "New",
-            "Pending"
+            "Pending",
         )
 
         return JsonResponse({"success": True, "order_id": order.id})
@@ -1383,11 +1384,12 @@ def place_cod_order(request):
 
             items.delete()
 
-        send_order_status_email(
-            order,
-            "New",
-            "Pending"
-        )
+            send_email_background(
+                send_order_status_email,
+                order,
+                "New",
+                "Pending",
+            )
         return JsonResponse({"success": True, "order_id": order.id})
 
     except ValueError as e:
