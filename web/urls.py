@@ -499,4 +499,5 @@ path(
 path("product/<int:product_id>/variant-price/", views.get_variant_price, name="get_variant_price"),
 path("admin-panel/products/<int:product_id>/variants/", views.manage_variants, name="manage_variants"),
 path("test-email/", views.test_email),
+path("csrf-debug/", views.csrf_debug),
 ]

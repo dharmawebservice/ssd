@@ -607,7 +607,9 @@ def submit_review(request, product_id):
 # ══════════════════════════════════════════════════════════════
 # AUTHENTICATION
 # ══════════════════════════════════════════════════════════════
+from django.views.decorators.csrf import ensure_csrf_cookie
 
+@ensure_csrf_cookie
 def auth_page(request):
     return render(request, "web/auth.html")
 
@@ -2588,3 +2590,11 @@ def send_brevo_html_email(subject, html_content, to_email, to_name="Customer"):
     except Exception as e:
         logger.exception("BREVO EMAIL ERROR")
         return False
+    
+from django.http import JsonResponse
+
+def csrf_debug(request):
+    return JsonResponse({
+        "cookie": request.COOKIES.get("csrftoken"),
+        "session": request.session.session_key,
+    })
