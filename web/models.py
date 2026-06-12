@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
-
+from cloudinary.models import CloudinaryField
 
 # ══════════════════════════════════════════════════════════════
 # USER PROFILE
@@ -52,7 +52,7 @@ class Category(models.Model):
     name        = models.CharField(max_length=100, unique=True)
     slug        = models.SlugField(max_length=120, unique=True, blank=True)
     description = models.TextField(blank=True)
-    image       = models.ImageField(upload_to="categories/", blank=True, null=True)
+    image = CloudinaryField("image", folder="categories", blank=True, null=True)
     is_active   = models.BooleanField(default=True)
     created_at  = models.DateTimeField(auto_now_add=True)
 
@@ -82,7 +82,7 @@ class Product(models.Model):
     price       = models.DecimalField(max_digits=10, decimal_places=2)
     offer_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     stock       = models.PositiveIntegerField(default=0)
-    image       = models.ImageField(upload_to="products/", blank=True, null=True)
+    image = CloudinaryField("image", folder="products", blank=True, null=True)
     featured    = models.BooleanField(default=False)
     is_active   = models.BooleanField(default=True)
     created_at  = models.DateTimeField(auto_now_add=True)
@@ -112,7 +112,7 @@ class ProductImage(models.Model):
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, related_name="images"
     )
-    image = models.ImageField(upload_to="products/gallery/")
+    image = CloudinaryField("image", folder="products/gallery")
 
     def __str__(self):
         return f"{self.product.name} — gallery image"
@@ -137,7 +137,7 @@ class Banner(models.Model):
         ("accent",    "Accent (Terracotta)"),
     ]
 
-    image        = models.ImageField(upload_to="banners/")
+    image        = CloudinaryField("image", folder="banners")
     tag_text     = models.CharField(
         max_length=60, blank=True,
         help_text="Small pill label above heading e.g. '✦ New Arrivals'"
