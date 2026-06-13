@@ -13,14 +13,11 @@ import hashlib
 from datetime import timedelta
 from decimal import Decimal
 from django.http import JsonResponse
-from django.core.mail import send_mail
 import json
 from django.template.loader import render_to_string
-from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from .models import ContactMessage
 from django.template.loader import render_to_string
-from django.core.mail import EmailMultiAlternatives
 import razorpay
 from geopy.geocoders import Nominatim
 
@@ -29,7 +26,6 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Avg, Count, Max, Min, Q, Sum
@@ -158,32 +154,14 @@ def _cart_json_list(items):
         })
     return result
 
+def send_email(subject, html, recipient, name="Customer"):
+    return send_brevo_html_email(
+        subject,
+        html,
+        recipient,
+        name,
+    )
 
-def _send_order_confirmation(order):
-    """Send order confirmation email — silently swallow SMTP errors."""
-    try:
-        items_text = "\n".join(
-            f"  • {i.product.name}  x{i.quantity}  ₹{i.price * i.quantity}"
-            for i in order.items.select_related("product")
-        )
-        send_mail(
-            subject=f"SSD Nursery — Order #{order.order_number} Confirmed 🌱",
-            message=(
-                f"Hi {order.user.first_name or order.user.username},\n\n"
-                f"Your order has been placed successfully!\n\n"
-                f"Order ID : #{order.order_number}\n"
-                f"Amount   : ₹{order.total_amount}\n"
-                f"Payment  : {order.payment_method.upper()}\n"
-                f"Status   : {order.status}\n\n"
-                f"Items:\n{items_text}\n\n"
-                f"Delivery to:\n{order.address}\n\n"
-                f"Thank you for shopping with SSD Nursery!\n— Team SSD Nursery"
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[order.user.email],
-        )
-    except Exception:
-        pass   # never crash on email failure
 
 def send_email_background(func, *args, **kwargs):
     def runner():
@@ -224,9 +202,13 @@ def send_brevo_html_email(subject, html_content, to_email, to_name="Customer"):
                 "subject": subject,
                 "htmlContent": html_content,
             },
-            timeout=15,
+            timeout=10,
         )
+        if response.status_code not in [200, 201]:
+            print("BREVO RESPONSE:", response.text)
+
         response.raise_for_status()
+
         return True
     except Exception as e:
         logger.exception("BREVO EMAIL ERROR")
@@ -1934,7 +1916,6 @@ def order_details(request, order_id):
     )
 
 from django.http import JsonResponse
-from django.core.mail import send_mail
 from django.conf import settings
 import json
 
@@ -1976,19 +1957,13 @@ def contact_submit(request):
             }
         )
 
-        admin_email = EmailMultiAlternatives(
-            subject=f"SSD Nursery Contact - {subject}",
-            body="New Contact Form Submission",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=["ssdnurserygarden@gmail.com"]
-        )
-
-        admin_email.attach_alternative(
+        send_email_background(
+            send_brevo_html_email,
+            f"SSD Nursery Contact - {subject}",
             admin_html,
-            "text/html"
+            "ssdnurserygarden@gmail.com",
+            "SSD Nursery Admin"
         )
-
-        send_email_background(admin_email.send)
 
         # Customer Mail
         user_html = render_to_string(
@@ -1999,19 +1974,14 @@ def contact_submit(request):
             }
         )
 
-        user_email = EmailMultiAlternatives(
-            subject="We Received Your Message 🌱",
-            body="Thank you for contacting SSD Nursery",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[email]
-        )
-
-        user_email.attach_alternative(
+        send_email_background(
+            send_brevo_html_email,
+            "We Received Your Message 🌱",
             user_html,
-            "text/html"
+            email,
+            name,
         )
 
-        send_email_background(user_email.send)
 
         return JsonResponse({
             "success": True
@@ -2124,22 +2094,12 @@ def _send_modification_email(order, mod_req):
             context
         )
 
-        msg = EmailMultiAlternatives(
-            subject=f"Order #{order.order_number} — Proposed Change from SSD Nursery",
-            body=(
-                f"Hi {order.user.first_name or order.user.username},\n\n"
-                f"We'd like to propose a change to your order #{order.order_number}.\n\n"
-                f"Proposed: {mod_req.proposed_changes}\n\n"
-                f"Note: {mod_req.admin_note}\n\n"
-                f"To accept: {accept_url}\n"
-                f"To decline: {decline_url}\n\n"
-                f"— SSD Nursery Team"
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[order.user.email],
+        send_brevo_html_email(
+            f"Order #{order.order_number} — Proposed Change from SSD Nursery",
+            html_body,
+            order.user.email,
+            order.user.first_name or "Customer",
         )
-        msg.attach_alternative(html_body, "text/html")
-        msg.send()
     except Exception as e:
         print("MODIFICATION EMAIL ERROR:", e)
 
@@ -2194,21 +2154,32 @@ def modification_response(request, token, action):
 
 
 def _send_mod_response_admin_email(order, mod_req, accepted):
-    """Alert admin that the customer responded."""
     try:
         verb = "ACCEPTED" if accepted else "DECLINED"
-        msg  = EmailMultiAlternatives(
-            subject=f"Order #{order.order_number} — Modification {verb} by Customer",
-            body=(
-                f"Customer {order.user.first_name} ({order.user.email}) "
-                f"has {verb.lower()} the modification for order #{order.order_number}.\n\n"
-                f"Proposed: {mod_req.proposed_changes}\n\n"
-                f"{'Go to admin panel to apply the change.' if accepted else 'No action needed.'}"
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=["ssdnurserygarden@gmail.com"],
+
+        admin_html = f"""
+        <h2>Modification Response</h2>
+
+        <p>
+        Customer {order.user.email} has
+        <strong>{verb.lower()}</strong>
+        the modification request.
+        </p>
+
+        <p><strong>Order:</strong> #{order.order_number}</p>
+
+        <p><strong>Changes:</strong></p>
+
+        <p>{mod_req.proposed_changes}</p>
+        """
+
+        send_brevo_html_email(
+            f"Order #{order.order_number} — Modification {verb}",
+            admin_html,
+            "ssdnurserygarden@gmail.com",
+            "SSD Nursery Admin",
         )
-        msg.send()
+
     except Exception as e:
         print("MOD RESPONSE ADMIN MAIL ERROR:", e)
 
@@ -2459,32 +2430,10 @@ def manage_variants(request, product_id):
         "preset_labels": PRESET_LABELS,
     })
 
-from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 import logging
 
 logger = logging.getLogger(__name__)
-
-def send_email(subject, body, recipients, html=None):
-    try:
-        msg = EmailMultiAlternatives(
-            subject=subject,
-            body=body,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=recipients,
-        )
-
-        if html:
-            msg.attach_alternative(html, "text/html")
-
-        msg.send(fail_silently=False)
-
-        return True
-
-    except Exception as e:
-        logger.exception("EMAIL ERROR")
-        print("EMAIL ERROR:", str(e))
-        return False
 
 # NOTE: send_brevo_email kept for backward compatibility with any external callers
 def send_brevo_email(subject, html_content, to_email, to_name="Customer"):
@@ -2492,7 +2441,6 @@ def send_brevo_email(subject, html_content, to_email, to_name="Customer"):
     
 
 from django.http import HttpResponse
-from django.core.mail import send_mail
 from django.conf import settings
 
 from django.http import HttpResponse
