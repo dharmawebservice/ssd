@@ -10,6 +10,7 @@
         const closeBtn = document.getElementById("closeSidebar");
 
         if (!sidebar) return;
+        
 
         function open()  {
             sidebar.classList.add("active");
