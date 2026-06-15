@@ -11,6 +11,53 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="{% static 'css/style.css' %}"><link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
+<style>
+  .card-img-carousel {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .card-img-carousel .carousel-track {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s ease;
+  }
+
+  .card-img-carousel .carousel-track img {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .carousel-dots {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    z-index: 2;
+  }
+
+  .carousel-dots .c-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.55);
+    transition: var(--transition);
+  }
+
+  .carousel-dots .c-dot.active {
+    background: white;
+    width: 16px;
+    border-radius: 4px;
+  }
+</style>
 </head>
 <body data-auth="{% if request.user.is_authenticated %}1{% else %}0{% endif %}">
 <script>window.__WISHLIST_IDS__ = {{ wishlist_ids|safe }};</script>
@@ -149,7 +196,20 @@
           {% endif %}
         {% endwith %}
         {% if p.image %}
-          <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
+        <div class="card-img-carousel" data-autoplay="{% if p.images.all %}1{% else %}0{% endif %}">
+          <div class="carousel-track">
+            <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
+            {% for img in p.images.all %}
+            <img src="{{ img.image.url }}" alt="{{ p.name }}" loading="lazy">
+            {% endfor %}
+          </div>
+          {% if p.images.all %}
+          <div class="carousel-dots">
+            <span class="c-dot active"></span>
+            {% for img in p.images.all %}<span class="c-dot"></span>{% endfor %}
+          </div>
+          {% endif %}
+        </div>
         {% else %}
           <div class="img-placeholder"><i class="fas fa-seedling"></i></div>
         {% endif %}
@@ -290,5 +350,23 @@
 
 {% csrf_token %}
 <script src="{% static 'js/script.js' %}"></script>
+<script>
+(function () {
+  document.querySelectorAll('.card-img-carousel[data-autoplay="1"]').forEach(carousel => {
+    const track = carousel.querySelector('.carousel-track');
+    const slides = track.querySelectorAll('img');
+    const dots   = carousel.querySelectorAll('.c-dot');
+    let index = 0;
+
+    if (slides.length <= 1) return;
+
+    setInterval(() => {
+      index = (index + 1) % slides.length;
+      track.style.transform = `translateX(-${index * 100}%)`;
+      dots.forEach((d, i) => d.classList.toggle('active', i === index));
+    }, 2500);
+  });
+})();
+</script>
 </body>
 </html>

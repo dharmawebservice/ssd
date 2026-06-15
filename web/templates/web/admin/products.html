@@ -16,10 +16,10 @@
 <td style="color:var(--text-secondary)">{{ p.category.name }}</td>
 <td style="font-weight:600">₹{{ p.price }}</td>
 <td>{% if p.offer_price %}<span class="badge badge-sale">₹{{ p.offer_price }}</span>{% else %}<span style="color:var(--text-secondary)">—</span>{% endif %}</td>
-<td>{% if p.stock == 0 %}<span style="color:var(--danger);font-weight:700">0</span>{% elif p.stock < 5 %}<span style="color:var(--warn);font-weight:700">{{ p.stock }}</span>{% else %}<span style="color:var(--success);font-weight:700">{{ p.stock }}</span>{% endif %}</td>
+<td>{% if p.total_stock == 0 %}<span style="color:var(--danger);font-weight:700">0</span>{% elif p.total_stock < 5 %}<span style="color:var(--warn);font-weight:700">{{ p.total_stock }}</span>{% else %}<span style="color:var(--success);font-weight:700">{{ p.total_stock }}</span>{% endif %}</td>
 <td>{% if p.is_active %}<span class="badge badge-active">Active</span>{% else %}<span class="badge badge-disabled">Hidden</span>{% endif %}</td>
 <td><div class="action-group">
-<button class="btn-icon btn-icon-edit" title="Edit" onclick="openEditModal('editProductModal',{name:'{{ p.name|escapejs }}',price:'{{ p.price }}',offer_price:'{{ p.offer_price|default:'' }}',stock:'{{ p.stock }}',description:'{{ p.description|escapejs }}',care_guide:'{{ p.care_guide|escapejs }}'});document.getElementById('editProductForm').action='{% url "edit_product" p.id %}';document.getElementById('editCatSel').value='{{ p.category.id }}'"><i class="fa-solid fa-pen"></i></button>
+<button class="btn-icon btn-icon-edit" title="Edit" onclick="openEditModal('editProductModal',{name:'{{ p.name|escapejs }}',price:'{{ p.price }}',offer_price:'{{ p.offer_price|default:'' }}',stock:'{{ p.stock }}',description:'{{ p.description|escapejs }}',care_guide:'{{ p.care_guide|escapejs }}'});document.getElementById('editProductForm').action='{% url "edit_product" p.id %}';document.getElementById('editCatSel').value='{{ p.category.id }}';renderGalleryImages([{% for img in p.images.all %}{id:{{ img.id }},url:'{{ img.image.url }}'}{% if not forloop.last %},{% endif %}{% endfor %}])"><i class="fa-solid fa-pen"></i></button>
 <a href="{% url 'manage_variants' p.id %}" class="btn-icon btn-icon-toggle" title="Variants">
   <i class="fa-solid fa-tags"></i>
 </a>
@@ -92,6 +92,15 @@
   </button>
 </div>
 <div class="form-group"><label>Image</label><div class="file-drop-area"><i class="fa-solid fa-cloud-arrow-up"></i><div class="file-name">Click to upload</div><div class="file-hint">PNG, JPG, WEBP</div><input type="file" name="image" accept="image/*"></div></div>
+<div class="form-group">
+  <label>Additional Images <span style="font-weight:400;color:var(--text-secondary);font-size:.8rem;">— optional, multiple allowed</span></label>
+  <div class="file-drop-area">
+    <i class="fa-solid fa-images"></i>
+    <div class="file-name">Click to upload (multiple)</div>
+    <div class="file-hint">PNG, JPG, WEBP — select multiple files</div>
+    <input type="file" name="gallery_images" accept="image/*" multiple>
+  </div>
+</div>
 </div><div class="modal-footer"><button type="button" class="btn-cancel">Cancel</button><button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Save Product</button></div>
 </form></div></div>
 <!-- EDIT -->
@@ -142,16 +151,17 @@
 </div>
 <div class="form-group"><label>Description</label><textarea name="description" class="form-control"></textarea></div>
 <div class="form-group"><label>Care Guide</label><textarea name="care_guide" class="form-control"></textarea></div>
-<div class="form-group">
-  <label>Age Variants <span style="font-weight:400;color:var(--text-secondary)">(optional)</span></label>
-  <div id="variantList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;"></div>
-  <button type="button" class="btn-dark-sm" onclick="addVariantRow('variantList')">
-    <i class="fa-solid fa-plus"></i> Add Variant
-  </button>
-  <!-- Hidden container for variant POST data — built by JS -->
-  <div id="variantInputs"></div>
-</div>
 <div class="form-group"><label>New Image</label><div class="file-drop-area"><i class="fa-solid fa-cloud-arrow-up"></i><div class="file-name">Click to replace</div><div class="file-hint">Leave blank to keep current</div><input type="file" name="image" accept="image/*"></div></div>
+<div class="form-group">
+  <label>Gallery Images</label>
+  <div id="existingGalleryImages" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;"></div>
+  <div class="file-drop-area">
+    <i class="fa-solid fa-images"></i>
+    <div class="file-name">Click to add more images</div>
+    <div class="file-hint">PNG, JPG, WEBP — select multiple files</div>
+    <input type="file" name="gallery_images" accept="image/*" multiple>
+  </div>
+</div>
 </div><div class="modal-footer"><button type="button" class="btn-cancel">Cancel</button><button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Update</button></div>
 </form></div></div>
 <script src="{% static 'js/admin.js' %}"></script>
@@ -295,6 +305,32 @@ function toggleBasePricing() {
   if (notice) {
     notice.style.display = hasVariants ? 'block' : 'none';
   }
+}
+
+function renderGalleryImages(images) {
+  const container = document.getElementById('existingGalleryImages');
+  if (!container) return;
+  container.innerHTML = '';
+
+  images.forEach(img => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;width:64px;height:64px;';
+    wrap.innerHTML = `
+      <img src="${img.url}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">
+      <button type="button" style="position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:.7rem;cursor:pointer;line-height:1;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    `;
+    wrap.querySelector('button').addEventListener('click', () => {
+      const inp = document.createElement('input');
+      inp.type = 'hidden';
+      inp.name = 'delete_image_id';
+      inp.value = img.id;
+      document.getElementById('editProductForm').appendChild(inp);
+      wrap.remove();
+    });
+    container.appendChild(wrap);
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

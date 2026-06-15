@@ -130,6 +130,14 @@ class Product(models.Model):
         if not variants:
             return None
         return min(variants, key=lambda v: v.effective_price)
+    
+    @property
+    def total_stock(self):
+        """Sum of active variant stocks, or product.stock if no variants."""
+        variants = list(self.variants.filter(is_active=True))
+        if variants:
+            return sum(v.stock for v in variants)
+        return self.stock
 
 
 # ══════════════════════════════════════════════════════════════
@@ -634,3 +642,4 @@ class ProductVariant(models.Model):
         if self.offer_price and self.price:
             return int(((self.price - self.offer_price) / self.price) * 100)
         return 0
+    

@@ -39,9 +39,9 @@ from django.views.decorators.http import require_POST
 from requests import request
 
 from .models import (
-    Banner, CartItem, Category, Coupon,
+    Banner, CartItem, Category, Coupon, CouponUsage,
     EmailOTP, Notification, Order, OrderItem,
-    Product, Review, UserProfile, Wishlist,
+    Product, ProductImage, Review, UserProfile, Wishlist,
 )
 
 
@@ -94,7 +94,7 @@ def _unique_slug(model_class, name, exclude_id=None):
     return slug
 
 
-def _resolve_coupon(code: str, subtotal: Decimal):
+def _resolve_coupon(code: str, subtotal: Decimal, user=None):
     """
     Validate coupon.  Returns (coupon_obj, discount) or raises ValueError.
     """
@@ -105,6 +105,9 @@ def _resolve_coupon(code: str, subtotal: Decimal):
 
     if coupon.expiry_date and coupon.expiry_date < timezone.now().date():
         raise ValueError("Coupon has expired.")
+
+    if user and CouponUsage.objects.filter(user=user, coupon=coupon).exists():
+        raise ValueError("You have already used this coupon.")
 
     if subtotal < coupon.minimum_order_amount:
         raise ValueError(f"Minimum order ₹{coupon.minimum_order_amount} required.")
@@ -118,7 +121,6 @@ def _resolve_coupon(code: str, subtotal: Decimal):
         discount = min(coupon.discount_value, subtotal)
 
     return coupon, discount
-
 
 def _cart_items(user):
     return CartItem.objects.filter(user=user).select_related(
@@ -292,7 +294,8 @@ def home(request):
                 "variants",
                 queryset=ProductVariant.objects.filter(is_active=True).order_by("sort_order", "id"),
                 to_attr="active_variants",
-            )
+            ),
+            "images",
         )
         .order_by("-id")[:8]
     )
@@ -357,7 +360,8 @@ def shop(request):
                 "variants",
                 queryset=ProductVariant.objects.filter(is_active=True).order_by("sort_order", "id"),
                 to_attr="active_variants"
-            )
+            ),
+            "images",
         )
         .annotate(
             final_price=Coalesce(
@@ -535,7 +539,10 @@ def search_suggestions(request):
 # ══════════════════════════════════════════════════════════════
 
 def product_detail(request, slug):
-    product  = get_object_or_404(Product, slug=slug, is_active=True)
+    product  = get_object_or_404(
+        Product.objects.prefetch_related("images"),
+        slug=slug, is_active=True
+    )
     variants = product.variants.filter(is_active=True)
     reviews  = Review.objects.filter(product=product).select_related("user")
     related  = Product.objects.filter(
@@ -1209,7 +1216,8 @@ def wishlist_page(request):
                 "product__variants",
                 queryset=ProductVariant.objects.filter(is_active=True).order_by("sort_order", "id"),
                 to_attr="active_variants",
-            )
+            ),
+            "product__images",
         )
         .order_by("-added_at")
     )
@@ -1253,7 +1261,7 @@ def apply_coupon(request):
         data     = json.loads(request.body)
         code     = data.get("code", "").strip()
         subtotal = Decimal(str(data.get("subtotal", "0")))
-        coupon, discount = _resolve_coupon(code, subtotal)
+        coupon, discount = _resolve_coupon(code, subtotal, user=request.user)
         return JsonResponse({
             "success":  True,
             "message":  f"Coupon applied! You save ₹{discount:.0f}",
@@ -1324,7 +1332,7 @@ def create_razorpay_order(request):
         code       = data.get("coupon_code", "").strip()
         if code:
             try:
-                coupon_obj, discount = _resolve_coupon(code, subtotal)
+                coupon_obj, discount = _resolve_coupon(code, subtotal, user=request.user)
             except ValueError as e:
                 return JsonResponse({"success": False, "message": str(e)})
 
@@ -1404,6 +1412,8 @@ def verify_razorpay_payment(request):
         discount = Decimal(pending["discount"])
         coupon   = Coupon.objects.filter(id=pending["coupon_id"]).first() if pending["coupon_id"] else None
 
+        if coupon and CouponUsage.objects.filter(user=request.user, coupon=coupon).exists():
+            return JsonResponse({"success": False, "message": "You have already used this coupon."})
         with transaction.atomic():
             order = Order.objects.create(
                 user            = request.user,
@@ -1417,6 +1427,8 @@ def verify_razorpay_payment(request):
                 notes           = pending["notes"],
                 coupon          = coupon,
             )
+            if coupon:
+                CouponUsage.objects.get_or_create(user=request.user, coupon=coupon)
             for ci in items.select_for_update():
                 if ci.quantity > ci.product.stock:
                     raise ValueError(f"'{ci.product.name}' ran out of stock.")
@@ -1497,7 +1509,7 @@ def place_cod_order(request):
         code       = data.get("coupon_code", "").strip()
         if code:
             try:
-                coupon_obj, discount = _resolve_coupon(code, subtotal)
+                coupon_obj, discount = _resolve_coupon(code, subtotal, user=request.user)
             except ValueError as e:
                 return JsonResponse({"success": False, "message": str(e)})
 
@@ -1514,6 +1526,10 @@ def place_cod_order(request):
                 notes           = data.get("notes", ""),
                 coupon          = coupon_obj,
             )
+            
+            if coupon_obj:
+                CouponUsage.objects.get_or_create(user=request.user, coupon=coupon_obj)
+
             for ci in items.select_for_update():
                 if ci.quantity > ci.product.stock:
                     raise ValueError(f"'{ci.product.name}' ran out of stock.")
@@ -1658,7 +1674,7 @@ def delete_category(request, id):
 @_admin_required
 def product_list(request):
     return render(request, "web/admin/products.html", {
-        "products":   Product.objects.select_related("category").order_by("-id"),
+        "products":   Product.objects.select_related("category").prefetch_related("variants", "images").order_by("-id"),
         "categories": Category.objects.filter(is_active=True),
     })
 
@@ -1710,6 +1726,11 @@ def add_product(request):
                 stock        = stocks[i] if i < len(stocks) else 0,
                 sort_order   = i,
             )
+
+        # Gallery images
+        for img in request.FILES.getlist("gallery_images"):
+            ProductImage.objects.create(product=product, image=img)
+
         messages.success(request, f"Product '{name}' added.")
     return redirect("product_list")
 
@@ -1729,6 +1750,15 @@ def edit_product(request, id):
         if request.FILES.get("image"):
             p.image = request.FILES["image"]
         p.save()
+
+        # Add new gallery images
+        for img in request.FILES.getlist("gallery_images"):
+            ProductImage.objects.create(product=p, image=img)
+
+        # Remove gallery images the admin marked for deletion
+        for img_id in request.POST.getlist("delete_image_id"):
+            ProductImage.objects.filter(id=img_id, product=p).delete()
+
         messages.success(request, "Product updated.")
     return redirect("product_list")
 
@@ -2599,6 +2629,19 @@ def manage_variants(request, product_id):
                 stock=stock,
             )
             messages.success(request, "Variant added.")
+
+        elif action == "edit":
+            variant = get_object_or_404(
+                ProductVariant, id=request.POST.get("variant_id"), product=product
+            )
+            variant.label        = request.POST.get("label")
+            variant.custom_label = request.POST.get("custom_label", "").strip()
+            variant.price        = request.POST.get("price")
+            variant.offer_price  = request.POST.get("offer_price") or None
+            variant.stock        = request.POST.get("stock", variant.stock)
+            variant.is_active    = request.POST.get("is_active") == "on"
+            variant.save()
+            messages.success(request, "Variant updated.")
 
         elif action == "delete":
             ProductVariant.objects.filter(
