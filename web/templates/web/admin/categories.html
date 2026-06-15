@@ -3,7 +3,7 @@
 <title>Categories | Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<link rel="stylesheet" href="{% static 'css/admin.css' %}"><link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon"></head><body>
+<link rel="stylesheet" href="{% static 'css/admin.css' %}"> </head><body>
 {% for m in messages %}<div class="django-message" data-level="{% if m.tags == 'error' %}error{% else %}success{% endif %}" style="display:none;">{{ m }}</div>{% endfor %}
 <div class="admin-layout"><div class="sidebar-overlay" id="sidebarOverlay"></div>{% include "web/admin/_sidebar.html" %}
 <main class="main-content">
