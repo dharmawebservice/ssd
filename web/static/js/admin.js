@@ -11,7 +11,6 @@
 
         if (!sidebar) return;
         
-
         function open()  {
             sidebar.classList.add("active");
             overlay && overlay.classList.add("active");

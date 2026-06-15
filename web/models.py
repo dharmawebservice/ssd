@@ -102,6 +102,34 @@ class Product(models.Model):
         if self.offer_price and self.price:
             return int(((self.price - self.offer_price) / self.price) * 100)
         return 0
+    
+    @property
+    def display_variant(self):
+        """
+        Returns:
+        - First variant that has stock
+        - Otherwise first variant
+        - Otherwise None
+        """
+        return (
+            self.variants.filter(is_active=True, stock__gt=0)
+            .order_by("sort_order", "id")
+            .first()
+            or
+            self.variants.filter(is_active=True)
+            .order_by("sort_order", "id")
+            .first()
+        )
+    
+    @property
+    def lowest_price_variant(self):
+        """Returns the active variant with the lowest effective price, or None."""
+        variants = [v for v in self.active_variants] if hasattr(self, "active_variants") else list(
+            self.variants.filter(is_active=True)
+        )
+        if not variants:
+            return None
+        return min(variants, key=lambda v: v.effective_price)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -377,12 +405,30 @@ class Order(models.Model):
 # ══════════════════════════════════════════════════════════════
 
 class OrderItem(models.Model):
-    order    = models.ForeignKey(
-        Order, on_delete=models.CASCADE, related_name="items"
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="items"
     )
-    product  = models.ForeignKey(Product, on_delete=models.CASCADE)
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE
+    )
+
+    variant = models.ForeignKey(
+        "ProductVariant",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL
+    )
+
     quantity = models.PositiveIntegerField(default=1)
-    price    = models.DecimalField(max_digits=10, decimal_places=2)
+
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
 
     def __str__(self):
         return f"{self.product.name} × {self.quantity}"
@@ -431,7 +477,11 @@ class CartItem(models.Model):
 
     @property
     def subtotal(self):
-        price = self.variant.price if self.variant else self.product.effective_price
+        if self.variant:
+            price = self.variant.effective_price
+        else:
+            price = self.product.effective_price
+
         return price * self.quantity
 
 
@@ -574,13 +624,13 @@ class ProductVariant(models.Model):
         if self.label == "custom" and self.custom_label:
             return self.custom_label
         return dict(self.PRESET_LABELS).get(self.label, self.label)
-
+    
     @property
-    def effective_price(self):                    # ← NEW
+    def effective_price(self):
         return self.offer_price if self.offer_price else self.price
 
     @property
-    def discount_percent(self):                   # ← NEW
+    def discount_percent(self):
         if self.offer_price and self.price:
             return int(((self.price - self.offer_price) / self.price) * 100)
         return 0

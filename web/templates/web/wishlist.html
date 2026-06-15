@@ -1,48 +1,121 @@
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>My Wishlist | SSD Nursery</title>
 <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="{% static 'css/style.css' %}"><link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
 </head>
 <body data-auth="1">
 <script>window.__WISHLIST_IDS__ = [{% for w in items %}{{ w.product.id }}{% if not forloop.last %},{% endif %}{% endfor %}];</script>
 {% with active_nav="" nav_solid=True %}{% include "web/_navbar.html" %}{% endwith %}
+
 <div class="wishlist-page">
   <h1>My Wishlist <span style="font-size:1.2rem;color:var(--text-light);font-family:'Cormorant Garamond',serif;">({{ items.count }} item{{ items.count|pluralize }})</span></h1>
+
   {% if items %}
   <div class="wishlist-grid">
     {% for w in items %}
-    <a href="{% url 'product_detail' w.product.slug %}" class="product-card" style="text-decoration:none;">
+    {% with p=w.product %}
+    <div class="product-card"
+         data-url="{% url 'product_detail' p.slug %}"
+         {% with v=p.display_variant %}
+         data-has-offer="{% if v and v.offer_price %}true{% else %}{% if p.offer_price %}true{% else %}false{% endif %}{% endif %}"
+         data-in-stock="{% if v %}{% if v.stock > 0 %}true{% else %}false{% endif %}{% else %}{% if p.stock > 0 %}true{% else %}false{% endif %}{% endif %}"
+         {% endwith %}>
       <div class="img-container">
-        {% if w.product.offer_price %}<span class="badge badge-sale">SALE</span>{% endif %}
-        {% if w.product.stock == 0 %}<span class="badge badge-oos">Sold Out</span>{% endif %}
-        {% if w.product.image %}<img src="{{ w.product.image.url }}" alt="{{ w.product.name }}" loading="lazy">
-        {% else %}<div class="img-placeholder"><i class="fas fa-seedling"></i></div>{% endif %}
+        {% with v=p.display_variant %}
+          {% if v %}
+            {% if v.offer_price %}<span class="badge badge-sale">SALE</span>{% endif %}
+            {% if v.stock == 0 %}<span class="badge badge-oos">Sold Out</span>{% endif %}
+          {% else %}
+            {% if p.offer_price %}<span class="badge badge-sale">SALE</span>{% endif %}
+            {% if p.stock == 0 %}<span class="badge badge-oos">Sold Out</span>{% endif %}
+          {% endif %}
+        {% endwith %}
+        {% if p.image %}
+          <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
+        {% else %}
+          <div class="img-placeholder"><i class="fas fa-seedling"></i></div>
+        {% endif %}
         <div class="card-actions">
-          <button class="action-btn wishlist-btn wishlisted" data-product="{{ w.product.id }}" onclick="event.preventDefault();handleWishlistRemove({{ w.product.id }},this);" title="Remove from Wishlist">
+          <button
+            type="button"
+            class="action-btn wishlist-btn wishlisted"
+            data-product="{{ p.id }}"
+            onclick="event.preventDefault();event.stopPropagation();handleWishlistRemove({{ p.id }},this);"
+            title="Remove from Wishlist">
             <i class="fas fa-heart"></i>
           </button>
-          <button class="action-btn" data-product="{{ w.product.id }}" onclick="event.preventDefault();addToCart({{ w.product.id }},1);" title="Add to cart">
+          <button
+            type="button"
+            class="action-btn quick-add"
+            data-product="{{ p.id }}"
+            onclick="event.stopPropagation();">
             <i class="fas fa-shopping-bag"></i>
           </button>
         </div>
       </div>
       <div class="product-info">
-        <h3>{{ w.product.name }}</h3>
+        <h3>{{ p.name }}</h3>
+        {% if p.active_variants %}
+        <div class="shop-variants" style="display:none;flex-wrap:wrap;gap:6px;padding:6px 0;">
+          {% for v in p.active_variants %}
+          <button
+            type="button"
+            class="shop-variant-pill {% if v.stock == 0 %}oos{% endif %}"
+            data-product="{{ p.id }}"
+            data-variant="{{ v.id }}"
+            data-stock="{{ v.stock }}">
+            {{ v.display_label }}
+          </button>
+          {% endfor %}
+        </div>
+        {% endif %}
         <div class="price-row">
-          <p class="price">{% if w.product.offer_price %}₹{{ w.product.offer_price }}<span class="old-price">₹{{ w.product.price }}</span>{% else %}₹{{ w.product.price }}{% endif %}</p>
-          <span class="stock-tag {% if w.product.stock < 5 and w.product.stock > 0 %}low{% endif %}">{% if w.product.stock == 0 %}Out of stock{% elif w.product.stock < 5 %}{{ w.product.stock }} left{% else %}In Stock{% endif %}</span>
+          {% with v=p.lowest_price_variant %}
+          {% if v %}
+            {% if p.active_variants|length > 1 %}
+              <p class="price">
+                Starts from
+                {% if v.offer_price %}₹{{ v.offer_price }}<span class="old-price">₹{{ v.price }}</span>
+                {% else %}₹{{ v.price }}{% endif %}
+              </p>
+            {% else %}
+              <p class="price">
+                {% if v.offer_price %}₹{{ v.offer_price }}<span class="old-price">₹{{ v.price }}</span>
+                {% else %}₹{{ v.price }}{% endif %}
+              </p>
+            {% endif %}
+            <span class="stock-tag {% if v.stock < 5 and v.stock > 0 %}low{% endif %}">
+              {% if v.stock == 0 %}Out of stock
+              {% elif v.stock < 5 %}{{ v.stock }} left
+              {% else %}In Stock{% endif %}
+            </span>
+          {% else %}
+            <p class="price">
+              {% if p.offer_price %}₹{{ p.offer_price }}<span class="old-price">₹{{ p.price }}</span>
+              {% else %}₹{{ p.price }}{% endif %}
+            </p>
+            <span class="stock-tag {% if p.stock < 5 and p.stock > 0 %}low{% endif %}">
+              {% if p.stock == 0 %}Out of stock
+              {% elif p.stock < 5 %}{{ p.stock }} left
+              {% else %}In Stock{% endif %}
+            </span>
+          {% endif %}
+          {% endwith %}
         </div>
       </div>
-    </a>
+    </div>
+    {% endwith %}
     {% endfor %}
   </div>
+
   {% else %}
   <div class="cart-empty-page">
     <i class="fas fa-heart" style="color:var(--sage)"></i>
@@ -52,6 +125,7 @@
   </div>
   {% endif %}
 </div>
+
 {% include "web/_footer.html" %}
 {% csrf_token %}
 <script src="{% static 'js/script.js' %}"></script>
@@ -59,9 +133,13 @@
 async function handleWishlistRemove(pid, btn) {
   await toggleWishlist(pid);
   btn.closest('.product-card')?.remove();
-  const h1 = document.querySelector('.wishlist-page h1');
   const remaining = document.querySelectorAll('.wishlist-grid .product-card').length;
-  if (remaining === 0) location.reload();
+  const h1 = document.querySelector('.wishlist-page h1 span');
+  if (remaining === 0) {
+    location.reload();
+  } else if (h1) {
+    h1.textContent = `(${remaining} item${remaining === 1 ? '' : 's'})`;
+  }
 }
 </script>
 </body>

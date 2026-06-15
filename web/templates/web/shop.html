@@ -166,12 +166,35 @@
     <!-- PRODUCT GRID -->
     <div class="product-grid">
       {% for p in page_obj %}
-      <a href="{% url 'product_detail' p.slug %}" class="product-card reveal-child"
-         data-has-offer="{% if p.offer_price %}true{% else %}false{% endif %}"
-         data-in-stock="{% if p.stock > 0 %}true{% else %}false{% endif %}">
+      <div class="product-card reveal-child"
+     data-url="{% url 'product_detail' p.slug %}"
+    {% with v=p.display_variant %}
+    data-has-offer="{% if v and v.offer_price %}true{% else %}{% if p.offer_price %}true{% else %}false{% endif %}{% endif %}"
+    data-in-stock="{% if v %}{% if v.stock > 0 %}true{% else %}false{% endif %}{% else %}{% if p.stock > 0 %}true{% else %}false{% endif %}{% endif %}"
+    {% endwith %} >
         <div class="img-container">
-          {% if p.offer_price %}<span class="badge badge-sale">SALE</span>{% endif %}
-          {% if p.stock == 0 %}<span class="badge badge-oos">Sold Out</span>{% endif %}
+          {% with v=p.display_variant %}
+    {% if v %}
+        {% if v.offer_price %}
+            <span class="badge badge-sale">SALE</span>
+        {% endif %}
+    {% else %}
+        {% if p.offer_price %}
+            <span class="badge badge-sale">SALE</span>
+        {% endif %}
+    {% endif %}
+{% endwith %}
+          {% with v=p.display_variant %}
+    {% if v %}
+        {% if v.stock == 0 %}
+            <span class="badge badge-oos">Sold Out</span>
+        {% endif %}
+    {% else %}
+        {% if p.stock == 0 %}
+            <span class="badge badge-oos">Sold Out</span>
+        {% endif %}
+    {% endif %}
+{% endwith %}
           {% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
           {% else %}<div class="img-placeholder"><i class="fas fa-seedling"></i></div>{% endif %}
           <div class="card-actions">
@@ -192,13 +215,68 @@
           </div>
         </div>
         <div class="product-info">
-          <h3>{{ p.name }}</h3>
-          <div class="price-row">
-            <p class="price">{% if p.offer_price %}₹{{ p.offer_price }}<span class="old-price">₹{{ p.price }}</span>{% else %}₹{{ p.price }}{% endif %}</p>
-            <span class="stock-tag {% if p.stock < 5 and p.stock > 0 %}low{% endif %}">{% if p.stock == 0 %}Out of stock{% elif p.stock < 5 %}{{ p.stock }} left{% else %}In Stock{% endif %}</span>
-          </div>
+
+    <h3>{{ p.name }}</h3>
+
+{% if p.active_variants %}
+<div class="shop-variants">
+    {% for v in p.active_variants %}
+        <button
+            type="button"
+            class="shop-variant-pill {% if v.stock == 0 %}oos{% endif %}"
+            data-product="{{ p.id }}"
+            data-variant="{{ v.id }}"
+            data-stock="{{ v.stock }}">
+            {{ v.display_label }}
+        </button>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="price-row">
+{% with v=p.lowest_price_variant %}
+{% if v %}
+    {% if p.active_variants|length > 1 %}
+        <p class="price">
+            Starts from
+            {% if v.offer_price %}
+                ₹{{ v.offer_price }}<span class="old-price">₹{{ v.price }}</span>
+            {% else %}
+                ₹{{ v.price }}
+            {% endif %}
+        </p>
+    {% else %}
+        <p class="price">
+            {% if v.offer_price %}
+                ₹{{ v.offer_price }}<span class="old-price">₹{{ v.price }}</span>
+            {% else %}
+                ₹{{ v.price }}
+            {% endif %}
+        </p>
+    {% endif %}
+    <span class="stock-tag">
+        {% if v.stock == 0 %}Out of stock
+        {% elif v.stock < 5 %}{{ v.stock }} left
+        {% else %}In Stock{% endif %}
+    </span>
+{% else %}
+    <p class="price">
+        {% if p.offer_price %}
+            ₹{{ p.offer_price }}<span class="old-price">₹{{ p.price }}</span>
+        {% else %}
+            ₹{{ p.price }}
+        {% endif %}
+    </p>
+    <span class="stock-tag">
+        {% if p.stock == 0 %}Out of stock
+        {% elif p.stock < 5 %}{{ p.stock }} left
+        {% else %}In Stock{% endif %}
+    </span>
+{% endif %}
+{% endwith %}
+</div>
         </div>
-      </a>
+      </div>
       {% empty %}
       <div style="grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--text-light);">
         <i class="fas fa-seedling" style="font-size:3rem;color:var(--sage);display:block;margin-bottom:16px;"></i>
@@ -235,6 +313,7 @@ function submitShopSearch(){
   url.searchParams.delete('page');
   window.location.href=url.toString();
 }
+
 
 
 </script>

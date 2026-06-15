@@ -43,17 +43,16 @@
   // ── API helper ────────────────────────────────────────────
   async function api(url, body) {
     const r = await fetch(url, {
-      method: "POST",
-      headers: {
+        method: "POST",
         headers: {
             "Content-Type": "application/json",
             "X-CSRFToken": getCookie("csrftoken"),
-        }
-      },
-      body: JSON.stringify(body),
+        },
+        body: JSON.stringify(body),
     });
+
     return r.json();
-  }
+}
 
   // ══════════════════════════════════════════════════════════
   // NAVBAR
@@ -426,16 +425,67 @@
   }
   window.addToCart = addToCart;
 
-  document.querySelectorAll(".quick-add").forEach(btn => {
+document.querySelectorAll(".quick-add").forEach(btn => {
     btn.addEventListener("click", e => {
-      e.preventDefault();
-      e.stopPropagation();
-      const pid = btn.dataset.product;
-      const vid = btn.dataset.variant || null;
-      if (pid) addToCart(+pid, 1, vid);
-    });
-  });
+        e.preventDefault();
+        e.stopPropagation();
 
+        const card = btn.closest(".product-card");
+
+        if (!card) return;
+
+        const variantsBox = card.querySelector(".shop-variants");
+        const allPills    = variantsBox?.querySelectorAll(".shop-variant-pill");
+
+        const pid = btn.dataset.product;
+
+        // No variants at all → direct add to cart
+        if (!variantsBox || !allPills || allPills.length === 0) {
+            addToCart(+pid);
+            return;
+        }
+
+        // Variants exist → toggle the pills panel
+        const isVisible = variantsBox.style.display === "flex";
+
+        // Hide any other open variant panels first
+        document.querySelectorAll(".shop-variants").forEach(v => {
+            v.style.display = "none";
+        });
+
+        variantsBox.style.display = isVisible ? "none" : "flex";
+    });
+});
+
+document.querySelectorAll(".shop-variant-pill").forEach(btn => {
+    btn.addEventListener("click", async e => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (btn.classList.contains("oos")) {
+            showToast("Variant out of stock", "error");
+            return;
+        }
+
+        const pid = btn.dataset.product;
+        const vid = btn.dataset.variant;
+
+        await addToCart(+pid, 1, +vid);
+
+        const variantsBox = btn.closest(".shop-variants");
+
+        if (variantsBox) {
+            variantsBox.style.display = "none";
+        }
+    });
+});
+
+document.addEventListener("click", e => {
+    if (e.target.closest(".shop-variants") || e.target.closest(".quick-add")) return;
+    document.querySelectorAll(".shop-variants").forEach(v => {
+        v.style.display = "none";
+    });
+});
   // ── Cart qty helpers (used by product detail page inline scripts) ──
   window.updateQty = async function (productId, change, variantId = null) {
     const currentResponse = await fetch("/cart/data/");
@@ -653,3 +703,20 @@
   updateWishlistUI();
 
 })();
+
+document.querySelectorAll(".product-card").forEach(card => {
+    card.addEventListener("click", function (e) {
+
+        if (
+            e.target.closest(".quick-add") ||
+            e.target.closest(".shop-variants") ||
+            e.target.closest(".shop-variant-pill") ||
+            e.target.closest(".wishlist-btn") ||
+            e.target.closest(".action-btn")
+        ) {
+            return;
+        }
+
+        window.location.href = this.dataset.url;
+    });
+});

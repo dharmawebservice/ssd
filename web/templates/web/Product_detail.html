@@ -660,14 +660,28 @@
 
                 <!-- Price -->
                 <div class="product-price-block">
-                    {% if product.offer_price %}
-                        <span class="product-price">₹{{ product.offer_price|floatformat:2 }}</span>
-                        <span class="product-old-price">₹{{ product.price|floatformat:2 }}</span>
-                        <span class="discount-pill">{{ product.discount_percent }}% OFF</span>
-                    {% else %}
-                        <span class="product-price">₹{{ product.price|floatformat:2 }}</span>
-                    {% endif %}
-                </div>
+{% if variants %}
+    {% with v=variants.0 %}
+        {% if v.offer_price %}
+            <span class="product-price">₹{{ v.offer_price|floatformat:2 }}</span>
+            <span class="product-old-price">₹{{ v.price|floatformat:2 }}</span>
+            <span class="discount-pill">{{ v.discount_percent }}% OFF</span>
+        {% else %}
+            <span class="product-price">₹{{ v.price|floatformat:2 }}</span>
+            <span class="product-old-price" style="display:none;"></span>
+            <span class="discount-pill" style="display:none;"></span>
+        {% endif %}
+    {% endwith %}
+{% else %}
+    {% if product.offer_price %}
+        <span class="product-price">₹{{ product.offer_price|floatformat:2 }}</span>
+        <span class="product-old-price">₹{{ product.price|floatformat:2 }}</span>
+        <span class="discount-pill">{{ product.discount_percent }}% OFF</span>
+    {% else %}
+        <span class="product-price">₹{{ product.price|floatformat:2 }}</span>
+    {% endif %}
+{% endif %}
+</div>
 
                 {% if variants %}
 <div class="variant-selector" style="margin-bottom:24px;">
@@ -698,18 +712,59 @@
 {% endif %}
 
                 <!-- Stock -->
-                <div class="stock-status">
-                    {% if product.stock == 0 %}
-                        <div class="stock-dot red"></div>
-                        <span style="color:var(--terracotta);">Out of Stock</span>
-                    {% elif product.stock < 5 %}
-                        <div class="stock-dot orange"></div>
-                        <span style="color:var(--gold);">Only {{ product.stock }} left in stock!</span>
-                    {% else %}
-                        <div class="stock-dot green"></div>
-                        <span style="color:#22C55E;">In Stock</span>
-                    {% endif %}
-                </div>
+                <div class="stock-status" id="stockStatus">
+
+{% if variants %}
+
+    {% with v=variants.0 %}
+
+        {% if v.stock == 0 %}
+            <div class="stock-dot red"></div>
+            <span style="color:var(--terracotta);">
+                Out of Stock
+            </span>
+
+        {% elif v.stock < 5 %}
+            <div class="stock-dot orange"></div>
+            <span style="color:var(--gold);">
+                Only {{ v.stock }} left in stock!
+            </span>
+
+        {% else %}
+            <div class="stock-dot green"></div>
+            <span style="color:#22C55E;">
+                In Stock
+            </span>
+
+        {% endif %}
+
+    {% endwith %}
+
+{% else %}
+
+    {% if product.stock == 0 %}
+        <div class="stock-dot red"></div>
+        <span style="color:var(--terracotta);">
+            Out of Stock
+        </span>
+
+    {% elif product.stock < 5 %}
+        <div class="stock-dot orange"></div>
+        <span style="color:var(--gold);">
+            Only {{ product.stock }} left in stock!
+        </span>
+
+    {% else %}
+        <div class="stock-dot green"></div>
+        <span style="color:#22C55E;">
+            In Stock
+        </span>
+
+    {% endif %}
+
+{% endif %}
+
+</div>
 
                 {% if product.description %}
                 <p class="product-desc">{{ product.description }}</p>
@@ -717,38 +772,25 @@
 
                 <div class="divider"></div>
 
-                {% if product.stock > 0 %}
-                <!-- ── Cart row: [qty/add-to-cart]  [♥] — always inline ── -->
                 <div class="btn-row">
 
-                    <div id="cartControl">
-                        {% if cart_qty > 0 %}
-                        <div class="qty-selector product-cart-box">
-                            <button onclick="updateCartQty(-1)">−</button>
-                            <input type="text" id="cartQtyDisplay" value="{{ cart_qty }}" readonly>
-                            <button onclick="updateCartQty(1)">+</button>
-                        </div>
-                        {% else %}
-                        <button class="btn-add-cart" id="addToCartBtn" onclick="addFirstItem()">
-                            <i class="fas fa-shopping-bag"></i> Add to Basket
-                        </button>
-                        {% endif %}
-                    </div>
+    <div id="cartControl">
+        <button class="btn-add-cart"
+                id="addToCartBtn"
+                onclick="addFirstItem()">
+            <i class="fas fa-shopping-bag"></i>
+            Add to Basket
+        </button>
+    </div>
 
-                    <button
-                        class="btn-wishlist {% if in_wishlist %}active{% endif %}"
-                        id="wishlistBtn"
-                        aria-label="Toggle wishlist"
-                    >
-                        <i class="{% if in_wishlist %}fas{% else %}far{% endif %} fa-heart"></i>
-                    </button>
+    <button
+        class="btn-wishlist {% if in_wishlist %}active{% endif %}"
+        id="wishlistBtn"
+        aria-label="Toggle wishlist">
+        <i class="{% if in_wishlist %}fas{% else %}far{% endif %} fa-heart"></i>
+    </button>
 
-                </div>
-                {% else %}
-                <div style="margin-bottom:28px;">
-                    <span style="display:inline-block;padding:14px 28px;background:var(--ivory-dark);color:var(--text-light);border-radius:var(--radius-leaf);font-family:'DM Serif Display',serif;font-size:1.1rem;">Currently Unavailable</span>
-                </div>
-                {% endif %}
+</div>
 
                 <!-- Trust badges -->
                 <div class="trust-mini">
@@ -970,6 +1012,10 @@
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
                         body: JSON.stringify({ product_id: '{{ product.id }}' })
                     });
+                    if (response.redirected) {
+                        window.location.href = "/auth/?tab=login";
+                        return;
+                    }
                     const data = await response.json();
                     if (!data.success) { showToast(data.message || 'Something went wrong'); return; }
                     const icon = this.querySelector('i');
@@ -991,47 +1037,80 @@
         const PRODUCT_ID    = '{{ product.id }}';
         const PRODUCT_STOCK = {{ product.stock }};
 
-        async function addFirstItem() {
-            const response = await fetch('/cart/add/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-                body: JSON.stringify({ product_id: PRODUCT_ID, qty: 1 })
-            });
-            const data = await response.json();
-            if (!data.success) { showToast(data.message); return; }
-            updateNavbarCount(data.count);
-            document.getElementById('cartControl').innerHTML = `
-                <div class="qty-selector product-cart-box">
-                    <button onclick="updateCartQty(-1)">−</button>
-                    <input type="text" id="cartQtyDisplay" value="1" readonly>
-                    <button onclick="updateCartQty(1)">+</button>
-                </div>`;
-            showToast('Added to basket!');
-        }
 
-        async function updateCartQty(change) {
-            const qtyInput = document.getElementById('cartQtyDisplay');
-            let qty = parseInt(qtyInput.value) + change;
-            if (qty < 0) qty = 0;
-            const response = await fetch('/cart/update/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-                body: JSON.stringify({ product_id: PRODUCT_ID, qty })
-            });
-            const data = await response.json();
-            if (!data.success) { showToast(data.message); return; }
-            updateNavbarCount(data.count);
-            if (qty === 0) {
-                document.getElementById('cartControl').innerHTML = `
-                    <button class="btn-add-cart" id="addToCartBtn" onclick="addFirstItem()">
-                        <i class="fas fa-shopping-bag"></i> Add to Basket
-                    </button>`;
-                showToast('Removed from cart');
-                return;
-            }
-            qtyInput.value = qty;
-        }
+async function updateCartQty(change) {
 
+    const qtyInput = document.getElementById('cartQtyDisplay');
+
+    if (!qtyInput) return;
+
+    let qty = parseInt(qtyInput.value) + change;
+
+    if (
+        change > 0 &&
+        parseInt(qtyInput.value) >= selectedVariantStock
+    ) {
+        showToast(`Only ${selectedVariantStock} available`);
+        return;
+    }
+
+    if (qty < 0) {
+        return;
+    }
+
+    const payload = {
+        product_id: PRODUCT_ID,
+        qty: qty
+    };
+
+    if (selectedVariantId) {
+        payload.variant_id = selectedVariantId;
+    }
+
+    const response = await fetch('/cart/update/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+        showToast(data.message);
+        return;
+    }
+
+    updateNavbarCount(data.count);
+
+    const cartItem = data.cart.find(item =>
+        String(item.variant_id) === String(selectedVariantId)
+    );
+
+    const actualQty = cartItem ? cartItem.qty : 0;
+
+    if (actualQty === 0) {
+
+        delete CART_VARIANTS[selectedVariantId];
+
+        document.getElementById('cartControl').innerHTML = `
+            <button class="btn-add-cart"
+                    onclick="addFirstItem()">
+                <i class="fas fa-shopping-bag"></i>
+                Add to Basket
+            </button>
+        `;
+
+        showToast('Removed from cart');
+        return;
+    }
+
+    qtyInput.value = actualQty;
+
+    CART_VARIANTS[selectedVariantId] = actualQty;
+}
         function updateNavbarCount(count) {
             document.querySelectorAll('.cart-count, .mobile-cart-count').forEach(el => {
                 el.textContent = count;
@@ -1039,6 +1118,15 @@
         }
 
         // ── Variant selection ──────────────────────────────────────
+let CART_VARIANTS = {};
+
+try {
+    CART_VARIANTS = JSON.parse('{{ cart_items_by_variant|default:"{}"|escapejs }}');
+} catch (e) {
+    console.error("Invalid cart_items_by_variant:", e);
+    CART_VARIANTS = {};
+}
+
 let selectedVariantId   = null;
 let selectedVariantStock = {{ product.stock }};  // fallback to product stock
 
@@ -1051,8 +1139,43 @@ document.querySelectorAll('.variant-pill').forEach(pill => {
     document.querySelectorAll('.variant-pill').forEach(p => p.classList.remove('selected'));
     this.classList.add('selected');
 
-    selectedVariantId    = this.dataset.id;
+    selectedVariantId = this.dataset.id;
     selectedVariantStock = parseInt(this.dataset.stock);
+
+    const stockStatus = document.getElementById('stockStatus');
+
+if (stockStatus) {
+
+    if (selectedVariantStock === 0) {
+
+        stockStatus.innerHTML = `
+            <div class="stock-dot red"></div>
+            <span style="color:var(--terracotta);">
+                Out of Stock
+            </span>
+        `;
+
+    } else if (selectedVariantStock < 5) {
+
+        stockStatus.innerHTML = `
+            <div class="stock-dot orange"></div>
+            <span style="color:var(--gold);">
+                Only ${selectedVariantStock} left in stock!
+            </span>
+        `;
+
+    } else {
+
+        stockStatus.innerHTML = `
+            <div class="stock-dot green"></div>
+            <span style="color:#22C55E;">
+                In Stock
+            </span>
+        `;
+
+    }
+
+}
 
     // Update displayed price — show offer price if present, strike through MRP
     const effectivePrice = parseFloat(this.dataset.effectivePrice);
@@ -1087,13 +1210,62 @@ document.querySelectorAll('.variant-pill').forEach(pill => {
     }
 
     // Reset cart button when variant changes
-    document.getElementById('cartControl').innerHTML = `
-        <button class="btn-add-cart" id="addToCartBtn" onclick="addFirstItem()">
-            <i class="fas fa-shopping-bag"></i> Add to Basket
-        </button>`;
-});
-});
+    const existingQty = CART_VARIANTS[selectedVariantId] || 0;
 
+if (existingQty > 0) {
+
+    document.getElementById('cartControl').innerHTML = `
+        <div class="qty-selector product-cart-box">
+            <button onclick="updateCartQty(-1)">−</button>
+            <input
+                type="text"
+                id="cartQtyDisplay"
+                value="${existingQty}"
+                readonly>
+            <button onclick="updateCartQty(1)">+</button>
+        </div>
+    `;
+
+} else {
+
+    document.getElementById('cartControl').innerHTML = `
+        <button class="btn-add-cart"
+                onclick="addFirstItem()">
+            <i class="fas fa-shopping-bag"></i>
+            Add to Basket
+        </button>
+    `;
+}
+});
+});
+if (Object.keys(CART_VARIANTS).length > 0) {
+
+    const variantId = Object.keys(CART_VARIANTS)[0];
+
+    const pill = document.querySelector(
+        `.variant-pill[data-id="${variantId}"]`
+    );
+
+    if (pill) {
+
+        pill.click();
+
+        const qty = CART_VARIANTS[variantId];
+
+        document.getElementById('cartControl').innerHTML = `
+            <div class="qty-selector product-cart-box">
+                <button onclick="updateCartQty(-1)">−</button>
+                <input
+                    type="text"
+                    id="cartQtyDisplay"
+                    value="${qty}"
+                    readonly>
+                <button onclick="updateCartQty(1)">+</button>
+            </div>
+        `;
+    }
+
+}
 // ── Override addFirstItem to include variant ───────────────
 async function addFirstItem() {
     {% if variants %}
@@ -1103,6 +1275,10 @@ async function addFirstItem() {
         setTimeout(() => document.getElementById('variantPills').style.animation = '', 500);
         return;
     }
+    if (selectedVariantStock <= 0) {
+    showToast("Out of stock");
+    return;
+}
     {% endif %}
 
     const response = await fetch('/cart/add/', {
@@ -1120,9 +1296,21 @@ async function addFirstItem() {
     document.getElementById('cartControl').innerHTML = `
         <div class="qty-selector product-cart-box">
             <button onclick="updateCartQty(-1)">−</button>
-            <input type="text" id="cartQtyDisplay" value="1" readonly>
+            <input type="text" id="cartQtyDisplay" value="${data.cart.find(item =>
+    String(item.variant_id) === String(selectedVariantId)
+)?.qty || 1}" readonly>
             <button onclick="updateCartQty(1)">+</button>
         </div>`;
+    
+    if (selectedVariantId) {
+        const cartItem = data.cart.find(item =>
+    String(item.variant_id) === String(selectedVariantId)
+);
+
+if (cartItem) {
+    CART_VARIANTS[selectedVariantId] = cartItem.qty;
+}
+    }
     showToast('Added to basket!');
 }
     </script>

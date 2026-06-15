@@ -279,10 +279,23 @@ def send_order_status_email(order, old_status, new_status):
 # HOME
 # ══════════════════════════════════════════════════════════════
 
+from django.db.models import Prefetch
+
 def home(request):
-    banners       = Banner.objects.filter(is_active=True).order_by("sort_order", "-created_at")[:5]
-    categories    = Category.objects.filter(is_active=True).order_by("name")
-    products      = Product.objects.filter(is_active=True).select_related("category").order_by("-id")[:8]
+    banners    = Banner.objects.filter(is_active=True).order_by("sort_order", "-created_at")[:5]
+    categories = Category.objects.filter(is_active=True).order_by("name")
+    products   = (
+        Product.objects.filter(is_active=True)
+        .select_related("category")
+        .prefetch_related(
+            Prefetch(
+                "variants",
+                queryset=ProductVariant.objects.filter(is_active=True).order_by("sort_order", "id"),
+                to_attr="active_variants",
+            )
+        )
+        .order_by("-id")[:8]
+    )
     reviews       = Review.objects.filter(is_approved=True).select_related("user").order_by("-id")[:6]
     notifications = Notification.objects.filter(is_active=True).order_by("-id")[:5]
 
@@ -300,8 +313,6 @@ def home(request):
         "notifications": notifications,
         "wishlist_ids":  wishlist_ids,
     })
-
-
 # ══════════════════════════════════════════════════════════════
 # COLLECTIONS
 # ══════════════════════════════════════════════════════════════
@@ -316,6 +327,8 @@ def collections(request):
 # ══════════════════════════════════════════════════════════════
 # SHOP
 # ══════════════════════════════════════════════════════════════
+from django.db.models import Prefetch
+from .models import ProductVariant
 
 def shop(request):
     bounds = (
@@ -339,6 +352,13 @@ def shop(request):
     qs = (
         Product.objects.filter(is_active=True)
         .select_related("category")
+        .prefetch_related(
+            Prefetch(
+                "variants",
+                queryset=ProductVariant.objects.filter(is_active=True).order_by("sort_order", "id"),
+                to_attr="active_variants"
+            )
+        )
         .annotate(
             final_price=Coalesce(
                 "offer_price",
@@ -373,8 +393,13 @@ def shop(request):
 
     if request.GET.get("sale") == "1":
         qs = qs.exclude(offer_price__isnull=True)
+    from django.db.models import Q
+
     if request.GET.get("in_stock") == "1":
-        qs = qs.filter(stock__gt=0)
+        qs = qs.filter(
+            Q(stock__gt=0) |
+            Q(variants__stock__gt=0, variants__is_active=True)
+        ).distinct()
 
     sort     = request.GET.get("sort", "newest")
     sort_map = {"newest": "-id", "price_asc": "final_price", "price_desc": "-final_price", "name_asc": "name"}
@@ -447,7 +472,13 @@ def search_suggestions(request):
                     "id": p.id,
                     "name": p.name,
                     "slug": p.slug,
-                    "price": str(p.offer_price or p.price),
+                    "price": str(
+                        (
+                            p.display_variant.effective_price
+                            if p.display_variant
+                            else p.effective_price
+                        )
+                    ),
                     "image": p.image.url if p.image else "",
                 }
                 for p in products
@@ -482,7 +513,13 @@ def search_suggestions(request):
                 "id": p.id,
                 "name": p.name,
                 "slug": p.slug,
-                "price": str(p.offer_price or p.price),
+                "price": str(
+                    (
+                        p.display_variant.effective_price
+                        if p.display_variant
+                        else p.effective_price
+                    )
+                ),
                 "image": p.image.url if p.image else "",
             })
 
@@ -529,10 +566,11 @@ def product_detail(request, slug):
  
         for ci in cart_rows:
             if ci.variant_id:
-                cart_items_by_variant[ci.variant_id] = ci.quantity
+                cart_items_by_variant[str(ci.variant_id)] = ci.quantity
             else:
                 cart_qty = ci.quantity   # no-variant qty
- 
+    cart_items_by_variant = json.dumps(cart_items_by_variant)
+
     return render(request, "web/Product_detail.html", {
         "product":              product,
         "reviews":              reviews,
@@ -959,48 +997,137 @@ def cart_page(request):
         "count":    count,
     })
 
-
+    
 @require_POST
 def cart_add(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"success": False, "message": "login_required"})
+        return JsonResponse({
+            "success": False,
+            "message": "login_required"
+        })
+
     try:
         from .models import ProductVariant
-        data    = json.loads(request.body)
-        product = get_object_or_404(Product, id=data["product_id"], is_active=True)
-        qty     = max(1, int(data.get("qty", 1)))
 
-        # Resolve variant
-        variant    = None
+        print("\n========== CART ADD ==========")
+        print("RAW BODY:", request.body)
+
+        data = json.loads(request.body)
+
+        print("DATA:", data)
+
+        product = get_object_or_404(
+            Product,
+            id=data["product_id"],
+            is_active=True
+        )
+
+        print("PRODUCT:", product.name)
+        print("PRODUCT STOCK:", product.stock)
+
+        qty = max(1, int(data.get("qty", 1)))
+
+        variant = None
         variant_id = data.get("variant_id")
-        if variant_id:
-            variant = get_object_or_404(ProductVariant, id=variant_id, product=product, is_active=True)
-            if variant.stock == 0:
-                return JsonResponse({"success": False, "message": "This variant is out of stock"})
-        else:
-            if product.stock == 0:
-                return JsonResponse({"success": False, "message": "Out of stock"})
 
-        ci, _ = CartItem.objects.get_or_create(
-            user=request.user, product=product, variant=variant,
+        print("VARIANT ID:", variant_id)
+
+        # ─────────────────────────────────────────────
+        # Variant Products
+        # ─────────────────────────────────────────────
+        if variant_id:
+            variant = get_object_or_404(
+                ProductVariant,
+                id=variant_id,
+                product=product,
+                is_active=True
+            )
+
+            print("VARIANT:", variant.display_label)
+            print("VARIANT STOCK:", variant.stock)
+
+            if variant.stock <= 0:
+                return JsonResponse({
+                    "success": False,
+                    "message": "This variant is out of stock"
+                })
+
+        # ─────────────────────────────────────────────
+        # Non-Variant Products
+        # ─────────────────────────────────────────────
+        else:
+            print("NO VARIANT SELECTED")
+
+            # If product has variants but frontend didn't send one
+            active_variants = product.variants.filter(
+                is_active=True,
+                stock__gt=0
+            )
+
+            if variant_id is None and active_variants.exists():
+                return JsonResponse({
+                    "success": False,
+                    "message": "Please select a variant."
+                })
+
+            if product.stock <= 0:
+                return JsonResponse({
+                    "success": False,
+                    "message": "Out of stock"
+                })
+
+        # ─────────────────────────────────────────────
+        # Cart Item
+        # ─────────────────────────────────────────────
+        ci, created = CartItem.objects.get_or_create(
+            user=request.user,
+            product=product,
+            variant=variant,
             defaults={"quantity": 0}
         )
+
+        print("CART ITEM CREATED:", created)
+        print("CURRENT QTY:", ci.quantity)
+
         max_stock = variant.stock if variant else product.stock
-        ci.quantity = min(ci.quantity + qty, max_stock)
+
+        new_qty = ci.quantity + qty
+
+        if new_qty > max_stock:
+            new_qty = max_stock
+
+        ci.quantity = new_qty
         ci.save()
 
-        items = _cart_items(request.user)
-        subtotal, count = _cart_totals(items)
-        return JsonResponse({
-            "success":  True,
-            "message":  f"{product.name} added to cart!",
-            "cart":     _cart_json_list(items),
-            "subtotal": float(subtotal),
-            "count":    count,
-        })
-    except Exception as e:
-        return JsonResponse({"success": False, "message": str(e)})
+        print("FINAL QTY:", ci.quantity)
 
+        items = _cart_items(request.user)
+
+        subtotal, count = _cart_totals(items)
+
+        print("SUCCESS")
+        print("=============================\n")
+
+        return JsonResponse({
+            "success": True,
+            "message": f"{product.name} added to cart!",
+            "cart": _cart_json_list(items),
+            "subtotal": float(subtotal),
+            "count": count,
+        })
+
+    except Exception as e:
+        import traceback
+
+        print("\n========== CART ERROR ==========")
+        traceback.print_exc()
+        print("================================\n")
+
+        return JsonResponse({
+            "success": False,
+            "message": str(e)
+        })
+    
 @require_POST
 def cart_update(request):
     if not request.user.is_authenticated:
@@ -1073,7 +1200,19 @@ def cart_clear(request):
 def wishlist_page(request):
     if not request.user.is_authenticated:
         return redirect("/auth/?tab=login&next=/wishlist/")
-    items = Wishlist.objects.filter(user=request.user).select_related("product__category").order_by("-added_at")
+    from django.db.models import Prefetch
+    items = (
+        Wishlist.objects.filter(user=request.user)
+        .select_related("product__category")
+        .prefetch_related(
+            Prefetch(
+                "product__variants",
+                queryset=ProductVariant.objects.filter(is_active=True).order_by("sort_order", "id"),
+                to_attr="active_variants",
+            )
+        )
+        .order_by("-added_at")
+    )
     return render(request, "web/wishlist.html", {"items": items})
 
 
@@ -1172,10 +1311,12 @@ def create_razorpay_order(request):
 
         # Stock validation before payment
         for ci in items:
-            if ci.quantity > ci.product.stock:
+            stock = ci.variant.stock if ci.variant else ci.product.stock
+
+            if ci.quantity > stock:
                 return JsonResponse({
                     "success": False,
-                    "message": f"'{ci.product.name}' has only {ci.product.stock} left in stock.",
+                    "message": f"'{ci.product.name}' has only {stock} left."
                 })
 
         discount   = Decimal("0")
@@ -1280,13 +1421,22 @@ def verify_razorpay_payment(request):
                 if ci.quantity > ci.product.stock:
                     raise ValueError(f"'{ci.product.name}' ran out of stock.")
                 OrderItem.objects.create(
-                    order    = order,
-                    product  = ci.product,
-                    quantity = ci.quantity,
-                    price    = ci.product.effective_price,
+                    order=order,
+                    product=ci.product,
+                    variant=ci.variant,
+                    quantity=ci.quantity,
+                    price=(
+                        ci.variant.effective_price
+                        if ci.variant
+                        else ci.product.effective_price
+                    ),
                 )
-                ci.product.stock = max(0, ci.product.stock - ci.quantity)
-                ci.product.save(update_fields=["stock"])
+                if ci.variant:
+                    ci.variant.stock -= ci.quantity
+                    ci.variant.save(update_fields=["stock"])
+                else:
+                    ci.product.stock -= ci.quantity
+                    ci.product.save(update_fields=["stock"])
 
             items.delete()
 
@@ -1334,10 +1484,12 @@ def place_cod_order(request):
 
         # Stock validation
         for ci in items:
-            if ci.quantity > ci.product.stock:
+            stock = ci.variant.stock if ci.variant else ci.product.stock
+
+            if ci.quantity > stock:
                 return JsonResponse({
                     "success": False,
-                    "message": f"'{ci.product.name}' has only {ci.product.stock} left.",
+                    "message": f"'{ci.product.name}' has only {stock} left."
                 })
 
         discount   = Decimal("0")
@@ -1366,11 +1518,22 @@ def place_cod_order(request):
                 if ci.quantity > ci.product.stock:
                     raise ValueError(f"'{ci.product.name}' ran out of stock.")
                 OrderItem.objects.create(
-                    order=order, product=ci.product,
-                    quantity=ci.quantity, price=ci.product.effective_price,
+                    order=order,
+                    product=ci.product,
+                    variant=ci.variant,
+                    quantity=ci.quantity,
+                    price=(
+                        ci.variant.effective_price
+                        if ci.variant
+                        else ci.product.effective_price
+                    ),
                 )
-                ci.product.stock = max(0, ci.product.stock - ci.quantity)
-                ci.product.save(update_fields=["stock"])
+                if ci.variant:
+                    ci.variant.stock -= ci.quantity
+                    ci.variant.save(update_fields=["stock"])
+                else:
+                    ci.product.stock -= ci.quantity
+                    ci.product.save(update_fields=["stock"])
 
             items.delete()
 
@@ -1508,11 +1671,23 @@ def add_product(request):
         cat  = get_object_or_404(Category, id=request.POST.get("category"))
         name = request.POST.get("name", "").strip()
         slug = _unique_slug(Product, name)
+        base_price = request.POST.get("price")
+        base_offer = request.POST.get("offer_price")
+        base_stock = request.POST.get("stock")
+
+        # If variants exist, use temporary values
+        if request.POST.getlist("variant_price[]"):
+            base_price = 0
+            base_offer = None
+            base_stock = 0
+
         product = Product.objects.create(
-            category=cat, name=name, slug=slug,
-            price=request.POST.get("price"),
-            offer_price=request.POST.get("offer_price") or None,
-            stock=request.POST.get("stock", 0),
+            category=cat,
+            name=name,
+            slug=slug,
+            price=base_price,
+            offer_price=base_offer,
+            stock=base_stock,
             description=request.POST.get("description", ""),
             care_guide=request.POST.get("care_guide", ""),
             image=request.FILES.get("image"),
@@ -2363,16 +2538,26 @@ def emergency_product_search(request):
     )[:20]
 
     return JsonResponse({
-        "products": [
-            {
-                "id": p.id,
-                "name": p.name,
-                "price": float(p.effective_price),
-                "stock": p.stock
-            }
-            for p in products
-        ]
-    })
+    "products": [
+        {
+            "id": p.id,
+            "name": p.name,
+            "price": float(
+                (
+                    p.display_variant.effective_price
+                    if p.display_variant
+                    else p.effective_price
+                )
+            ),
+            "stock": (
+                p.display_variant.stock
+                if p.display_variant
+                else p.stock
+            ),
+        }
+        for p in products
+    ]
+})
 
 def get_variant_price(request, product_id):
     variant_id = request.GET.get("variant_id")

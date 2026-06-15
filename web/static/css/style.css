@@ -2554,3 +2554,64 @@
     font-size: 0.93rem;
   }
 }
+
+
+.product-card{
+    background: white;
+    border-radius: var(--radius-card);
+    padding: 10px;
+    box-shadow: var(--shadow-card);
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid transparent;
+    text-decoration: none;
+    color: inherit;
+    position: relative;   /* ADD THIS */
+}
+
+.product-info{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+}
+
+.price-row{
+    margin-top:auto;
+}
+.shop-variant-pill{
+    padding:5px 12px;
+    font-size:12px;
+    font-weight:600;
+    border:1.5px solid var(--ivory-dark);
+    border-radius:20px;
+    background:#fff;
+    color:var(--text-mid);
+    transition:var(--transition);
+    cursor:pointer;
+}
+
+.shop-variant-pill:hover{
+    border-color:var(--forest);
+    color:var(--forest);
+}
+
+.shop-variant-pill.oos{
+    opacity:0.4;
+    text-decoration:line-through;
+    cursor:not-allowed;
+}
+
+.variant-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0 4px;
+  border-top: 1px solid var(--border, #e8e0d5);
+  animation: fadeIn .2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

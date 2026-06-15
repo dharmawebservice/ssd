@@ -35,11 +35,51 @@
 <div class="modal-body">
 <div class="form-group"><label>Category *</label><select name="category" class="form-control" required><option value="">Select…</option>{% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
 <div class="form-group"><label>Name *</label><input type="text" name="name" class="form-control" required placeholder="e.g. Monstera Deliciosa"></div>
-<div class="row-inputs">
-<div class="form-group"><label>Price (₹) *</label><input type="number" name="price" class="form-control" required min="0"></div>
-<div class="form-group"><label>Offer Price (₹)</label><input type="number" name="offer_price" class="form-control" min="0" placeholder="Leave blank for no offer"></div>
+<div id="basePricingSection">
+
+    <div class="row-inputs">
+        <div class="form-group">
+            <label>Price (₹) *</label>
+            <input
+                type="number"
+                id="basePrice"
+                name="price"
+                class="form-control"
+                required
+                min="0">
+        </div>
+
+        <div class="form-group">
+            <label>Offer Price (₹)</label>
+            <input
+                type="number"
+                id="baseOffer"
+                name="offer_price"
+                class="form-control"
+                min="0">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Stock *</label>
+        <input
+            type="number"
+            id="baseStock"
+            name="stock"
+            class="form-control"
+            required
+            min="0"
+            value="0">
+    </div>
+
+    <small
+        id="variantNotice"
+        style="display:none;color:var(--warn);font-weight:600;">
+        Pricing and stock will be controlled by variants.
+    </small>
+
 </div>
-<div class="form-group"><label>Stock *</label><input type="number" name="stock" class="form-control" required min="0" value="0"></div>
+
 <div class="form-group"><label>Description</label><textarea name="description" class="form-control" placeholder="Product description…"></textarea></div>
 <div class="form-group"><label>Care Guide</label><textarea name="care_guide" class="form-control" placeholder="Watering, sunlight, soil tips…"></textarea></div>
 <!-- ── AGE VARIANTS ── -->
@@ -60,17 +100,52 @@
 <div class="modal-body">
 <div class="form-group"><label>Category *</label><select name="category" id="editCatSel" class="form-control" required>{% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
 <div class="form-group"><label>Name *</label><input type="text" name="name" class="form-control" required></div>
-<div class="row-inputs">
-<div class="form-group"><label>Price (₹) *</label><input type="number" name="price" class="form-control" required min="0"></div>
-<div class="form-group"><label>Offer Price (₹)</label><input type="number" name="offer_price" class="form-control" min="0"></div>
+<div id="basePricingSection">
+
+    <div class="row-inputs">
+        <div class="form-group">
+            <label>Price (₹) *</label>
+            <input
+                type="number"
+                name="price"
+                class="form-control"
+                required
+                min="0">
+        </div>
+
+        <div class="form-group">
+            <label>Offer Price (₹)</label>
+            <input
+                type="number"
+                name="offer_price"
+                class="form-control"
+                min="0">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Stock *</label>
+        <input
+            type="number"
+            name="stock"
+            class="form-control"
+            required
+            min="0"
+            value="0">
+    </div>
+
+    <small
+        style="display:none;color:var(--warn);font-weight:600;">
+        Pricing and stock will be controlled by variants.
+    </small>
+
 </div>
-<div class="form-group"><label>Stock *</label><input type="number" name="stock" class="form-control" required min="0"></div>
 <div class="form-group"><label>Description</label><textarea name="description" class="form-control"></textarea></div>
 <div class="form-group"><label>Care Guide</label><textarea name="care_guide" class="form-control"></textarea></div>
 <div class="form-group">
   <label>Age Variants <span style="font-weight:400;color:var(--text-secondary)">(optional)</span></label>
   <div id="variantList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;"></div>
-  <button type="button" class="btn-dark-sm" onclick="addVariantRow()">
+  <button type="button" class="btn-dark-sm" onclick="addVariantRow('variantList')">
     <i class="fa-solid fa-plus"></i> Add Variant
   </button>
   <!-- Hidden container for variant POST data — built by JS -->
@@ -174,7 +249,10 @@ function addVariantRow(containerId) {
   removeBtn.className = 'btn-icon btn-icon-danger';
   removeBtn.style.cssText = 'height:40px;margin-top:2px;flex-shrink:0;';
   removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-  removeBtn.onclick = () => row.remove();
+  removeBtn.onclick = () => {
+    row.remove();
+    toggleBasePricing();
+  };
 
   row.appendChild(labelCol);
   row.appendChild(priceInp);
@@ -182,6 +260,52 @@ function addVariantRow(containerId) {
   row.appendChild(stockInp);
   row.appendChild(removeBtn);
   container.appendChild(row);
+  toggleBasePricing();
 }
+
+function toggleBasePricing() {
+  const variantContainer = document.getElementById('addVariantRows');
+
+  const hasVariants =
+    variantContainer &&
+    variantContainer.children.length > 0;
+
+  const fields = [
+    document.getElementById('basePrice'),
+    document.getElementById('baseOffer'),
+    document.getElementById('baseStock'),
+  ];
+
+  fields.forEach(field => {
+    if (!field) return;
+
+    field.disabled = hasVariants;
+
+    if (hasVariants) {
+      field.removeAttribute('required');
+    } else {
+      if (field.id !== 'baseOffer') {
+        field.setAttribute('required', 'required');
+      }
+    }
+  });
+
+  const notice = document.getElementById('variantNotice');
+
+  if (notice) {
+    notice.style.display = hasVariants ? 'block' : 'none';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const addForm = document.getElementById('addProductForm');
+
+    if (addForm) {
+        addForm.addEventListener('reset', () => {
+            document.getElementById('addVariantRows').innerHTML = '';
+            toggleBasePricing();
+        });
+    }
+});
 </script>
 </body></html>

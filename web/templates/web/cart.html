@@ -49,8 +49,14 @@
             {% endif %}
             <span class="cat-tag">{{ item.product.category.name }}</span>
             <div class="item-price">
-              {% if item.product.offer_price %}₹{{ item.product.offer_price }}{% else %}₹{{ item.product.price }}{% endif %}
-            </div>
+    {% if item.variant %}
+        ₹{{ item.variant.effective_price }}
+    {% elif item.product.offer_price %}
+        ₹{{ item.product.offer_price }}
+    {% else %}
+        ₹{{ item.price }}
+    {% endif %}
+</div>
             <div class="qty-ctrl">
               <button class="qc-btn" onclick="updateQty({{ item.product.id }}, {{ item.quantity|add:'-1' }}, {{ item.variant.id|default:'null' }})">−</button>
               <span class="qc-num" id="qty-{{ item.product.id }}-{{ item.variant.id|default:'0' }}">{{ item.quantity }}</span>
