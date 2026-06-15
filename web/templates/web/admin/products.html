@@ -3,7 +3,8 @@
 <title>Products | Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<link rel="stylesheet" href="{% static 'css/admin.css' %}"></head><body>
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+<link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon"></head><body>
 {% for m in messages %}<div class="django-message" data-level="{% if m.tags == 'error' %}error{% else %}success{% endif %}" style="display:none;">{{ m }}</div>{% endfor %}
 <div class="admin-layout"><div class="sidebar-overlay" id="sidebarOverlay"></div>{% include "web/admin/_sidebar.html" %}
 <main class="main-content">
@@ -19,7 +20,7 @@
 <td>{% if p.total_stock == 0 %}<span style="color:var(--danger);font-weight:700">0</span>{% elif p.total_stock < 5 %}<span style="color:var(--warn);font-weight:700">{{ p.total_stock }}</span>{% else %}<span style="color:var(--success);font-weight:700">{{ p.total_stock }}</span>{% endif %}</td>
 <td>{% if p.is_active %}<span class="badge badge-active">Active</span>{% else %}<span class="badge badge-disabled">Hidden</span>{% endif %}</td>
 <td><div class="action-group">
-<button class="btn-icon btn-icon-edit" title="Edit" onclick="openEditModal('editProductModal',{name:'{{ p.name|escapejs }}',price:'{{ p.price }}',offer_price:'{{ p.offer_price|default:'' }}',stock:'{{ p.stock }}',description:'{{ p.description|escapejs }}',care_guide:'{{ p.care_guide|escapejs }}'});document.getElementById('editProductForm').action='{% url "edit_product" p.id %}';document.getElementById('editCatSel').value='{{ p.category.id }}';renderGalleryImages([{% for img in p.images.all %}{id:{{ img.id }},url:'{{ img.image.url }}'}{% if not forloop.last %},{% endif %}{% endfor %}])"><i class="fa-solid fa-pen"></i></button>
+<button class="btn-icon btn-icon-edit" title="Edit" onclick="openEditModal('editProductModal',{name:'{{ p.name|escapejs }}',price:'{{ p.price }}',offer_price:'{{ p.offer_price|default:'' }}',stock:'{{ p.stock }}',description:'{{ p.description|escapejs }}',care_guide:'{{ p.care_guide|escapejs }}'});document.getElementById('editProductForm').action='{% url "edit_product" p.id %}';document.getElementById('editCatSel').value='{{ p.category.id }}';renderGalleryImages([{% for img in p.images.all %}{id:{{ img.id }},url:'{{ img.image.url }}'}{% if not forloop.last %},{% endif %}{% endfor %}]);setMainImagePreview('editMainImgPreview','{{ p.image.url|default:'' }}')"><i class="fa-solid fa-pen"></i></button>
 <a href="{% url 'manage_variants' p.id %}" class="btn-icon btn-icon-toggle" title="Variants">
   <i class="fa-solid fa-tags"></i>
 </a>
@@ -91,15 +92,18 @@
     <i class="fa-solid fa-plus"></i> Add Age Variant
   </button>
 </div>
-<div class="form-group"><label>Image</label><div class="file-drop-area"><i class="fa-solid fa-cloud-arrow-up"></i><div class="file-name">Click to upload</div><div class="file-hint">PNG, JPG, WEBP</div><input type="file" name="image" accept="image/*"></div></div>
+<div class="form-group"><label>Image</label><div class="file-drop-area"><i class="fa-solid fa-cloud-arrow-up"></i><div class="file-name">Click to upload</div><div class="file-hint">PNG, JPG, WEBP</div><input type="file" name="image" accept="image/*" onchange="previewImage(this,'addMainImgPreview')"></div>
+  <img id="addMainImgPreview" style="display:none;width:64px;height:64px;object-fit:cover;border-radius:6px;margin-top:8px;">
+</div>
 <div class="form-group">
   <label>Additional Images <span style="font-weight:400;color:var(--text-secondary);font-size:.8rem;">— optional, multiple allowed</span></label>
   <div class="file-drop-area">
     <i class="fa-solid fa-images"></i>
     <div class="file-name">Click to upload (multiple)</div>
     <div class="file-hint">PNG, JPG, WEBP — select multiple files</div>
-    <input type="file" name="gallery_images" accept="image/*" multiple>
+    <input type="file" name="gallery_images" accept="image/*" multiple onchange="previewGalleryImages(this,'addGalleryPreview')">
   </div>
+  <div id="addGalleryPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
 </div>
 </div><div class="modal-footer"><button type="button" class="btn-cancel">Cancel</button><button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Save Product</button></div>
 </form></div></div>
@@ -151,7 +155,9 @@
 </div>
 <div class="form-group"><label>Description</label><textarea name="description" class="form-control"></textarea></div>
 <div class="form-group"><label>Care Guide</label><textarea name="care_guide" class="form-control"></textarea></div>
-<div class="form-group"><label>New Image</label><div class="file-drop-area"><i class="fa-solid fa-cloud-arrow-up"></i><div class="file-name">Click to replace</div><div class="file-hint">Leave blank to keep current</div><input type="file" name="image" accept="image/*"></div></div>
+<div class="form-group"><label>New Image</label><div class="file-drop-area"><i class="fa-solid fa-cloud-arrow-up"></i><div class="file-name">Click to replace</div><div class="file-hint">Leave blank to keep current</div><input type="file" name="image" accept="image/*" onchange="previewImage(this,'editMainImgPreview')"></div>
+  <img id="editMainImgPreview" style="display:none;width:64px;height:64px;object-fit:cover;border-radius:6px;margin-top:8px;">
+</div>
 <div class="form-group">
   <label>Gallery Images</label>
   <div id="existingGalleryImages" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;"></div>
@@ -159,8 +165,9 @@
     <i class="fa-solid fa-images"></i>
     <div class="file-name">Click to add more images</div>
     <div class="file-hint">PNG, JPG, WEBP — select multiple files</div>
-    <input type="file" name="gallery_images" accept="image/*" multiple>
+    <input type="file" name="gallery_images" accept="image/*" multiple onchange="previewGalleryImages(this,'editGalleryPreview')">
   </div>
+  <div id="editGalleryPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
 </div>
 </div><div class="modal-footer"><button type="button" class="btn-cancel">Cancel</button><button type="submit" class="btn-accent"><i class="fa-solid fa-check"></i> Update</button></div>
 </form></div></div>
@@ -307,6 +314,59 @@ function toggleBasePricing() {
   }
 }
 
+// ── Preview single image (main product image) ─────────────
+function previewImage(input, previewId) {
+  const preview = document.getElementById(previewId);
+  if (!preview) return;
+
+  const file = input.files && input.files[0];
+  if (!file) {
+    preview.style.display = 'none';
+    preview.src = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Set main image preview to an existing URL (Edit modal) ─
+function setMainImagePreview(previewId, url) {
+  const preview = document.getElementById(previewId);
+  if (!preview) return;
+
+  if (url) {
+    preview.src = url;
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+    preview.src = '';
+  }
+}
+
+// ── Preview multiple gallery images (newly selected files) ─
+function previewGalleryImages(input, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  Array.from(input.files || []).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.cssText = 'width:64px;height:64px;object-fit:cover;border-radius:6px;';
+      container.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function renderGalleryImages(images) {
   const container = document.getElementById('existingGalleryImages');
   if (!container) return;
@@ -340,6 +400,15 @@ document.addEventListener('DOMContentLoaded', () => {
         addForm.addEventListener('reset', () => {
             document.getElementById('addVariantRows').innerHTML = '';
             toggleBasePricing();
+
+            const mainPreview = document.getElementById('addMainImgPreview');
+            if (mainPreview) {
+                mainPreview.style.display = 'none';
+                mainPreview.src = '';
+            }
+
+            const galleryPreview = document.getElementById('addGalleryPreview');
+            if (galleryPreview) galleryPreview.innerHTML = '';
         });
     }
 });

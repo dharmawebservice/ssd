@@ -42,14 +42,16 @@
 
         // Close: .close-modal, [data-modal-close], .btn-cancel
         document.querySelectorAll("[data-modal-close], .close-modal, .btn-cancel").forEach(btn => {
-            btn.addEventListener("click", () => {
-                const overlay = btn.closest(".modal-overlay");
-                if (overlay) {
-                    overlay.classList.remove("active");
-                    document.body.style.overflow = "";
-                }
-            });
-        });
+    btn.addEventListener("click", () => {
+        const overlay = btn.closest(".modal-overlay");
+        if (overlay) {
+            overlay.classList.remove("active");
+            document.body.style.overflow = "";
+            const form = overlay.querySelector("form");
+            if (form) form.reset();
+        }
+    });
+});
 
         // Close on backdrop click
         document.querySelectorAll(".modal-overlay").forEach(overlay => {
