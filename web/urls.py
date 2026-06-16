@@ -500,4 +500,15 @@ path("product/<int:product_id>/variant-price/", views.get_variant_price, name="g
 path("admin-panel/products/<int:product_id>/variants/", views.manage_variants, name="manage_variants"),
 path("test-email/", views.test_email),
 path("csrf-debug/", views.csrf_debug),
+path(
+    "save-address/",
+    views.save_address,
+    name="save_address"
+),
+path(
+    "delete-address/<int:address_id>/",
+    views.delete_address,
+    name="delete_address"
+),
+
 ]

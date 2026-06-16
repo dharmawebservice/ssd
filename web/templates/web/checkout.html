@@ -9,6 +9,163 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="{% static 'css/style.css' %}">
 <link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
+<style>
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.55);
+    backdrop-filter:blur(6px);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+    z-index:9999;
+}
+
+.modal-box{
+    width:100%;
+    max-width:550px;
+    background:#fff;
+    border-radius:28px;
+    padding:32px;
+    box-shadow:0 20px 50px rgba(0,0,0,.18);
+    animation:modalFade .25s ease;
+    overflow-y:auto;
+    max-height:90vh;
+}
+
+@keyframes modalFade{
+    from{
+        opacity:0;
+        transform:translateY(20px) scale(.98);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0) scale(1);
+    }
+}
+
+.modal-box h3{
+    margin:0 0 25px;
+    text-align:center;
+    color:var(--forest);
+    font-size:2rem;
+    font-family:'DM Serif Display',serif;
+}
+
+.modal-box .form-control{
+    width:100%;
+    padding:14px 16px;
+    margin-bottom:14px;
+    border:1px solid #d8ddd8;
+    border-radius:14px;
+    background:#fafafa;
+    font-size:.95rem;
+    transition:all .2s ease;
+}
+
+.modal-box textarea.form-control{
+    min-height:90px;
+    resize:vertical;
+}
+
+.modal-box .form-control:focus{
+    outline:none;
+    border-color:var(--forest);
+    background:#fff;
+    box-shadow:0 0 0 4px rgba(28,58,43,.10);
+}
+
+.modal-default{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:15px 0 22px;
+    color:var(--text-mid);
+    font-size:.95rem;
+}
+
+.modal-default input{
+    width:18px;
+    height:18px;
+    accent-color:var(--forest);
+}
+
+.modal-actions{
+    display:flex;
+    gap:12px;
+}
+
+.modal-actions button{
+    flex:1;
+    border:none;
+    border-radius:14px;
+    padding:14px;
+    cursor:pointer;
+    font-weight:600;
+    transition:.2s ease;
+}
+
+.modal-save{
+    background:var(--forest);
+    color:#fff;
+}
+
+.modal-save:hover{
+    transform:translateY(-2px);
+    box-shadow:0 10px 20px rgba(28,58,43,.18);
+}
+
+.modal-cancel{
+    background:#f3f3f3;
+    color:var(--text-mid);
+}
+
+.modal-cancel:hover{
+    background:#e8e8e8;
+}
+
+@media(max-width:576px){
+
+    .modal-box{
+        padding:24px 18px;
+        border-radius:22px;
+    }
+
+    .modal-box h3{
+        font-size:1.7rem;
+    }
+
+    .modal-actions{
+        flex-direction:column;
+    }
+}
+
+.btn-secondary{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:var(--forest);
+    color:white;
+    border:none;
+    border-radius:12px;
+    padding:12px 18px;
+    font-size:0.95rem;
+    font-weight:600;
+    cursor:pointer;
+    transition:all .25s ease;
+    margin-bottom:15px;
+}
+
+.btn-secondary:hover{
+    transform:translateY(-2px);
+    box-shadow:0 10px 20px rgba(28,58,43,.18);
+}
+
+.btn-secondary i{
+    font-size:0.9rem;
+}
+</style>
 </head>
 <body data-auth="1">
 {% with nav_solid=True %}{% include "web/_navbar.html" %}{% endwith %}
@@ -22,24 +179,105 @@
       <!-- Delivery Address -->
       <div class="checkout-card">
         <h3><i class="fas fa-location-dot" style="color:var(--terracotta);margin-right:8px;"></i>Delivery Address</h3>
-        {% if profile.address %}
-        <div style="background:var(--ivory);border-radius:12px;padding:16px 18px;font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--text-mid);margin-bottom:14px;">
-          <strong style="color:var(--forest);display:block;margin-bottom:4px;">{{ request.user.first_name }}</strong>
-          {{ profile.address }}, {{ profile.area }}, {{ profile.city }}, {{ profile.state }} — {{ profile.pincode }}
-          {% if profile.instructions %}<div style="margin-top:6px;font-size:.88rem;color:var(--text-light);"><i class="fas fa-comment-dots"></i> {{ profile.instructions }}</div>{% endif %}
-        </div>
-        <a href="{% url 'profile' %}" style="font-size:.88rem;color:var(--terracotta);font-family:'Cormorant Garamond',serif;">Change address →</a>
-        <input type="hidden" id="deliveryAddress" value="{{ profile.address }}, {{ profile.area }}, {{ profile.city }}, {{ profile.state }} - {{ profile.pincode }}">
-        {% else %}
-        <div class="form-group">
-          <label>Full Address *</label>
-          <textarea class="form-control" id="deliveryAddress" rows="3" placeholder="House no., Street, Area…" required></textarea>
-        </div>
-        <div class="row-2">
-          <div class="form-group"><label>City</label><input type="text" class="form-control" id="delivCity" value="{{ profile.city }}"></div>
-          <div class="form-group"><label>Pincode</label><input type="text" class="form-control" id="delivPin" value="{{ profile.pincode }}" maxlength="6"></div>
-        </div>
-        {% endif %}
+        {% if addresses %}
+
+<select id="addressSelect"
+        class="form-control"
+        style="margin-bottom:15px;">
+
+    {% for addr in addresses %}
+    <option value="{{ addr.id }}"
+
+    data-name="{{ addr.full_name }}"
+    data-phone="{{ addr.phone }}"
+    data-address="{{ addr.address }}"
+    data-area="{{ addr.area }}"
+    data-city="{{ addr.city }}"
+    data-state="{{ addr.state }}"
+    data-pincode="{{ addr.pincode }}"
+    data-instructions="{{ addr.instructions|default:'' }}"
+
+    {% if selected_address and selected_address.id == addr.id %}
+        selected
+    {% endif %}
+>
+    {{ addr.full_name }}
+    —
+    {{ addr.area }}, {{ addr.city }}
+    {% if addr.is_default %}
+        (Default)
+    {% endif %}
+</option>
+    {% endfor %}
+
+</select>
+<button
+    type="button"
+    class="btn-secondary"
+    onclick="openAddressModal()"
+    style="margin-bottom:15px;"
+>
+    <i class="fas fa-plus"></i>
+    Add New Address
+</button>
+<div id="selectedAddressPreview"
+     style="
+        background:var(--ivory);
+        border-radius:12px;
+        padding:16px 18px;
+        font-family:'Cormorant Garamond',serif;
+        color:var(--text-mid);
+        margin-bottom:14px;
+     ">
+
+    <strong id="previewName"
+        style="color:var(--forest);display:block;">
+        {{ selected_address.full_name }}
+    </strong>
+
+    <div id="previewPhone">
+        {{ selected_address.phone }}
+    </div>
+
+    <div id="previewAddress">
+        {{ selected_address.address }}
+    </div>
+
+    <div id="previewAreaCity">
+        {{ selected_address.area }},
+        {{ selected_address.city }}
+    </div>
+
+    <div id="previewStatePin">
+        {{ selected_address.state }}
+        —
+        {{ selected_address.pincode }}
+    </div>
+
+    {% if selected_address.instructions %}
+    <div id="previewInstructions"
+     style="margin-top:8px;color:var(--text-light);">
+        <i class="fas fa-comment-dots"></i>
+        {{ selected_address.instructions }}
+    </div>
+    {% endif %}
+
+</div>
+
+<input type="hidden"
+       id="deliveryAddress"
+       value="{{ selected_address.id }}">
+
+{% else %}
+
+<p>No saved addresses found.</p>
+
+<a href="{% url 'profile' %}"
+   style="color:var(--terracotta);">
+    Add Address →
+</a>
+
+{% endif %}
         <div class="form-group" style="margin-top:14px;">
           <label>Order Notes (Optional)</label>
           <textarea class="form-control" id="orderNotes" rows="2" placeholder="Any special instructions for delivery…"></textarea>
@@ -137,6 +375,57 @@
 </div>
 
 {% include "web/_footer.html" %}
+<div id="addressModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+
+        <h3>Add New Address</h3>
+        <button
+            type="button"
+            class="btn-secondary"
+            onclick="useCurrentLocation()"
+            style="width:100%;margin-bottom:15px;"
+        >
+            <i class="fas fa-location-crosshairs"></i>
+            Use Current Location
+        </button>
+
+        <input type="text" id="newFullName" placeholder="Full Name" class="form-control">
+
+        <input type="text" id="newPhone" placeholder="Phone Number" class="form-control">
+
+        <textarea id="newAddress"
+                  placeholder="House No, Street"
+                  class="form-control"></textarea>
+
+        <input type="text" id="newArea" placeholder="Area" class="form-control">
+
+        <input type="text" id="newCity" placeholder="City" class="form-control">
+
+        <input type="text" id="newState" placeholder="State" class="form-control">
+
+        <input type="text" id="newPincode" placeholder="Pincode" class="form-control">
+
+        <textarea id="newInstructions"
+                  placeholder="Delivery Instructions (Optional)"
+                  class="form-control"></textarea>
+
+        <label class="modal-default">
+    <input type="checkbox" id="newDefault">
+    Make this my default address
+</label>
+
+<div class="modal-actions">
+    <button class="modal-save" onclick="saveNewAddress()">
+        <i class="fas fa-check"></i>
+        Save Address
+    </button>
+
+    <button class="modal-cancel" onclick="closeAddressModal()">
+        Cancel
+    </button>
+</div>
+    </div>
+</div>
 {% csrf_token %}
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="{% static 'js/script.js' %}"></script>
@@ -184,32 +473,43 @@ async function applyCoupon() {
   }
 }
 
-function getAddress() {
-  const el = document.getElementById('deliveryAddress');
-  if (el.tagName === 'INPUT') return el.value;
-  const addr = el.value.trim();
-  const city = document.getElementById('delivCity')?.value || '';
-  const pin  = document.getElementById('delivPin')?.value || '';
-  return `${addr}${city ? ', ' + city : ''}${pin ? ' - ' + pin : ''}`;
+function getSelectedAddressId() {
+
+    return document.getElementById(
+        "deliveryAddress"
+    )?.value || "";
+
 }
 
 async function placeOrder() {
   const btn  = document.getElementById('placeOrderBtn');
   const txt  = document.getElementById('placeOrderText');
   const spin = document.getElementById('placeOrderSpinner');
-  const addr = getAddress();
-  if (!addr || addr.length < 10) {
-    window.showToast && showToast('Please enter a valid delivery address', 'error');
-    return;
+  const addressId = getSelectedAddressId();
+
+  if (!addressId) {
+
+      showToast(
+          'Please select a delivery address',
+          'error'
+      );
+
+      return;
   }
   btn.disabled = true;
   txt.style.display = 'none';
   spin.style.display = 'inline-flex';
 
   const payload = {
-    address: addr,
-    notes: document.getElementById('orderNotes')?.value || '',
-    coupon_code: appliedCoupon
+
+      address_id: addressId,
+
+      notes:
+          document.getElementById(
+              'orderNotes'
+          )?.value || "",
+
+      coupon_code: appliedCoupon
   };
 
   if (payMethod === 'cod') {
@@ -260,6 +560,199 @@ async function placeOrder() {
     }
   });
   rz.open();
+}
+
+document.getElementById("addressSelect")
+?.addEventListener("change", function() {
+
+    const selected =
+        this.options[this.selectedIndex];
+
+    document.getElementById("previewName").textContent =
+        selected.dataset.name;
+
+    document.getElementById("previewPhone").textContent =
+        selected.dataset.phone;
+
+    document.getElementById("previewAddress").textContent =
+        selected.dataset.address;
+
+    document.getElementById("previewAreaCity").textContent =
+        `${selected.dataset.area}, ${selected.dataset.city}`;
+
+    document.getElementById("previewStatePin").textContent =
+        `${selected.dataset.state} — ${selected.dataset.pincode}`;
+
+    document.getElementById("previewInstructions").innerHTML =
+        selected.dataset.instructions
+        ? `<i class="fas fa-comment-dots"></i> ${selected.dataset.instructions}`
+        : "";
+
+    document.getElementById("deliveryAddress").value =
+        selected.value;
+});
+
+function openAddressModal() {
+    document.getElementById("addressModal").style.display = "flex";
+}
+
+function closeAddressModal() {
+
+    document.getElementById("addressModal").style.display = "none";
+
+    document.getElementById("newFullName").value = "";
+    document.getElementById("newPhone").value = "";
+    document.getElementById("newAddress").value = "";
+    document.getElementById("newArea").value = "";
+    document.getElementById("newCity").value = "";
+    document.getElementById("newState").value = "";
+    document.getElementById("newPincode").value = "";
+    document.getElementById("newInstructions").value = "";
+    document.getElementById("newDefault").checked = false;
+}
+
+document.getElementById("addressModal")
+?.addEventListener("click", function(e){
+
+    if(e.target === this){
+        closeAddressModal();
+    }
+
+});
+
+async function saveNewAddress() {
+
+    const payload = {
+        full_name: document.getElementById("newFullName").value,
+        phone: document.getElementById("newPhone").value,
+        address: document.getElementById("newAddress").value,
+        area: document.getElementById("newArea").value,
+        city: document.getElementById("newCity").value,
+        state: document.getElementById("newState").value,
+        pincode: document.getElementById("newPincode").value,
+        instructions: document.getElementById("newInstructions").value,
+        is_default: document.getElementById("newDefault").checked
+    };
+
+    const response = await api('/save-address/', payload);
+
+    if(response.success){
+
+    const addr = response.address;
+
+    const select = document.getElementById("addressSelect");
+
+    const option = document.createElement("option");
+
+    option.value = addr.id;
+
+    option.dataset.name = addr.full_name;
+    option.dataset.phone = addr.phone;
+    option.dataset.address = addr.address;
+    option.dataset.area = addr.area;
+    option.dataset.city = addr.city;
+    option.dataset.state = addr.state;
+    option.dataset.pincode = addr.pincode;
+    option.dataset.instructions = addr.instructions || "";
+
+    option.textContent =
+        `${addr.full_name} — ${addr.area}, ${addr.city}`
+        + (addr.is_default ? " (Default)" : "");
+
+    select.appendChild(option);
+
+    select.value = addr.id;
+
+    select.dispatchEvent(
+        new Event("change")
+    );
+
+    closeAddressModal();
+
+    showToast(
+        "Address added successfully",
+        "success"
+    );
+
+}else{
+
+        showToast(
+            response.errors
+                ? response.errors.join("\n")
+                : response.message,
+            "error"
+        );
+    }
+}
+
+async function useCurrentLocation(){
+
+    if(!navigator.geolocation){
+        showToast("Geolocation not supported","error");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+
+        async function(position){
+
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            try{
+
+                const response = await fetch(
+                    `/reverse-geocode/?lat=${lat}&lon=${lon}`
+                );
+
+                const data = await response.json();
+
+                if(data.success){
+
+                    document.getElementById("newAddress").value =
+                        data.address || "";
+
+                    document.getElementById("newArea").value =
+                        data.area || "";
+
+                    document.getElementById("newCity").value =
+                        data.city || "";
+
+                    document.getElementById("newState").value =
+                        data.state || "";
+
+                    document.getElementById("newPincode").value =
+                        data.pincode || "";
+
+                    showToast(
+                        "Location detected successfully",
+                        "success"
+                    );
+
+                }else{
+                    showToast(data.message,"error");
+                }
+
+            }catch(e){
+                showToast(
+                    "Unable to fetch address",
+                    "error"
+                );
+            }
+
+        },
+
+        function(){
+
+            showToast(
+                "Please allow location access",
+                "error"
+            );
+
+        }
+
+    );
+
 }
 </script>
 </body>

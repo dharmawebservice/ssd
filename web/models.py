@@ -642,4 +642,41 @@ class ProductVariant(models.Model):
         if self.offer_price and self.price:
             return int(((self.price - self.offer_price) / self.price) * 100)
         return 0
-    
+
+class UserAddress(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="addresses"
+    )
+
+    full_name = models.CharField(max_length=150)
+
+    phone = models.CharField(max_length=15)
+
+    address = models.TextField()
+
+    area = models.CharField(max_length=100)
+
+    city = models.CharField(max_length=100)
+
+    state = models.CharField(max_length=100)
+
+    pincode = models.CharField(max_length=10)
+
+    instructions = models.TextField(blank=True)
+
+    is_default = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.is_default:
+            UserAddress.objects.filter(
+                user=self.user
+            ).exclude(pk=self.pk).update(is_default=False)
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.address[:30]}"

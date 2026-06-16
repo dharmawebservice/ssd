@@ -8,12 +8,53 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="{% static 'css/style.css' %}"><link rel="stylesheet" href="{% static 'css/cartsidebar.css' %}">
+<style>
+  .cart-header{
+    margin-bottom:35px;
+}
+
+.cart-header .cart-page-title{
+    margin-bottom:14px;
+}
+
+.continue-shopping{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    color:var(--forest);
+    text-decoration:none;
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.1rem;
+    font-weight:600;
+    transition:all .25s ease;
+}
+
+.continue-shopping:hover{
+    color:var(--terracotta);
+    transform:translateX(-4px);
+}
+
+.continue-shopping i{
+    font-size:.9rem;
+}
+</style>
 </head>
 <body data-auth="{% if request.user.is_authenticated %}1{% else %}0{% endif %}">
 {% with active_nav="cart" nav_solid=True %}{% include "web/_navbar.html" %}{% endwith %}
 
 <div class="cart-page">
-  <h1 class="cart-page-title">Shopping Cart</h1>
+  <div class="cart-header">
+
+    <h1 class="cart-page-title">
+        Shopping Cart
+    </h1>
+
+    <a href="{% url 'shop' %}" class="continue-shopping">
+        <i class="fas fa-arrow-left"></i>
+        Continue Shopping
+    </a>
+
+</div>
 
   {% if items %}
   <div class="cart-layout">
@@ -68,9 +109,7 @@
         </div>
         {% endfor %}
       </div>
-      <a href="{% url 'shop' %}" style="display:inline-flex;align-items:center;gap:8px;color:var(--forest);font-family:'Cormorant Garamond',serif;font-size:.95rem;margin-top:18px;">
-        <i class="fas fa-arrow-left"></i> Continue Shopping
-      </a>
+
     </div>
 
     <!-- SUMMARY -->

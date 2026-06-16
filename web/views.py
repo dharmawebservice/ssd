@@ -41,7 +41,7 @@ from requests import request
 from .models import (
     Banner, CartItem, Category, Coupon, CouponUsage,
     EmailOTP, Notification, Order, OrderItem,
-    Product, ProductImage, Review, UserProfile, Wishlist,
+    Product, ProductImage, Review, UserProfile, Wishlist,UserAddress,
 )
 
 
@@ -928,14 +928,30 @@ def logout_user(request):
 @login_required
 def profile(request):
     user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
-    orders   = Order.objects.filter(user=request.user).prefetch_related("items__product").order_by("-id")[:10]
-    wishlist = Wishlist.objects.filter(user=request.user).select_related("product").order_by("-added_at")[:6]
-    return render(request, "web/profile.html", {
-        "profile":  user_profile,
-        "orders":   orders,
-        "wishlist": wishlist,
-    })
 
+    orders = (
+        Order.objects.filter(user=request.user)
+        .prefetch_related("items__product")
+        .order_by("-id")[:10]
+    )
+
+    wishlist = (
+        Wishlist.objects.filter(user=request.user)
+        .select_related("product")
+        .order_by("-added_at")[:6]
+    )
+
+    addresses = request.user.addresses.order_by(
+        "-is_default",
+        "-created_at"
+    )
+
+    return render(request, "web/profile.html", {
+        "profile": user_profile,
+        "orders": orders,
+        "wishlist": wishlist,
+        "addresses": addresses,
+    })
 
 @csrf_exempt
 @login_required
@@ -962,6 +978,89 @@ def save_details(request):
     except Exception as e:
         return JsonResponse({"success": False, "message": str(e)})
 
+@login_required
+@require_POST
+def save_address(request):
+    try:
+        data = json.loads(request.body)
+
+        address_id = data.get("id")
+
+        if address_id:
+            address = get_object_or_404(
+                UserAddress,
+                id=address_id,
+                user=request.user
+            )
+        else:
+            address = UserAddress(user=request.user)
+
+        address.full_name = data.get("full_name", "").strip()
+        address.phone = data.get("phone", "").strip()
+        address.address = data.get("address", "").strip()
+        address.area = data.get("area", "").strip()
+        address.city = data.get("city", "").strip()
+        address.state = data.get("state", "").strip()
+        address.pincode = data.get("pincode", "").strip()
+        address.instructions = data.get("instructions", "").strip()
+
+        # Validation
+        errors = []
+
+        if len(address.full_name) < 3:
+            errors.append("Enter a valid name.")
+
+        if not address.phone.isdigit() or len(address.phone) != 10:
+            errors.append("Phone number must be 10 digits.")
+
+        if len(address.address) < 10:
+            errors.append("Address must be at least 10 characters.")
+
+        if not address.pincode.isdigit() or len(address.pincode) != 6:
+            errors.append("Pincode must be 6 digits.")
+        
+        if len(address.area) < 2:
+            errors.append("Area is required.")
+
+        if len(address.city) < 2:
+            errors.append("City is required.")
+
+        if len(address.state) < 2:
+            errors.append("State is required.")
+
+        if errors:
+            return JsonResponse({
+                "success": False,
+                "errors": errors
+            })
+
+        if data.get("is_default"):
+            address.is_default = True
+
+        address.save()
+
+        return JsonResponse({
+            "success": True,
+            "message": "Address saved successfully.",
+            "address": {
+                "id": address.id,
+                "full_name": address.full_name,
+                "phone": address.phone,
+                "address": address.address,
+                "area": address.area,
+                "city": address.city,
+                "state": address.state,
+                "pincode": address.pincode,
+                "instructions": address.instructions,
+                "is_default": address.is_default,
+            }
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "message": str(e)
+        })
 
 def reverse_geocode(request):
     lat = request.GET.get("lat")
@@ -1286,19 +1385,39 @@ def checkout(request):
     subtotal, _ = _cart_totals(items)
     delivery    = _delivery_charge(subtotal)
     total       = subtotal + delivery
-    profile, _  = UserProfile.objects.get_or_create(user=request.user)
+    profile, _ = UserProfile.objects.get_or_create(
+        user=request.user
+    )
+
+    addresses = request.user.addresses.order_by(
+        "-is_default",
+        "-created_at"
+    )
+
+    selected_address = addresses.filter(
+        is_default=True
+    ).first()
+
+    if not selected_address:
+        selected_address = addresses.first()
     return render(request, "web/checkout.html", {
-        "items":        items,
-        "subtotal":     subtotal,
-        "delivery":     delivery,
-        "total":        total,
-        "profile":      profile,
-        "razorpay_key": settings.RAZORPAY_KEY_ID,
-        "cod_enabled": (
-            request.user.is_superuser or
-            _cod_allowed()
-        ),
-    })
+    "items": items,
+    "subtotal": subtotal,
+    "delivery": delivery,
+    "total": total,
+
+    "profile": profile,
+
+    "addresses": addresses,
+    "selected_address": selected_address,
+
+    "razorpay_key": settings.RAZORPAY_KEY_ID,
+
+    "cod_enabled": (
+        request.user.is_superuser or
+        _cod_allowed()
+    ),
+})
 
 
 # ══════════════════════════════════════════════════════════════
@@ -1346,15 +1465,41 @@ def create_razorpay_order(request):
             "receipt":  f"ssd_{request.user.id}_{int(timezone.now().timestamp())}",
         })
 
+        address_id = data.get("address_id")
+
+        selected_address = get_object_or_404(
+            UserAddress,
+            id=address_id,
+            user=request.user
+        )
+
+        full_address = (
+            f"{selected_address.full_name}\n"
+            f"{selected_address.phone}\n"
+            f"{selected_address.address}, "
+            f"{selected_address.area}, "
+            f"{selected_address.city}, "
+            f"{selected_address.state} - "
+            f"{selected_address.pincode}"
+        )
+
+        if selected_address.instructions:
+            full_address += (
+                f"\nInstructions: "
+                f"{selected_address.instructions}"
+            )
+
         request.session["pending_checkout"] = {
-            "subtotal":    str(subtotal),
-            "delivery":    str(delivery),
-            "discount":    str(discount),
-            "total":       str(total),
-            "coupon_id":   coupon_obj.id if coupon_obj else None,
+            "subtotal": str(subtotal),
+            "delivery": str(delivery),
+            "discount": str(discount),
+            "total": str(total),
+            "coupon_id": coupon_obj.id if coupon_obj else None,
             "rz_order_id": rz_order["id"],
-            "address":     data.get("address", ""),
-            "notes":       data.get("notes", ""),
+
+            "address": full_address,
+
+            "notes": data.get("notes", ""),
         }
 
         return JsonResponse({
@@ -1430,8 +1575,17 @@ def verify_razorpay_payment(request):
             if coupon:
                 CouponUsage.objects.get_or_create(user=request.user, coupon=coupon)
             for ci in items.select_for_update():
-                if ci.quantity > ci.product.stock:
-                    raise ValueError(f"'{ci.product.name}' ran out of stock.")
+
+                stock = (
+                    ci.variant.stock
+                    if ci.variant
+                    else ci.product.stock
+                )
+
+                if ci.quantity > stock:
+                    raise ValueError(
+                        f"'{ci.product.name}' ran out of stock."
+                    )
                 OrderItem.objects.create(
                     order=order,
                     product=ci.product,
@@ -1515,6 +1669,30 @@ def place_cod_order(request):
 
         total = subtotal + delivery - discount
 
+        address_id = data.get("address_id")
+
+        selected_address = get_object_or_404(
+            UserAddress,
+            id=address_id,
+            user=request.user
+        )
+
+        full_address = (
+            f"{selected_address.full_name}\n"
+            f"{selected_address.phone}\n"
+            f"{selected_address.address}, "
+            f"{selected_address.area}, "
+            f"{selected_address.city}, "
+            f"{selected_address.state} - "
+            f"{selected_address.pincode}"
+        )
+
+        if selected_address.instructions:
+            full_address += (
+                f"\nInstructions: "
+                f"{selected_address.instructions}"
+            )
+
         with transaction.atomic():
             order = Order.objects.create(
                 user            = request.user,
@@ -1522,7 +1700,7 @@ def place_cod_order(request):
                 discount_amount = discount,
                 status          = "Pending",
                 payment_method  = "cod",
-                address         = data.get("address", ""),
+                address=full_address,
                 notes           = data.get("notes", ""),
                 coupon          = coupon_obj,
             )
@@ -1531,8 +1709,17 @@ def place_cod_order(request):
                 CouponUsage.objects.get_or_create(user=request.user, coupon=coupon_obj)
 
             for ci in items.select_for_update():
-                if ci.quantity > ci.product.stock:
-                    raise ValueError(f"'{ci.product.name}' ran out of stock.")
+
+                stock = (
+                    ci.variant.stock
+                    if ci.variant
+                    else ci.product.stock
+                )
+
+                if ci.quantity > stock:
+                    raise ValueError(
+                        f"'{ci.product.name}' ran out of stock."
+                    )
                 OrderItem.objects.create(
                     order=order,
                     product=ci.product,
@@ -2695,4 +2882,35 @@ def csrf_debug(request):
     return JsonResponse({
         "cookie": request.COOKIES.get("csrftoken"),
         "session": request.session.session_key,
+    })
+
+@login_required
+@require_POST
+def delete_address(request, address_id):
+
+    address = get_object_or_404(
+        UserAddress,
+        id=address_id,
+        user=request.user
+    )
+
+    was_default = address.is_default
+
+    address.delete()
+
+    # If deleted address was default,
+    # assign another address as default
+    if was_default:
+
+        next_address = UserAddress.objects.filter(
+            user=request.user
+        ).order_by("created_at").first()
+
+        if next_address:
+            next_address.is_default = True
+            next_address.save()
+
+    return JsonResponse({
+        "success": True,
+        "message": "Address deleted successfully."
     })
