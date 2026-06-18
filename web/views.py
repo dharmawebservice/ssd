@@ -974,6 +974,19 @@ def save_details(request):
         profile.pincode      = pincode
         profile.instructions = data.get("instructions", "")
         profile.save()
+        if not UserAddress.objects.filter(user=request.user).exists():
+            UserAddress.objects.create(
+                user=request.user,
+                full_name=request.user.first_name,
+                phone=profile.phone,
+                address=address,
+                area=data.get("area", ""),
+                city=data.get("city", ""),
+                state=data.get("state", ""),
+                pincode=pincode,
+                instructions=data.get("instructions", ""),
+                is_default=True,
+            )
         return JsonResponse({"success": True, "message": "Details saved!"})
     except Exception as e:
         return JsonResponse({"success": False, "message": str(e)})
@@ -2914,3 +2927,126 @@ def delete_address(request, address_id):
         "success": True,
         "message": "Address deleted successfully."
     })
+
+def forgot_password_otp(request):
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False
+        })
+
+    try:
+        data = json.loads(request.body)
+
+        email = data.get("email", "").strip().lower()
+
+        user = User.objects.filter(email=email).first()
+
+        if not user:
+            return JsonResponse({
+                "success": False,
+                "message": "No account found with this email."
+            })
+
+        otp = str(random.randint(100000, 999999))
+
+        EmailOTP.objects.update_or_create(
+            email=email,
+            defaults={"otp": otp}
+        )
+
+        request.session["reset_email"] = email
+
+        html = f"""
+        <h2>SSD Nursery</h2>
+        <p>Password Reset OTP</p>
+        <h1>{otp}</h1>
+        <p>Valid for 5 minutes.</p>
+        """
+
+        send_brevo_html_email(
+            "SSD Nursery Password Reset",
+            html,
+            email,
+        )
+
+        return JsonResponse({
+            "success": True,
+            "message": "OTP sent successfully."
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "message": str(e)
+        })
+    
+def verify_reset_otp(request):
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False
+        })
+
+    try:
+        data = json.loads(request.body)
+
+        otp = data.get("otp")
+
+        email = request.session.get("reset_email")
+
+        saved = EmailOTP.objects.get(email=email)
+
+        if saved.otp != otp:
+            return JsonResponse({
+                "success": False,
+                "message": "Invalid OTP."
+            })
+
+        request.session["otp_verified"] = True
+
+        return JsonResponse({
+            "success": True
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "message": str(e)
+        })
+    
+def reset_password(request):
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False
+        })
+
+    try:
+        if not request.session.get("otp_verified"):
+            return JsonResponse({
+                "success": False,
+                "message": "OTP verification required."
+            })
+
+        data = json.loads(request.body)
+
+        password = data.get("password")
+
+        email = request.session.get("reset_email")
+
+        user = User.objects.get(email=email)
+
+        user.set_password(password)
+        user.save()
+
+        request.session.pop("reset_email", None)
+        request.session.pop("otp_verified", None)
+
+        return JsonResponse({
+            "success": True,
+            "message": "Password updated successfully."
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "message": str(e)
+        })

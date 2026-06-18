@@ -165,15 +165,84 @@
 .btn-secondary i{
     font-size:0.9rem;
 }
+
+.checkout-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-bottom:30px;
+}
+
+.checkout-page-title{
+    margin:0;
+}
+
+.checkout-links{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:10px;
+}
+
+.header-link{
+    display:flex;
+    align-items:center;
+    gap:8px;
+
+    color:var(--forest);
+    text-decoration:none;
+
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.1rem;
+    font-weight:600;
+
+    transition:.25s ease;
+}
+
+.header-link:hover{
+    color:var(--terracotta);
+    transform:translateX(-4px);
+}
+
+@media(max-width:768px){
+
+    .checkout-header{
+        flex-direction:column;
+        gap:15px;
+    }
+
+    .checkout-links{
+        align-items:flex-start;
+    }
+}
+
 </style>
 </head>
 <body data-auth="1">
 {% with nav_solid=True %}{% include "web/_navbar.html" %}{% endwith %}
 
 <div class="checkout-page">
-  <h1>Checkout</h1>
-  <div class="checkout-layout">
+<div class="checkout-header">
 
+    <h1 class="checkout-page-title">
+        Checkout
+    </h1>
+
+    <div class="checkout-links">
+
+        <a href="{% url 'shop' %}" class="header-link">
+            <i class="fas fa-arrow-left"></i>
+            Continue Shopping
+        </a>
+
+        <a href="{% url 'cart_page' %}" class="header-link">
+            <i class="fas fa-shopping-cart"></i>
+            Back to Cart
+        </a>
+
+    </div>
+
+</div>
     <!-- LEFT: Address + Payment -->
     <div>
       <!-- Delivery Address -->
@@ -254,13 +323,15 @@
         {{ selected_address.pincode }}
     </div>
 
-    {% if selected_address.instructions %}
     <div id="previewInstructions"
      style="margin-top:8px;color:var(--text-light);">
+
+    {% if selected_address.instructions %}
         <i class="fas fa-comment-dots"></i>
         {{ selected_address.instructions }}
-    </div>
     {% endif %}
+
+    </div>
 
 </div>
 
@@ -583,10 +654,15 @@ document.getElementById("addressSelect")
     document.getElementById("previewStatePin").textContent =
         `${selected.dataset.state} — ${selected.dataset.pincode}`;
 
-    document.getElementById("previewInstructions").innerHTML =
-        selected.dataset.instructions
-        ? `<i class="fas fa-comment-dots"></i> ${selected.dataset.instructions}`
-        : "";
+    const instructionsEl =
+    document.getElementById("previewInstructions");
+
+    if (instructionsEl) {
+        instructionsEl.innerHTML =
+            selected.dataset.instructions
+            ? `<i class="fas fa-comment-dots"></i> ${selected.dataset.instructions}`
+            : "";
+    }
 
     document.getElementById("deliveryAddress").value =
         selected.value;

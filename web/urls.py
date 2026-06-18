@@ -510,5 +510,7 @@ path(
     views.delete_address,
     name="delete_address"
 ),
-
+path("forgot-password/", views.forgot_password_otp),
+path("verify-reset-otp/", views.verify_reset_otp),
+path("reset-password/", views.reset_password),
 ]
