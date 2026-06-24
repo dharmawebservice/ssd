@@ -24,11 +24,11 @@ ALLOWED_HOSTS = os.getenv(
 
 CSRF_TRUSTED_ORIGINS = os.getenv(
     "CSRF_TRUSTED_ORIGINS",
-    "http://127.0.0.1:8000,http://localhost:8000"
-    "https://ssdnursery.in",
-    "https://www.ssdnursery.in",
-    "https://ssd-524c.onrender.com",
+    "http://127.0.0.1:8000,http://localhost:8000,https://ssdnursery.in,https://www.ssdnursery.in,https://ssd-524c.onrender.com"
 ).split(",")
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = not DEBUG
 
 # ==================================================
 # APPLICATIONS
