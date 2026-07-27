@@ -16,7 +16,8 @@ SECRET_KEY = os.getenv(
     "django-insecure-development-key"
 )
 
-DEBUG = os.getenv("DEBUG", "False") == "True"
+DEBUG = os.getenv("DEBUG", "False") == "True"   # DEBUG=False in your .env → DEBUG = False
+SECURE_SSL_REDIRECT = not DEBUG   
 
 ALLOWED_HOSTS = os.getenv(
     "ALLOWED_HOSTS",
@@ -28,8 +29,6 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
     "http://127.0.0.1:8000,http://localhost:8000,https://ssdnursery.in,https://www.ssdnursery.in,https://ssd-524c.onrender.com"
 ).split(",")
 
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = not DEBUG
 
 # ==================================================
 # APPLICATIONS
@@ -46,8 +45,16 @@ INSTALLED_APPS = [
     "web",
 ]
 
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
+if DEBUG:
+    SECURE_SSL_REDIRECT = False
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
+else:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+    
 CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
 CSRF_COOKIE_SAMESITE = "Lax"

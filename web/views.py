@@ -1532,21 +1532,55 @@ def create_razorpay_order(request):
 # RAZORPAY — verify payment + place order (AJAX)
 # ══════════════════════════════════════════════════════════════
 
+def _alert_admin_payment_needs_reconciliation(user, rz_order_id, rz_payment_id, reason):
+    """
+    Fires whenever Razorpay has ALREADY confirmed/captured a payment (signature
+    verified OK) but we failed to create the local Order afterwards (stock ran
+    out, coupon race, server error, etc). Money has left the customer's
+    account at this point, so this must never fail silently — email the admin
+    immediately so the order can be completed or refunded by hand.
+    """
+    try:
+        html = (
+            f"<p><strong>Action required — paid order not created</strong></p>"
+            f"<p>User: {user.get_full_name() or user.username} ({user.email})</p>"
+            f"<p>Razorpay Order ID: {rz_order_id}</p>"
+            f"<p>Razorpay Payment ID: {rz_payment_id}</p>"
+            f"<p>Reason: {reason}</p>"
+            f"<p>Please verify this payment in the Razorpay dashboard and either "
+            f"manually create the order for the customer or issue a refund.</p>"
+        )
+        send_brevo_html_email(
+            f"[URGENT] Razorpay payment {rz_payment_id} captured but order failed",
+            html,
+            settings.DEFAULT_FROM_EMAIL,
+            "Admin",
+        )
+    except Exception:
+        logger.exception("Failed to send payment-reconciliation alert email")
+
+
 @require_POST
 @login_required
 @csrf_exempt
 def verify_razorpay_payment(request):
+    rz_order_id   = ""
+    rz_payment_id = ""
     try:
         data    = json.loads(request.body)
         pending = request.session.get("pending_checkout")
-        if not pending:
-            return JsonResponse({"success": False, "message": "Session expired. Please retry checkout."})
 
         rz_order_id   = data.get("razorpay_order_id", "")
         rz_payment_id = data.get("razorpay_payment_id", "")
         rz_signature  = data.get("razorpay_signature", "")
 
-        # Official Razorpay signature verification
+        if not (rz_order_id and rz_payment_id and rz_signature):
+            return JsonResponse({"success": False, "message": "Missing payment details from Razorpay."})
+
+        # Official Razorpay signature verification.
+        # If this fails, the request genuinely wasn't a valid Razorpay
+        # callback (tampering, or wrong key/secret pair) — no money should
+        # have moved, so it's safe to just reject it.
         client = _razorpay_client()
         try:
             client.utility.verify_payment_signature({
@@ -1555,69 +1589,145 @@ def verify_razorpay_payment(request):
                 "razorpay_signature":  rz_signature,
             })
         except razorpay.errors.SignatureVerificationError:
-            return JsonResponse({"success": False, "message": "Payment verification failed."})
+            logger.error(
+                "Razorpay signature mismatch — check that RAZORPAY_KEY_ID and "
+                "RAZORPAY_KEY_SECRET in .env belong to the SAME account/mode "
+                "(both Test or both Live) as the key used to open the "
+                "checkout widget. order_id=%s payment_id=%s",
+                rz_order_id, rz_payment_id,
+            )
+            return JsonResponse({
+                "success": False,
+                "message": "We couldn't verify this payment. If money was deducted, "
+                           "it will be auto-refunded, or contact support with "
+                           f"payment ID {rz_payment_id}."
+            })
+
+        # From this point on, Razorpay has confirmed the payment is genuine.
+        # ANY failure below means the customer has already paid, so we must
+        # never just swallow the error — always log it, alert an admin, and
+        # tell the customer their payment was received so they don't pay again.
 
         # Idempotency — block duplicate order for same payment
         if Order.objects.filter(payment_id=rz_payment_id).exists():
             existing = Order.objects.get(payment_id=rz_payment_id)
             return JsonResponse({"success": True, "order_id": existing.id})
 
+        if not pending:
+            logger.error(
+                "pending_checkout missing from session for already-verified "
+                "payment_id=%s (order_id=%s, user=%s). Likely session cookie "
+                "was dropped between create-order and verify-payment calls "
+                "(check SESSION_COOKIE_SECURE/SAMESITE if testing over plain "
+                "HTTP, or third-party-cookie blocking).",
+                rz_payment_id, rz_order_id, request.user,
+            )
+            _alert_admin_payment_needs_reconciliation(
+                request.user, rz_order_id, rz_payment_id,
+                "Session expired / pending_checkout missing after payment.",
+            )
+            return JsonResponse({
+                "success": False,
+                "message": "Your payment was received, but your session expired before "
+                           "we could finish placing the order. Our team has been "
+                           f"notified — please contact support with payment ID {rz_payment_id}."
+            })
+
         items = _cart_items(request.user)
         if not items.exists():
-            return JsonResponse({"success": False, "message": "Cart is empty."})
+            logger.error(
+                "Cart empty for already-verified payment_id=%s (user=%s).",
+                rz_payment_id, request.user,
+            )
+            _alert_admin_payment_needs_reconciliation(
+                request.user, rz_order_id, rz_payment_id, "Cart was empty after payment.",
+            )
+            return JsonResponse({
+                "success": False,
+                "message": "Your payment was received, but we couldn't find your cart "
+                           f"items. Our team has been notified — please contact support "
+                           f"with payment ID {rz_payment_id}."
+            })
 
         total    = Decimal(pending["total"])
         discount = Decimal(pending["discount"])
         coupon   = Coupon.objects.filter(id=pending["coupon_id"]).first() if pending["coupon_id"] else None
 
         if coupon and CouponUsage.objects.filter(user=request.user, coupon=coupon).exists():
-            return JsonResponse({"success": False, "message": "You have already used this coupon."})
-        with transaction.atomic():
-            order = Order.objects.create(
-                user            = request.user,
-                total_amount    = total,
-                discount_amount = discount,
-                status          = "Pending",
-                payment_method  = "razorpay",
-                payment_id      = rz_payment_id,
-                razorpay_order_id = rz_order_id,
-                address         = pending["address"],
-                notes           = pending["notes"],
-                coupon          = coupon,
+            _alert_admin_payment_needs_reconciliation(
+                request.user, rz_order_id, rz_payment_id, "Coupon already used (race condition).",
             )
-            if coupon:
-                CouponUsage.objects.get_or_create(user=request.user, coupon=coupon)
-            for ci in items.select_for_update():
+            return JsonResponse({
+                "success": False,
+                "message": "Your payment was received, but that coupon was already used. "
+                           f"Our team has been notified — please contact support with "
+                           f"payment ID {rz_payment_id}."
+            })
 
-                stock = (
-                    ci.variant.stock
-                    if ci.variant
-                    else ci.product.stock
+        try:
+            with transaction.atomic():
+                order = Order.objects.create(
+                    user            = request.user,
+                    total_amount    = total,
+                    discount_amount = discount,
+                    status          = "Pending",
+                    payment_method  = "razorpay",
+                    payment_id      = rz_payment_id,
+                    razorpay_order_id = rz_order_id,
+                    address         = pending["address"],
+                    notes           = pending["notes"],
+                    coupon          = coupon,
                 )
+                if coupon:
+                    CouponUsage.objects.get_or_create(user=request.user, coupon=coupon)
+                for ci in items.select_for_update():
 
-                if ci.quantity > stock:
-                    raise ValueError(
-                        f"'{ci.product.name}' ran out of stock."
-                    )
-                OrderItem.objects.create(
-                    order=order,
-                    product=ci.product,
-                    variant=ci.variant,
-                    quantity=ci.quantity,
-                    price=(
-                        ci.variant.effective_price
+                    stock = (
+                        ci.variant.stock
                         if ci.variant
-                        else ci.product.effective_price
-                    ),
-                )
-                if ci.variant:
-                    ci.variant.stock -= ci.quantity
-                    ci.variant.save(update_fields=["stock"])
-                else:
-                    ci.product.stock -= ci.quantity
-                    ci.product.save(update_fields=["stock"])
+                        else ci.product.stock
+                    )
 
-            items.delete()
+                    if ci.quantity > stock:
+                        raise ValueError(
+                            f"'{ci.product.name}' ran out of stock."
+                        )
+                    OrderItem.objects.create(
+                        order=order,
+                        product=ci.product,
+                        variant=ci.variant,
+                        quantity=ci.quantity,
+                        price=(
+                            ci.variant.effective_price
+                            if ci.variant
+                            else ci.product.effective_price
+                        ),
+                    )
+                    if ci.variant:
+                        ci.variant.stock -= ci.quantity
+                        ci.variant.save(update_fields=["stock"])
+                    else:
+                        ci.product.stock -= ci.quantity
+                        ci.product.save(update_fields=["stock"])
+
+                items.delete()
+        except Exception as e:
+            # Payment succeeded but the order couldn't be saved — this is the
+            # dangerous case (customer charged, no order on our side).
+            logger.exception(
+                "Order creation failed AFTER payment was verified. "
+                "payment_id=%s order_id=%s user=%s",
+                rz_payment_id, rz_order_id, request.user,
+            )
+            _alert_admin_payment_needs_reconciliation(
+                request.user, rz_order_id, rz_payment_id, str(e),
+            )
+            return JsonResponse({
+                "success": False,
+                "message": "Your payment was received, but we hit an issue placing your "
+                           f"order ({e}). Our team has been notified — please contact "
+                           f"support with payment ID {rz_payment_id}, do NOT pay again."
+            })
 
         if "pending_checkout" in request.session:
             del request.session["pending_checkout"]
@@ -1632,10 +1742,19 @@ def verify_razorpay_payment(request):
 
         return JsonResponse({"success": True, "order_id": order.id})
 
-    except ValueError as e:
-        return JsonResponse({"success": False, "message": str(e)})
     except Exception as e:
-        return JsonResponse({"success": False, "message": str(e)})
+        # Unexpected error before/around signature verification — log it so
+        # it can be diagnosed, but don't claim the customer paid if we're not
+        # sure verification even ran.
+        logger.exception(
+            "Unexpected error in verify_razorpay_payment. order_id=%s payment_id=%s",
+            rz_order_id, rz_payment_id,
+        )
+        return JsonResponse({
+            "success": False,
+            "message": f"Something went wrong verifying your payment ({e}). "
+                       f"If money was deducted, contact support with payment ID {rz_payment_id or 'N/A'}."
+        })
 
 
 # ══════════════════════════════════════════════════════════════

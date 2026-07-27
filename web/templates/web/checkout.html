@@ -618,7 +618,10 @@ async function placeOrder() {
       if (vData.success) {
         window.location.href = '/order/success/' + vData.order_id + '/';
       } else {
-        showToast('Payment verification failed. Contact support.', 'error');
+        // Show the real reason from the backend (it already includes the
+        // payment ID to quote to support when the payment actually went
+        // through) instead of a generic message that hides what happened.
+        showToast(vData.message || 'Payment verification failed. Contact support.', 'error');
         btn.disabled = false; txt.style.display = 'inline-flex'; spin.style.display = 'none';
       }
     },
@@ -630,6 +633,16 @@ async function placeOrder() {
       }
     }
   });
+
+  // A declined/expired card etc never reaches the `handler` callback above —
+  // Razorpay fires this event instead. Without listening for it, the user
+  // just sees the modal close with no explanation and a stuck button.
+  rz.on('payment.failed', function(resp) {
+    const reason = resp?.error?.description || 'Payment failed.';
+    showToast(reason, 'error');
+    btn.disabled = false; txt.style.display = 'inline-flex'; spin.style.display = 'none';
+  });
+
   rz.open();
 }
 
