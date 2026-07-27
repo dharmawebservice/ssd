@@ -1680,7 +1680,7 @@ def verify_razorpay_payment(request):
                 )
                 if coupon:
                     CouponUsage.objects.get_or_create(user=request.user, coupon=coupon)
-                for ci in items.select_for_update():
+                for ci in items.select_for_update(of=("self",)):
 
                     stock = (
                         ci.variant.stock
@@ -1840,7 +1840,7 @@ def place_cod_order(request):
             if coupon_obj:
                 CouponUsage.objects.get_or_create(user=request.user, coupon=coupon_obj)
 
-            for ci in items.select_for_update():
+            for ci in items.select_for_update(of=("self",)):
 
                 stock = (
                     ci.variant.stock
