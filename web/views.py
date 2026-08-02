@@ -397,7 +397,6 @@ def shop(request):
 
     if request.GET.get("sale") == "1":
         qs = qs.exclude(offer_price__isnull=True)
-    from django.db.models import Q
 
     if request.GET.get("in_stock") == "1":
         qs = qs.filter(
