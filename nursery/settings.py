@@ -24,6 +24,11 @@ ALLOWED_HOSTS = os.getenv(
     "localhost,127.0.0.1,ssd-524c.onrender.com,ssdnursery.in,www.ssdnursery.in"
 ).split(",")
 
+ALLOWED_HOSTS = os.getenv(
+    "ALLOWED_HOSTS",
+    "localhost,127.0.0.1,187.127.163.205,ssd-524c.onrender.com,ssdnursery.in,www.ssdnursery.in"
+).split(",")
+
 CSRF_TRUSTED_ORIGINS = os.getenv(
     "CSRF_TRUSTED_ORIGINS",
     "http://127.0.0.1:8000,http://localhost:8000,https://ssdnursery.in,https://www.ssdnursery.in,https://ssd-524c.onrender.com"
