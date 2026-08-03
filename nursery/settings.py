@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "cloudinary",
     "django.contrib.staticfiles",
     "web",
+    'django.contrib.sitemaps',
 ]
 
 if DEBUG:

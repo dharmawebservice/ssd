@@ -1,0 +1,12 @@
+User-agent: *
+
+Allow: /
+
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /cart/
+Disallow: /checkout/
+Disallow: /profile/
+Disallow: /wishlist/
+
+Sitemap: https://ssdnursery.in/sitemap.xml
