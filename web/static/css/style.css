@@ -1,4 +1,4 @@
-    /* ============================================================
+/* ============================================================
     SSD NURSERY — Premium Botanical Storefront
     Design: Organic Luxury | Dark Emerald + Warm Ivory + Terracotta
     ============================================================ */
@@ -2577,7 +2577,26 @@
 }
 
 .price-row{
-    margin-top:auto;
+    margin-top:auto !important;
+}
+
+.shop-variants{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:6px;
+}
+
+@media (max-width:768px){
+    .toast{
+        left:16px;
+        right:16px;
+        transform:translateY(80px);
+        white-space:normal;
+        text-align:center;
+        justify-content:center;
+    }
+    .toast.show{ transform:translateY(0); }
 }
 .shop-variant-pill{
     padding:5px 12px;

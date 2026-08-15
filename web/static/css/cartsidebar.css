@@ -1,4 +1,4 @@
-    /* ================= CART SIDEBAR ================= */
+/* ================= CART SIDEBAR ================= */
     .cart-overlay {
         position: fixed;
         inset: 0;
@@ -18,6 +18,7 @@
         width: 400px;
         max-width: 95vw;
         height: 100vh;
+        height: 100dvh; /* fixes iOS/Android address-bar cutting off the footer */
         background: white;
         z-index: 1501;
         transform: translateX(100%);
@@ -27,6 +28,31 @@
         box-shadow: -8px 0 40px rgba(0, 0, 0, 0.12);
     }
     .cart-sidebar.active { transform: translateX(0); }
+
+    /* ================= CART SIDEBAR — MOBILE ================= */
+    @media (max-width: 600px) {
+        .cart-sidebar {
+            width: 100%;
+            max-width: 100vw;
+        }
+
+        .cart-header {
+            padding: 16px 16px;
+        }
+
+        .cart-body {
+            padding: 16px;
+        }
+
+        .cart-footer {
+            padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+            flex-shrink: 0; /* never let the footer get squeezed/cut off */
+        }
+
+        .drawer-item-img { width: 52px; height: 52px; }
+        .drawer-item-info h4 { font-size: 0.86rem; }
+        .btn-checkout, .btn-checkout-now { padding: 13px; font-size: 1rem; }
+    }
 
     .cart-header {
         display: flex;
@@ -242,4 +268,3 @@
     }
 
 }
-
